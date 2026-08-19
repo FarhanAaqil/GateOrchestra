@@ -1,0 +1,64 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+*.pyd
+.Python
+build/
+dist/
+*.egg-info/
+.eggs/
+*.egg
+pip-wheel-metadata/
+
+# Virtual environments
+.venv/
+venv/
+env/
+.env
+
+# Environment / secrets
+.env.local
+*.env
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+.tox/
+
+# Type checking
+.mypy_cache/
+.dmypy.json
+
+# Linting
+.ruff_cache/
+
+# Jupyter
+.ipynb_checkpoints/
+*.ipynb
+
+# Data & Models (large files — use DVC or manual storage)
+dataset/masbench_mini/**/*.json
+logs/*.json
+logs/*.jsonl
+configs/*.pkl
+configs/*.joblib
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# Personal planning files (not for version control)
+Blueprint
+implementation_plan_farhan
+GateOrchestra_Architecture_and_Roles.md
+GateOrchestra_Master_Blueprint_FarhanAaqilDurrani.pdf
+
