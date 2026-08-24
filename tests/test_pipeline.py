@@ -7,17 +7,14 @@ Uses mock modules — no LLM calls.
 
 import pytest
 
+from gate.random_gate import RandomGate
+from gate.rule_based_gate import RuleBasedGate
+from integration.pipeline import _exact_match, run_batch, run_pipeline
 from shared.schemas import EvalResult
 from shared.token_logger import TokenAccountant
-
-from gate.rule_based_gate import RuleBasedGate
-from gate.random_gate import RandomGate
-
-from integration.pipeline import run_pipeline, run_batch, _exact_match
-
-from tests.mocks.mock_probe_agent import mock_probe_agent
-from tests.mocks.mock_orchestrator import mock_orchestrator
 from tests.mocks.mock_dataset import get_mock_tasks
+from tests.mocks.mock_orchestrator import mock_orchestrator
+from tests.mocks.mock_probe_agent import mock_probe_agent
 
 
 @pytest.fixture

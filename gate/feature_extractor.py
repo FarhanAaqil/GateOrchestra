@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Optional
 
 from shared.config import SPACY_MODEL, USE_SPACY
 from shared.schemas import GateFeatures, ProbeResult, Task
@@ -54,7 +53,7 @@ def _get_nlp():
 def extract_features(
     task: Task,
     probe: ProbeResult,
-    use_spacy: Optional[bool] = None,
+    use_spacy: bool | None = None,
 ) -> GateFeatures:
     """Extract GateFeatures from a Task and its ProbeResult.
 

@@ -9,30 +9,25 @@ Run from the repository root:
 
 from __future__ import annotations
 
-from fastapi import FastAPI
-from pydantic import BaseModel, Field
-
 import sys
 from pathlib import Path
+
+from fastapi import FastAPI, HTTPException
+from fastapi.middleware.cors import CORSMiddleware
+from pydantic import BaseModel, Field
+
+from gate.random_gate import RandomGate
+from gate.rule_based_gate import RuleBasedGate
+from integration.pipeline import run_pipeline
+from shared.config import K_DEFAULT
+from shared.schemas import Task
+from shared.token_logger import TokenAccountant
+from tests.mocks.mock_orchestrator import mock_orchestrator
+from tests.mocks.mock_probe_agent import mock_probe_agent
 
 # Make sure the repository root is available for imports
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
-
-from fastapi import FastAPI, HTTPException
-from fastapi.middleware.cors import CORSMiddleware
-
-from shared.config import K_DEFAULT
-from shared.schemas import Task
-from shared.token_logger import TokenAccountant
-
-from gate.rule_based_gate import RuleBasedGate
-from gate.random_gate import RandomGate
-from integration.pipeline import run_pipeline
-
-from tests.mocks.mock_probe_agent import mock_probe_agent
-from tests.mocks.mock_orchestrator import mock_orchestrator
-
 
 # ─────────────────────────────────────────────────────────────
 # FastAPI application

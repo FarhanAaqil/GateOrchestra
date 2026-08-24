@@ -16,7 +16,6 @@ import threading
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
 
 
 @dataclass
@@ -75,7 +74,7 @@ class TokenAccountant:
         with self._lock:
             self._records.append(record)
 
-    def get_spend(self, task_id: str, method: Optional[str] = None) -> dict[str, int]:
+    def get_spend(self, task_id: str, method: str | None = None) -> dict[str, int]:
         """Return aggregated token spend for a task (and optionally a specific method).
 
         Returns:
@@ -172,7 +171,7 @@ class TokenAccountant:
         Path(path).write_text(json.dumps(output, indent=2), encoding="utf-8")
 
     @classmethod
-    def load_from_json(cls, path: str | Path) -> "TokenAccountant":
+    def load_from_json(cls, path: str | Path) -> TokenAccountant:
         """Reload a TokenAccountant from a saved JSON file."""
         data = json.loads(Path(path).read_text(encoding="utf-8"))
         accountant = cls()
@@ -203,7 +202,7 @@ class TokenAccountant:
 # Module-level singleton (optional convenience import)
 # ─────────────────────────────────────────────────────────────────────────────
 
-_global_accountant: Optional[TokenAccountant] = None
+_global_accountant: TokenAccountant | None = None
 
 
 def get_global_accountant() -> TokenAccountant:

@@ -13,7 +13,7 @@ export async function runGateOrchestra(payload) {
   try {
     data = await response.json()
   } catch {
-    data = null
+    // The error response may not contain JSON.
   }
 
   if (!response.ok) {

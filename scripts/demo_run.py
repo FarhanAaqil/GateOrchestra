@@ -18,16 +18,14 @@ from pathlib import Path
 # Make sure repo root is on path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from gate.random_gate import RandomGate
+from gate.rule_based_gate import RuleBasedGate
+from integration.pipeline import run_batch
 from shared.config import K_DEFAULT, LOGS_DIR
 from shared.token_logger import TokenAccountant
-
-from gate.rule_based_gate import RuleBasedGate
-from gate.random_gate import RandomGate
-from integration.pipeline import run_batch
-
-from tests.mocks.mock_probe_agent import mock_probe_agent
-from tests.mocks.mock_orchestrator import mock_orchestrator
 from tests.mocks.mock_dataset import get_mock_tasks
+from tests.mocks.mock_orchestrator import mock_orchestrator
+from tests.mocks.mock_probe_agent import mock_probe_agent
 
 logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(name)s | %(message)s")
 

@@ -16,10 +16,9 @@ Models (in pipeline order):
 
 from __future__ import annotations
 
-from typing import Literal, Optional
+from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Task
@@ -36,29 +35,29 @@ class Task(BaseModel):
 
     task_id: str = Field(..., description="Unique identifier, e.g. 'hotpot_001'")
     question: str = Field(..., min_length=1, description="The question text")
-    context: Optional[str] = Field(
+    context: str | None = Field(
         default=None,
         description="Supporting passage(s), if any (multi-hop tasks often have these)",
     )
-    depth_score: Optional[int] = Field(
+    depth_score: int | None = Field(
         default=None,
         ge=1,
         le=5,
         description="MASBench Depth axis label (1=shallow, 5=deep multi-hop). "
         "Set by Person 1's labeling heuristics.",
     )
-    parallel_score: Optional[int] = Field(
+    parallel_score: int | None = Field(
         default=None,
         ge=1,
         le=4,
         description="MASBench Parallelism axis label (1=sequential, 4=highly parallel). "
         "Set by Person 1's labeling heuristics.",
     )
-    ground_truth: Optional[str] = Field(
+    ground_truth: str | None = Field(
         default=None,
         description="Gold answer for evaluation. May be absent at inference time.",
     )
-    source_dataset: Optional[str] = Field(
+    source_dataset: str | None = Field(
         default=None,
         description="Origin dataset: 'hotpotqa', 'musique', 'template_arithmetic', etc.",
     )
@@ -102,7 +101,7 @@ class ProbeResult(BaseModel):
         ge=0,
         description="Total tokens consumed by all probe samples (prompt + completion)",
     )
-    latency_ms: Optional[float] = Field(
+    latency_ms: float | None = Field(
         default=None,
         ge=0.0,
         description="Wall-clock time for the probe run in milliseconds",
@@ -112,7 +111,7 @@ class ProbeResult(BaseModel):
         description="Individual CoT-SC sample outputs (length = n_samples). "
         "Used for consistency calculation and debugging.",
     )
-    model_name: Optional[str] = Field(
+    model_name: str | None = Field(
         default=None,
         description="LLM used for the probe (should match config.MODEL_NAME)",
     )
@@ -174,12 +173,12 @@ class GateFeatures(BaseModel):
     )
 
     # ── Axis proxy features (heuristic approximations before labeling) ─────
-    estimated_depth: Optional[float] = Field(
+    estimated_depth: float | None = Field(
         default=None,
         ge=0.0,
         description="Heuristic depth estimate (e.g. entity_count + clause_count normalized)",
     )
-    estimated_parallel: Optional[float] = Field(
+    estimated_parallel: float | None = Field(
         default=None,
         ge=0.0,
         description="Heuristic parallelism estimate (e.g. count of conjunctions/sub-questions)",
@@ -212,7 +211,7 @@ class GateDecision(BaseModel):
         description="Gate's confidence in its decision (1.0 = certain). "
         "For rule-based and random gates, use 1.0 and 0.5 respectively.",
     )
-    token_budget_cap: Optional[int] = Field(
+    token_budget_cap: int | None = Field(
         default=None,
         ge=1,
         description="Maximum tokens the MAS orchestrator may spend (= k × probe_tokens). "
@@ -224,7 +223,7 @@ class GateDecision(BaseModel):
     )
 
     @model_validator(mode="after")
-    def budget_cap_iff_escalate(self) -> "GateDecision":
+    def budget_cap_iff_escalate(self) -> GateDecision:
         if self.decision == "ESCALATE" and self.token_budget_cap is None:
             raise ValueError(
                 "token_budget_cap must be set when decision is 'ESCALATE'"
@@ -260,7 +259,7 @@ class EvalResult(BaseModel):
         "RandomGate",
     ] = Field(..., description="Which method produced this result")
     predicted_answer: str = Field(..., min_length=1)
-    is_correct: Optional[bool] = Field(
+    is_correct: bool | None = Field(
         default=None,
         description="Whether predicted_answer matches ground_truth (exact or normalized). "
         "None if ground_truth was unavailable.",
@@ -270,29 +269,29 @@ class EvalResult(BaseModel):
         ge=0,
         description="Total tokens spent producing this answer (probe + MAS if escalated)",
     )
-    probe_tokens: Optional[int] = Field(
+    probe_tokens: int | None = Field(
         default=None,
         ge=0,
         description="Tokens spent on the probe stage only",
     )
-    mas_tokens: Optional[int] = Field(
+    mas_tokens: int | None = Field(
         default=None,
         ge=0,
         description="Tokens spent on MAS stage (None if STOP or method has no probe)",
     )
-    gate_decision: Optional[GateDecision] = Field(
+    gate_decision: GateDecision | None = Field(
         default=None,
         description="The gate decision that produced this result. "
         "None for CoT-SC-only and Always-MAS baselines.",
     )
-    latency_ms: Optional[float] = Field(
+    latency_ms: float | None = Field(
         default=None,
         ge=0.0,
         description="Total wall-clock time in milliseconds",
     )
 
     @model_validator(mode="after")
-    def tokens_consistency(self) -> "EvalResult":
+    def tokens_consistency(self) -> EvalResult:
         """Verify probe + mas tokens add up to total (when both are available)."""
         if self.probe_tokens is not None and self.mas_tokens is not None:
             expected = self.probe_tokens + self.mas_tokens

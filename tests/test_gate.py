@@ -6,13 +6,11 @@ Unit tests for all gate/ modules.
 
 import pytest
 
-from shared.schemas import GateFeatures, Task, ProbeResult
-
-from gate.feature_extractor import extract_features, _regex_features, _estimate_depth
-from gate.rule_based_gate import RuleBasedGate
+from gate.classifier import LogRegGate, make_classifier
+from gate.feature_extractor import _regex_features, extract_features
 from gate.random_gate import RandomGate
-from gate.classifier import LogRegGate, GBTGate, make_classifier
-
+from gate.rule_based_gate import RuleBasedGate
+from shared.schemas import GateFeatures, ProbeResult, Task
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Fixtures

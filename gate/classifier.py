@@ -19,7 +19,6 @@ import logging
 import pickle
 from abc import ABC, abstractmethod
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 from sklearn.ensemble import GradientBoostingClassifier
@@ -102,14 +101,14 @@ class GateClassifier(ABC):
     def save(self, path: str | Path) -> None:
         """Serialize the classifier to disk."""
         Path(path).parent.mkdir(parents=True, exist_ok=True)
-        with open(path, "wb") as f:
+        with Path(path).open("wb") as f:
             pickle.dump(self, f)
         logger.info(f"Saved {self.name} to {path}")
 
     @classmethod
-    def load(cls, path: str | Path) -> "GateClassifier":
+    def load(cls, path: str | Path) -> GateClassifier:
         """Deserialize a classifier from disk."""
-        with open(path, "rb") as f:
+        with Path(path).open("rb") as f:
             obj = pickle.load(f)
         logger.info(f"Loaded gate classifier from {path}")
         return obj
@@ -144,7 +143,7 @@ class LogRegGate(GateClassifier):
         super().__init__("LogRegGate")
         self._scaler = StandardScaler()
         self._model = LogisticRegression(C=C, max_iter=max_iter, random_state=42)
-        self._classes: Optional[list[str]] = None
+        self._classes: list[str] | None = None
 
     def train(self, features: list[GateFeatures], labels: list[str]) -> None:
         X = np.stack([features_to_array(f) for f in features])
@@ -183,7 +182,7 @@ class GBTGate(GateClassifier):
             max_depth=max_depth,
             random_state=42,
         )
-        self._classes: Optional[list[str]] = None
+        self._classes: list[str] | None = None
 
     def train(self, features: list[GateFeatures], labels: list[str]) -> None:
         X = np.stack([features_to_array(f) for f in features])
@@ -191,7 +190,7 @@ class GBTGate(GateClassifier):
         self._model.fit(X, y)
         self._classes = list(self._model.classes_)
         self._is_trained = True
-        importances = dict(zip(FEATURE_NAMES, self._model.feature_importances_))
+        importances = dict(zip(FEATURE_NAMES, self._model.feature_importances_, strict=True))
         logger.info(f"GBTGate trained. Feature importances: {importances}")
 
     def predict(self, features: GateFeatures, k: int, probe_tokens: int) -> GateDecision:
@@ -208,7 +207,7 @@ class GBTGate(GateClassifier):
         """Return feature importance scores (useful for analysis in Week 11)."""
         if not self._is_trained:
             raise RuntimeError("Call train() first")
-        return dict(zip(FEATURE_NAMES, self._model.feature_importances_))
+        return dict(zip(FEATURE_NAMES, self._model.feature_importances_, strict=True))
 
 
 class MLPGate(GateClassifier):
@@ -228,7 +227,7 @@ class MLPGate(GateClassifier):
             early_stopping=True,
             validation_fraction=0.15,
         )
-        self._classes: Optional[list[str]] = None
+        self._classes: list[str] | None = None
 
     def train(self, features: list[GateFeatures], labels: list[str]) -> None:
         X = np.stack([features_to_array(f) for f in features])

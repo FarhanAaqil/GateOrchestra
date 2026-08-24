@@ -87,7 +87,7 @@ function App() {
 
           <div className="right-column">
             <ResultPanel result={result} isLoading={loading} />
-            <AgentPipeline active={loading} />
+            <AgentPipeline active={loading} result={result} />
           </div>
         </section>
       </main>
