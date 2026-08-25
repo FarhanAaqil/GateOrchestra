@@ -1,0 +1,89 @@
+# GateOrchestra — Dataset Pipeline Configuration
+# Person 1 (Umar) — Dataset Engineer
+# This file controls the entire dataset construction pipeline.
+# All scripts in scripts/ read this config via shared/config.py or direct yaml load.
+
+# ── Versioning ────────────────────────────────────────────────────────────────
+dataset_version: "v1.0"
+dataset_name: "masbench_mini"
+
+# ── Reproducibility ───────────────────────────────────────────────────────────
+random_seed: 42
+
+# ── Size Targets ──────────────────────────────────────────────────────────────
+target_size: 160          # Build 160 tasks; allow ~10 losses to cleaning → ≥150 final
+min_acceptable_size: 150  # Pipeline aborts if final count falls below this
+
+# ── Train / Val / Test Splits ─────────────────────────────────────────────────
+splits:
+  train: 0.60    # ~96 tasks  (out of 160)
+  val:   0.20    # ~32 tasks
+  test:  0.20    # ~32 tasks  ← held-out, do not touch until Week 10
+
+# ── Manual Review ─────────────────────────────────────────────────────────────
+review_fraction: 0.20     # ~32 tasks selected for manual spot-check
+review_seed: 42           # Separate seed for review sampling
+
+# ── Task Type Distribution (target counts out of 160) ─────────────────────────
+task_types:
+  multihop_bridge:        50   # HotpotQA-style: bridge two facts via entity
+  multihop_compositional: 40   # MuSiQue-style: 2-3 hop reasoning chains
+  arithmetic:             40   # Arithmetic / unit-conversion
+  comparison:             30   # "Which is larger / earlier / closer" lookups
+
+# ── Source Labels (used in source_dataset field) ──────────────────────────────
+sources:
+  - hotpotqa_style
+  - musique_style
+  - template_arithmetic
+  - template_comparison
+
+# ── Depth Score Thresholds (depth_score: 1–5) ─────────────────────────────────
+# depth_score derived from: clause_count, hop_count, entity_count, word_count
+depth_labeling:
+  weights:
+    clause_count:  0.40
+    hop_count:     0.35
+    entity_count:  0.15
+    word_count:    0.10
+  thresholds:           # weighted_score → depth_score
+    score_1: [0.0, 1.0]
+    score_2: [1.0, 2.0]
+    score_3: [2.0, 3.2]
+    score_4: [3.2, 4.2]
+    score_5: [4.2, 999]
+
+# ── Parallel Score Thresholds (parallel_score: 1–4) ───────────────────────────
+# parallel_score derived from: sub_question_count, conjunction_count, list_count
+parallel_labeling:
+  weights:
+    sub_question_count: 0.50
+    conjunction_count:  0.30
+    list_count:         0.20
+  thresholds:           # weighted_score → parallel_score
+    score_1: [0.0, 0.5]
+    score_2: [0.5, 1.5]
+    score_3: [1.5, 2.5]
+    score_4: [2.5, 999]
+
+# ── Validation Rules ──────────────────────────────────────────────────────────
+validation:
+  min_question_length: 10      # characters
+  max_question_length: 600
+  min_answer_length: 1
+  max_answer_length: 200
+  require_ground_truth: true
+  require_source: true
+  valid_depth_range: [1, 5]
+  valid_parallel_range: [1, 4]
+  valid_splits: ["train", "val", "test"]
+
+# ── Paths (relative to repo root) ─────────────────────────────────────────────
+paths:
+  raw:        "dataset/raw"
+  processed:  "dataset/processed"
+  splits:     "dataset/splits"
+  reviewed:   "dataset/reviewed"
+  masbench:   "dataset/masbench_mini"
+  reports:    "reports/dataset_quality"
+  features:   "dataset/processed/features.jsonl"
