@@ -1,0 +1,8 @@
+import AgentHealth from './AgentHealth'
+
+function Evolution() {
+  return <div className="research-view"><ViewHeading eyebrow="Adaptive systems" title="Evolution" note="Demo visualization only. This sample data is not sourced from the backend." /><div className="overview-grid"><Metric label="System Health" value="92%" /><Metric label="Active Agents" value="4" /><Metric label="Healthy Agents" value="2" /><Metric label="Degraded Agents" value="1" /><Metric label="Failed Agents" value="0" /></div><section className="research-section"><h3>Agent health</h3><AgentHealth /></section><section className="research-section"><h3>Agent Evolution</h3><div className="evolution-grid">{[['Generation', '12'], ['Fitness', '0.91'], ['Success Rate', '94%'], ['Token Efficiency', '+18%']].map(([label, value]) => <Metric key={label} label={label} value={value} />)}</div><div className="timeline"><span style={{ height: '36%' }} /><span style={{ height: '48%' }} /><span style={{ height: '54%' }} /><span style={{ height: '72%' }} /><span style={{ height: '88%' }} /><span style={{ height: '96%' }} /></div><div className="timeline-labels"><span>G07</span><span>G08</span><span>G09</span><span>G10</span><span>G11</span><span>G12</span></div></section></div>
+}
+function ViewHeading({ eyebrow, title, note }) { return <div className="research-heading"><p className="header-kicker">{eyebrow}</p><h2>{title}</h2><p>{note}</p></div> }
+function Metric({ label, value }) { return <div className="overview-metric"><span>{label}</span><strong>{value}</strong></div> }
+export default Evolution
