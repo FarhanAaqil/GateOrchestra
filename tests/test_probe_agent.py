@@ -6,6 +6,8 @@ Tests answer extraction, CoT prompting, self-consistency majority voting,
 error handling, and schema integration without requiring live LLM servers.
 """
 
+from typing import Any, cast
+
 import pytest
 
 from agents.probe_agent import (
@@ -205,7 +207,7 @@ class TestPipelineIntegration:
 
         result = run_pipeline(
             task=task,
-            gate=gate,
+            gate=cast(Any, gate),
             probe_agent=agent,
             orchestrator=mock_orchestrator,
             accountant=accountant,
