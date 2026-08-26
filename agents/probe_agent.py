@@ -54,9 +54,7 @@ def probe_agent(task: Task) -> ProbeResult:
 
     counts = Counter(_vote_key(answer) for answer in answers)
     majority_key, majority_count = counts.most_common(1)[0]
-    majority_answer = next(
-        answer for answer in answers if _vote_key(answer) == majority_key
-    )
+    majority_answer = next(answer for answer in answers if _vote_key(answer) == majority_key)
 
     return ProbeResult(
         task_id=task.task_id,

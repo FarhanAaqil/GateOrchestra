@@ -108,10 +108,12 @@ class GateClassifier(ABC):
     @classmethod
     def load(cls, path: str | Path) -> GateClassifier:
         """Deserialize a classifier from disk."""
+        from typing import cast  # noqa: PLC0415
+
         with Path(path).open("rb") as f:
             obj = pickle.load(f)
         logger.info(f"Loaded gate classifier from {path}")
-        return obj
+        return cast(GateClassifier, obj)
 
     def _make_decision(
         self,
@@ -124,7 +126,7 @@ class GateClassifier(ABC):
         """Helper to build a GateDecision with correct token_budget_cap logic."""
         return GateDecision(
             task_id=task_id,
-            decision=label,  # type: ignore[arg-type]
+            decision=label,
             confidence=round(confidence, 4),
             token_budget_cap=k * probe_tokens if label == "ESCALATE" else None,
             gate_type="learned",

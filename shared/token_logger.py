@@ -16,6 +16,7 @@ import threading
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
+from typing import TypedDict
 
 
 @dataclass
@@ -24,9 +25,19 @@ class _SpendRecord:
 
     task_id: str
     method: str
-    stage: str          # "probe", "mas", "gate_feature" etc.
+    stage: str  # "probe", "mas", "gate_feature" etc.
     tokens: int
-    path: str           # routing path taken: "STOP" | "ESCALATE" | "N/A"
+    path: str  # routing path taken: "STOP" | "ESCALATE" | "N/A"
+
+
+class _RecordDict(TypedDict):
+    """Typed dict matching the JSON output format for a single spend record."""
+
+    task_id: str
+    method: str
+    stage: str
+    tokens: int
+    path: str
 
 
 @dataclass
@@ -68,9 +79,7 @@ class TokenAccountant:
         """
         if tokens < 0:
             raise ValueError(f"tokens must be ≥ 0, got {tokens}")
-        record = _SpendRecord(
-            task_id=task_id, method=method, stage=stage, tokens=tokens, path=path
-        )
+        record = _SpendRecord(task_id=task_id, method=method, stage=stage, tokens=tokens, path=path)
         with self._lock:
             self._records.append(record)
 
@@ -147,7 +156,7 @@ class TokenAccountant:
             }
         """
         with self._lock:
-            records_data = [
+            records_data: list[_RecordDict] = [
                 {
                     "task_id": r.task_id,
                     "method": r.method,
@@ -158,8 +167,8 @@ class TokenAccountant:
                 for r in self._records
             ]
 
-        methods = {r["method"] for r in records_data}
-        summary = {}
+        methods: set[str] = {r["method"] for r in records_data}
+        summary: dict[str, dict[str, object]] = {}
         for m in methods:
             total = sum(r["tokens"] for r in records_data if r["method"] == m)
             summary[m] = {

@@ -44,12 +44,19 @@ def main():
     ]:
         print(f"\n── {method_name} ──────────────────────────────────")
         results = run_batch(
-            tasks, gate_cls, mock_probe_agent, mock_orchestrator, accountant,
-            k=K_DEFAULT, method=method_name
+            tasks,
+            gate_cls,
+            mock_probe_agent,
+            mock_orchestrator,
+            accountant,
+            k=K_DEFAULT,
+            method=method_name,
         )
 
         n_stop = sum(1 for r in results if r.gate_decision and r.gate_decision.decision == "STOP")
-        n_escalate = sum(1 for r in results if r.gate_decision and r.gate_decision.decision == "ESCALATE")
+        n_escalate = sum(
+            1 for r in results if r.gate_decision and r.gate_decision.decision == "ESCALATE"
+        )
         avg_tokens = sum(r.tokens_spent for r in results) / len(results)
 
         print(f"  STOP:     {n_stop}/{len(tasks)}")

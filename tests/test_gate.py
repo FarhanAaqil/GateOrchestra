@@ -98,9 +98,7 @@ class TestFeatureExtractor:
         assert entities >= 3  # Marie Curie, Warsaw, Poland
 
     def test_word_count_accurate(self, simple_features):
-        assert simple_features.question_word_count == len(
-            "What is the capital of France?".split()
-        )
+        assert simple_features.question_word_count == len("What is the capital of France?".split())
 
     def test_depth_estimate_nonnegative(self, simple_features, complex_features):
         assert simple_features.estimated_depth >= 0

@@ -112,7 +112,7 @@ def run_pipeline(
 
     return EvalResult(
         task_id=task.task_id,
-        method=method,  # type: ignore[arg-type]
+        method=method,
         predicted_answer=answer,
         is_correct=is_correct,
         tokens_spent=total_tokens,
@@ -152,8 +152,10 @@ def run_batch(
 def _exact_match(predicted: str, ground_truth: str) -> bool:
     """Normalized exact match (lowercase, strip punctuation)."""
     import re
+
     def normalize(s: str) -> str:
         s = s.lower().strip()
         s = re.sub(r"[^\w\s]", "", s)
         return " ".join(s.split())
+
     return normalize(predicted) == normalize(ground_truth)

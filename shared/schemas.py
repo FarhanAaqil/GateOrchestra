@@ -155,9 +155,7 @@ class GateFeatures(BaseModel):
     )
 
     # ── Text-derived features (from Task.question + context) ───────────────
-    question_word_count: int = Field(
-        ..., ge=0, description="Number of words in the question"
-    )
+    question_word_count: int = Field(..., ge=0, description="Number of words in the question")
     entity_count: int = Field(
         ...,
         ge=0,
@@ -168,9 +166,7 @@ class GateFeatures(BaseModel):
         ge=0,
         description="Subordinate clause count via dep-parse (or comma/conjunction count)",
     )
-    has_context: bool = Field(
-        ..., description="Whether Task.context is non-None and non-empty"
-    )
+    has_context: bool = Field(..., description="Whether Task.context is non-None and non-empty")
 
     # ── Axis proxy features (heuristic approximations before labeling) ─────
     estimated_depth: float | None = Field(
@@ -201,9 +197,7 @@ class GateDecision(BaseModel):
     """
 
     task_id: str = Field(..., description="Matches Task.task_id")
-    decision: Literal["STOP", "ESCALATE"] = Field(
-        ..., description="The gate's routing decision"
-    )
+    decision: Literal["STOP", "ESCALATE"] = Field(..., description="The gate's routing decision")
     confidence: float = Field(
         ...,
         ge=0.0,
@@ -225,13 +219,9 @@ class GateDecision(BaseModel):
     @model_validator(mode="after")
     def budget_cap_iff_escalate(self) -> GateDecision:
         if self.decision == "ESCALATE" and self.token_budget_cap is None:
-            raise ValueError(
-                "token_budget_cap must be set when decision is 'ESCALATE'"
-            )
+            raise ValueError("token_budget_cap must be set when decision is 'ESCALATE'")
         if self.decision == "STOP" and self.token_budget_cap is not None:
-            raise ValueError(
-                "token_budget_cap must be None when decision is 'STOP'"
-            )
+            raise ValueError("token_budget_cap must be None when decision is 'STOP'")
         return self
 
 

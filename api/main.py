@@ -51,6 +51,7 @@ app.add_middleware(
 # Request model
 # ─────────────────────────────────────────────────────────────
 
+
 class RunRequest(BaseModel):
     task_id: str = Field(..., description="Unique task identifier")
     question: str = Field(..., description="Question/task to solve")
@@ -76,6 +77,7 @@ class RunRequest(BaseModel):
 # Health check
 # ─────────────────────────────────────────────────────────────
 
+
 @app.get("/")
 def root():
     return {
@@ -96,6 +98,7 @@ def health():
 # ─────────────────────────────────────────────────────────────
 # Run GateOrchestra
 # ─────────────────────────────────────────────────────────────
+
 
 @app.post("/run")
 def run_gateorchestra(request: RunRequest):
@@ -124,10 +127,7 @@ def run_gateorchestra(request: RunRequest):
     else:
         raise HTTPException(
             status_code=400,
-            detail=(
-                "Unknown method. "
-                "Currently supported: RuleBasedGate, RandomGate"
-            ),
+            detail=("Unknown method. " "Currently supported: RuleBasedGate, RandomGate"),
         )
 
     # New accountant for this API request
