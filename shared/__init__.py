@@ -1,5 +1,6 @@
 """shared package — public API."""
 
+from shared.config import K_DEFAULT, K_VALUES, PROBE_TOKEN_BUDGET, TAU_ACC
 from shared.schemas import (
     EvalResult,
     GateDecision,
@@ -7,7 +8,6 @@ from shared.schemas import (
     ProbeResult,
     Task,
 )
-from shared.config import TAU_ACC, K_DEFAULT, K_VALUES, PROBE_TOKEN_BUDGET
 from shared.token_logger import TokenAccountant, get_global_accountant
 
 __all__ = [

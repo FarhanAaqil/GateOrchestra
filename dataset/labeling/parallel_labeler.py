@@ -50,9 +50,9 @@ DEFAULT_WEIGHTS = {
 # (upper_bound, label) — score < upper_bound → label
 # Tuned: even 1-2 conjunctions should score parallel 2
 DEFAULT_THRESHOLDS = [
-    (0.10, 1),   # truly sequential, no conjunctions/lists
-    (0.35, 2),   # mild: 1-2 conjunctions or 1 sub-question
-    (0.65, 3),   # moderate: multiple sub-questions or list
+    (0.10, 1),  # truly sequential, no conjunctions/lists
+    (0.35, 2),  # mild: 1-2 conjunctions or 1 sub-question
+    (0.65, 3),  # moderate: multiple sub-questions or list
     (float("inf"), 4),  # high: explicit multi-part queries
 ]
 
@@ -91,18 +91,18 @@ def assign_parallel(
     t = thresholds or DEFAULT_THRESHOLDS
 
     sub_q = float(features.get("sub_question_count", 0))
-    conj  = float(features.get("conjunction_count", 0))
+    conj = float(features.get("conjunction_count", 0))
     lists = float(features.get("list_count", 0))
 
     # Normalize: map raw count → [0, 1] scale relative to caps
     sub_q_norm = min(sub_q / _CAPS["sub_question_count"], 1.5)
-    conj_norm  = min(conj  / _CAPS["conjunction_count"],  1.5)
-    list_norm  = min(lists / _CAPS["list_count"],          1.5)
+    conj_norm = min(conj / _CAPS["conjunction_count"], 1.5)
+    list_norm = min(lists / _CAPS["list_count"], 1.5)
 
     raw_score = (
         sub_q_norm * w["sub_question_count"]
-        + conj_norm  * w["conjunction_count"]
-        + list_norm  * w["list_count"]
+        + conj_norm * w["conjunction_count"]
+        + list_norm * w["list_count"]
     )
 
     parallel_score = _threshold(raw_score, t)

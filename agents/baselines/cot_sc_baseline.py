@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from agents.probe_agent import probe_agent as default_probe_agent
 from shared.schemas import EvalResult, ProbeResult, Task
@@ -37,8 +37,8 @@ def _exact_match(predicted: str, ground_truth: str) -> bool:
 
 def run_cot_sc_baseline(
     task: Task,
-    probe_fn: Optional[ProbeAgentFn] = None,
-    accountant: Optional[TokenAccountant] = None,
+    probe_fn: ProbeAgentFn | None = None,
+    accountant: TokenAccountant | None = None,
 ) -> EvalResult:
     """Run the CoT-SC-only baseline on a single task.
 
@@ -66,7 +66,7 @@ def run_cot_sc_baseline(
 
     latency_ms = (time.perf_counter() - start_time) * 1000.0
 
-    is_correct: Optional[bool] = None
+    is_correct: bool | None = None
     if task.ground_truth is not None:
         is_correct = _exact_match(probe.answer, task.ground_truth)
 
@@ -85,8 +85,8 @@ def run_cot_sc_baseline(
 
 def run_cot_sc_batch(
     tasks: list[Task],
-    probe_fn: Optional[ProbeAgentFn] = None,
-    accountant: Optional[TokenAccountant] = None,
+    probe_fn: ProbeAgentFn | None = None,
+    accountant: TokenAccountant | None = None,
 ) -> list[EvalResult]:
     """Run the CoT-SC baseline across a list of tasks."""
     return [run_cot_sc_baseline(task, probe_fn=probe_fn, accountant=accountant) for task in tasks]

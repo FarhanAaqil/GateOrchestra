@@ -25,8 +25,8 @@ from pathlib import Path
 # Allow running as a standalone script
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from shared.schemas import Task
 from dataset.generation.task_pool import RAW_TASKS
+from shared.schemas import Task
 
 logger = logging.getLogger(__name__)
 

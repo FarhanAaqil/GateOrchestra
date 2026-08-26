@@ -21,9 +21,9 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from gate.feature_extractor import extract_features
 from shared.data_loader import load_split
 from shared.schemas import GateFeatures, ProbeResult, Task
-from gate.feature_extractor import extract_features
 
 random.seed(42)
 
@@ -31,6 +31,7 @@ random.seed(42)
 # ─────────────────────────────────────────────────────────────────────────────
 # Realistic probe simulator (Day 3 version — heuristic, not real LLM)
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def simulate_probe(task: Task) -> ProbeResult:
     """
@@ -88,6 +89,7 @@ def _generate_fake_answers(task: Task, n: int, consistency: float) -> list[str]:
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def run(split: str = "val", n: int = 15) -> None:
     print("=" * 90)
     print(f"  GateOrchestra -- Feature Inspector (Day 3)  |  split={split!r}  n={n}")
@@ -117,7 +119,11 @@ def run(split: str = "val", n: int = 15) -> None:
         p = task.parallel_score or "?"
         ctx = "Y" if features.has_context else "N"
         ed = f"{features.estimated_depth:.2f}" if features.estimated_depth is not None else "  -"
-        ep = f"{features.estimated_parallel:.2f}" if features.estimated_parallel is not None else "  -"
+        ep = (
+            f"{features.estimated_parallel:.2f}"
+            if features.estimated_parallel is not None
+            else "  -"
+        )
 
         print(
             f"  {task.task_id:<22} {str(d):>2} {str(p):>2}  "
@@ -135,11 +141,12 @@ def run(split: str = "val", n: int = 15) -> None:
 
     print(f"  Avg consistency:       {avg_consistency:.3f}")
     print(f"  Avg probe tokens:      {avg_tokens:.0f}")
-    print(f"  Rule-STOP candidates:  {n_stop_rule}/{len(all_f)} "
-          f"(consistency>=0.8 AND entities<3)")
+    print(
+        f"  Rule-STOP candidates:  {n_stop_rule}/{len(all_f)} " f"(consistency>=0.8 AND entities<3)"
+    )
 
     # Breakdown by task type
-    print(f"\n  Consistency by task type:")
+    print("\n  Consistency by task type:")
     type_groups: dict[str, list[float]] = {}
     for task, f in feature_rows:
         src = task.source_dataset or "unknown"
@@ -150,7 +157,7 @@ def run(split: str = "val", n: int = 15) -> None:
         bar = "#" * int(avg * 20)
         print(f"    {src:>25}: avg={avg:.2f}  {bar}")
 
-    print(f"\n[OK] Day 3 complete. Features visible on real data.")
+    print("\n[OK] Day 3 complete. Features visible on real data.")
 
 
 if __name__ == "__main__":

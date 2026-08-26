@@ -35,14 +35,15 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from shared.schemas import ProbeResult, Task
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Calibration profiles per task source
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class _Profile:
     """Calibration profile for a task type."""
+
     consistency_mean: float
     consistency_std: float
     token_min: int
@@ -57,21 +58,21 @@ _PROFILES: dict[str, _Profile] = {
         consistency_std=0.08,
         token_min=60,
         token_max=180,
-        mas_beats_probe_rate=0.05,   # MAS rarely adds value here
+        mas_beats_probe_rate=0.05,  # MAS rarely adds value here
     ),
     "synthetic_multihop": _Profile(
         consistency_mean=0.62,
         consistency_std=0.13,
         token_min=180,
         token_max=380,
-        mas_beats_probe_rate=0.38,   # MAS helps ~38% of the time
+        mas_beats_probe_rate=0.38,  # MAS helps ~38% of the time
     ),
     "synthetic_parallel": _Profile(
         consistency_mean=0.47,
         consistency_std=0.12,
         token_min=220,
         token_max=450,
-        mas_beats_probe_rate=0.55,   # MAS helps ~55% of the time
+        mas_beats_probe_rate=0.55,  # MAS helps ~55% of the time
     ),
 }
 
@@ -89,6 +90,7 @@ N_SAMPLES = 5  # Number of CoT-SC samples per probe run
 # ─────────────────────────────────────────────────────────────────────────────
 # Answer pool helpers
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _wrong_variants(correct_answer: str) -> list[str]:
     """Generate plausible wrong answers for the consistency simulation."""
@@ -130,6 +132,7 @@ def _generate_samples(
 # Main class
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 @dataclass
 class SimulatedProbe:
     """
@@ -162,9 +165,7 @@ class SimulatedProbe:
         profile = self._get_profile(task)
 
         # --- Consistency score ---
-        consistency = self._rng.gauss(
-            profile.consistency_mean, profile.consistency_std
-        )
+        consistency = self._rng.gauss(profile.consistency_mean, profile.consistency_std)
         consistency = max(0.1, min(1.0, consistency))
 
         # --- Token count ---
@@ -175,9 +176,7 @@ class SimulatedProbe:
 
         # Probe gets it right if consistency >= 0.5 (majority vote)
         probe_is_correct = consistency >= 0.5
-        probe_answer = correct if probe_is_correct else self._rng.choice(
-            _wrong_variants(correct)
-        )
+        _probe_answer = correct if probe_is_correct else self._rng.choice(_wrong_variants(correct))
 
         # --- Raw CoT-SC samples ---
         raw = _generate_samples(correct, consistency, self.n_samples, self._rng)
@@ -224,6 +223,7 @@ def simulated_probe_agent(task: Task) -> ProbeResult:
 if __name__ == "__main__":
     import sys
     from pathlib import Path
+
     sys.path.insert(0, str(Path(__file__).parent.parent.parent))
     from shared.data_loader import load_split
 
@@ -240,7 +240,9 @@ if __name__ == "__main__":
         src = t.source_dataset or "unknown"
         by_type.setdefault(src, []).append(t)
 
-    print(f"\n  {'task_id':<22} {'type':<22} {'consist':>7}  {'tokens':>6}  {'correct?':>9}  answer[:30]")
+    print(
+        f"\n  {'task_id':<22} {'type':<22} {'consist':>7}  {'tokens':>6}  {'correct?':>9}  answer[:30]"
+    )
     print(f"  {'-'*22} {'-'*22} {'-'*7}  {'-'*6}  {'-'*9}  {'-'*30}")
 
     total_consist: dict[str, list[float]] = {}

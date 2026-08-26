@@ -11,7 +11,7 @@ while strictly adhering to the dynamic token budget cap (`k * probe_tokens`).
 from __future__ import annotations
 
 import logging
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from agents.orchestrator.sub_agents import (
     DebateAgent,
@@ -44,7 +44,7 @@ class MASOrchestrator:
         self,
         model_name: str = MODEL_NAME,
         default_strategy: str = "auto",
-        llm_caller: Optional[LLMCallerFn] = None,
+        llm_caller: LLMCallerFn | None = None,
     ) -> None:
         self.model_name = model_name
         self.default_strategy = default_strategy
@@ -101,7 +101,7 @@ class MASOrchestrator:
 # Module-level default orchestrator
 # ─────────────────────────────────────────────────────────────────────────────
 
-_default_orchestrator: Optional[MASOrchestrator] = None
+_default_orchestrator: MASOrchestrator | None = None
 
 
 def orchestrator(task: Task, token_budget: int) -> tuple[str, int]:

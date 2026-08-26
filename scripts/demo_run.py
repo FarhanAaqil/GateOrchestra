@@ -25,22 +25,20 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Simulated MAS orchestrator (calibrated to task difficulty)
+# ─────────────────────────────────────────────────────────────────────────────
+import random as _random
+
+from agents.baselines.simulated_probe import simulated_probe_agent
+from gate.random_gate import RandomGate
+from gate.rule_based_gate import RuleBasedGate
+from integration.pipeline import run_batch
 from shared.config import K_DEFAULT, LOGS_DIR
 from shared.data_loader import load_split
 from shared.schemas import EvalResult, Task
 from shared.token_logger import TokenAccountant
 
-from gate.rule_based_gate import RuleBasedGate
-from gate.random_gate import RandomGate
-from integration.pipeline import run_batch
-
-from agents.baselines.simulated_probe import simulated_probe_agent
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Simulated MAS orchestrator (calibrated to task difficulty)
-# ─────────────────────────────────────────────────────────────────────────────
-
-import random as _random
 _mas_rng = _random.Random(99)
 
 
@@ -56,7 +54,7 @@ def simulated_mas(task: Task, token_budget: int) -> tuple[str, int]:
 
     # MAS is more likely to be correct on harder tasks
     difficulty = ((depth - 1) / 4 * 0.6) + ((parallel - 1) / 3 * 0.4)
-    mas_correct_prob = 0.60 + difficulty * 0.30   # 0.60 easy -> 0.90 hard
+    mas_correct_prob = 0.60 + difficulty * 0.30  # 0.60 easy -> 0.90 hard
 
     correct = task.ground_truth or "Unknown"
     if _mas_rng.random() < mas_correct_prob:
@@ -76,6 +74,7 @@ def simulated_mas(task: Task, token_budget: int) -> tuple[str, int]:
 # Always-MAS baseline (no gate — always escalates)
 # ─────────────────────────────────────────────────────────────────────────────
 
+
 def always_mas_baseline(tasks: list[Task], k: int) -> list[EvalResult]:
     """Run all tasks through MAS directly (no probe, no gate). Upper-bound token cost."""
     results = []
@@ -87,19 +86,22 @@ def always_mas_baseline(tasks: list[Task], k: int) -> list[EvalResult]:
         is_correct: bool | None = None
         if task.ground_truth:
             is_correct = answer.lower().strip() == correct.lower().strip()
-        results.append(EvalResult(
-            task_id=task.task_id,
-            method="Always-MAS",
-            predicted_answer=answer,
-            is_correct=is_correct,
-            tokens_spent=tokens,
-        ))
+        results.append(
+            EvalResult(
+                task_id=task.task_id,
+                method="Always-MAS",
+                predicted_answer=answer,
+                is_correct=is_correct,
+                tokens_spent=tokens,
+            )
+        )
     return results
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Display helpers
 # ─────────────────────────────────────────────────────────────────────────────
+
 
 def _decision_marker(decision: str) -> str:
     return "STOP" if decision == "STOP" else "ESC "
@@ -168,11 +170,14 @@ def print_summary(
 # Main
 # ─────────────────────────────────────────────────────────────────────────────
 
-def main(split: str = "val", n: int | None = None, gate_choice: str = "all", dry_run: bool = False) -> None:
+
+def main(
+    split: str = "val", n: int | None = None, gate_choice: str = "all", dry_run: bool = False
+) -> None:
     t0 = time.time()
 
     print("=" * 72)
-    print(f"  GateOrchestra -- End-to-End Demo (Day 5)")
+    print("  GateOrchestra -- End-to-End Demo (Day 5)")
     print(f"  Split: {split!r}  |  Gate: {gate_choice!r}  |  k={K_DEFAULT}")
     print("=" * 72)
 
@@ -180,6 +185,7 @@ def main(split: str = "val", n: int | None = None, gate_choice: str = "all", dry
     tasks = load_split(split)  # type: ignore[arg-type]
     if n is not None:
         import random
+
         random.seed(42)
         tasks = random.sample(tasks, min(n, len(tasks)))
 
@@ -187,7 +193,7 @@ def main(split: str = "val", n: int | None = None, gate_choice: str = "all", dry
     print(f"\n  Loaded {len(tasks)} tasks from {split!r} split.")
 
     # Always-MAS baseline (reference point for token savings)
-    print(f"\n  [*] Computing Always-MAS baseline...")
+    print("\n  [*] Computing Always-MAS baseline...")
     baseline_results = always_mas_baseline(tasks, k=K_DEFAULT)
     baseline_avg_tokens = sum(r.tokens_spent for r in baseline_results) / len(baseline_results)
     baseline_acc = sum(1 for r in baseline_results if r.is_correct) / len(baseline_results) * 100
@@ -195,23 +201,28 @@ def main(split: str = "val", n: int | None = None, gate_choice: str = "all", dry
 
     # Gate configurations to run
     gates_to_run = {
-        "rule":   ("RuleBasedGate", RuleBasedGate()),
-        "random": ("RandomGate",    RandomGate(escalation_rate=0.4, seed=42)),
+        "rule": ("RuleBasedGate", RuleBasedGate()),
+        "random": ("RandomGate", RandomGate(escalation_rate=0.4, seed=42)),
     }
     if gate_choice != "all":
         gates_to_run = {gate_choice: gates_to_run[gate_choice]}
 
     all_results: dict[str, list[EvalResult]] = {}
 
-    for key, (method_name, gate) in gates_to_run.items():
+    for _key, (method_name, gate) in gates_to_run.items():
         print(f"\n{'='*72}")
         print(f"  Gate: {method_name}")
         print(f"{'='*72}")
 
         accountant = TokenAccountant()
         results = run_batch(
-            tasks, gate, simulated_probe_agent, simulated_mas,
-            accountant, k=K_DEFAULT, method=method_name
+            tasks,
+            gate,
+            simulated_probe_agent,
+            simulated_mas,
+            accountant,
+            k=K_DEFAULT,
+            method=method_name,
         )
         all_results[method_name] = results
 
@@ -229,11 +240,15 @@ def main(split: str = "val", n: int | None = None, gate_choice: str = "all", dry
     print(f"\n{'='*72}")
     print(f"  FINAL COMPARISON  (baseline always-MAS avg: {baseline_avg_tokens:.0f} tokens)")
     print(f"{'='*72}")
-    print(f"  {'Method':<18} {'Accuracy':>9}  {'Avg Tokens':>10}  {'Token Savings':>14}  {'STOP rate':>9}")
+    print(
+        f"  {'Method':<18} {'Accuracy':>9}  {'Avg Tokens':>10}  {'Token Savings':>14}  {'STOP rate':>9}"
+    )
     print(f"  {'-'*18} {'-'*9}  {'-'*10}  {'-'*14}  {'-'*9}")
 
     # Add baseline row
-    print(f"  {'Always-MAS':<18} {baseline_acc:>8.1f}%  {baseline_avg_tokens:>10.0f}  {'--':>14}  {'  0%':>9}")
+    print(
+        f"  {'Always-MAS':<18} {baseline_acc:>8.1f}%  {baseline_avg_tokens:>10.0f}  {'--':>14}  {'  0%':>9}"
+    )
 
     for method_name, results in all_results.items():
         n_res = len(results)
@@ -242,7 +257,9 @@ def main(split: str = "val", n: int | None = None, gate_choice: str = "all", dry
         savings = (1 - avg_tok / baseline_avg_tokens) * 100
         n_stop = sum(1 for r in results if r.gate_decision and r.gate_decision.decision == "STOP")
         stop_rate = n_stop / n_res * 100
-        print(f"  {method_name:<18} {acc:>8.1f}%  {avg_tok:>10.0f}  {savings:>+13.1f}%  {stop_rate:>8.0f}%")
+        print(
+            f"  {method_name:<18} {acc:>8.1f}%  {avg_tok:>10.0f}  {savings:>+13.1f}%  {stop_rate:>8.0f}%"
+        )
 
     elapsed = time.time() - t0
     print(f"\n  Done in {elapsed:.1f}s")
@@ -253,8 +270,9 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="GateOrchestra end-to-end demo")
     parser.add_argument("--split", default="val", choices=["train", "val", "test"])
     parser.add_argument("--n", type=int, default=None, help="Subset of tasks (default: all)")
-    parser.add_argument("--gate", default="all", choices=["all", "rule", "random"],
-                        help="Which gate to run")
+    parser.add_argument(
+        "--gate", default="all", choices=["all", "rule", "random"], help="Which gate to run"
+    )
     parser.add_argument("--dry-run", action="store_true", help="Skip writing output files")
     args = parser.parse_args()
     main(split=args.split, n=args.n, gate_choice=args.gate, dry_run=args.dry_run)

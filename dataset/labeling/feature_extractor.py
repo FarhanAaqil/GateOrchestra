@@ -29,7 +29,6 @@ from __future__ import annotations
 
 import re
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Public API
 # ─────────────────────────────────────────────────────────────────────────────
@@ -134,6 +133,7 @@ def _count_list_items(text: str) -> int:
     # Count comma clusters (3+ items in a list = 2+ commas)
     comma_count = text.count(",")
     # Enumeration markers
-    enum_words = re.findall(r"\b(first|second|third|finally|lastly|respectively)\b",
-                             text, flags=re.IGNORECASE)
+    enum_words = re.findall(
+        r"\b(first|second|third|finally|lastly|respectively)\b", text, flags=re.IGNORECASE
+    )
     return comma_count + len(enum_words)

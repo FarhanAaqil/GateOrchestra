@@ -103,7 +103,7 @@ def load_features_df():
         return None
 
     rows = []
-    with open(features_file, encoding="utf-8") as f:
+    with features_file.open(encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line:
@@ -122,7 +122,7 @@ def load_features_df():
 def _load_jsonl_tasks(path: Path) -> list[Task]:
     """Read a JSONL file and parse each line into a Task object."""
     tasks: list[Task] = []
-    with open(path, encoding="utf-8") as f:
+    with path.open(encoding="utf-8") as f:
         for line_num, line in enumerate(f, start=1):
             line = line.strip()
             if not line:

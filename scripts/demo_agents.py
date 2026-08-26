@@ -19,17 +19,20 @@ from pathlib import Path
 # Ensure project root is in sys.path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+from agents.baselines import run_always_mas_baseline, run_cot_sc_baseline
+from agents.orchestrator import MASOrchestrator
+from agents.probe_agent import ProbeAgent
 from shared.schemas import Task
 from shared.token_logger import TokenAccountant
-from agents.probe_agent import ProbeAgent
-from agents.orchestrator import MASOrchestrator
-from agents.baselines import run_cot_sc_baseline, run_always_mas_baseline
 
 
 def mock_llm(prompt: str, temperature: float, budget: int) -> tuple[str, int]:
     """Mock LLM caller for offline demo execution."""
     if "Eiffel" in prompt or "currency" in prompt:
-        return "Thinking step by step: Eiffel tower is in Paris, France. France uses Euro.\nFinal Answer: Euro", 45
+        return (
+            "Thinking step by step: Eiffel tower is in Paris, France. France uses Euro.\nFinal Answer: Euro",
+            45,
+        )
     elif "Tokyo" in prompt:
         return "Comparing cities: Tokyo has ~37 million in metro area.\nFinal Answer: Tokyo", 38
     elif "15 * 8" in prompt or "15" in prompt:
@@ -96,10 +99,16 @@ def main():
     # -------------------------------------------------------------
     print("\n[3] Running Evaluation Baselines...")
     cot_result = run_cot_sc_baseline(task1, probe_fn=probe, accountant=accountant)
-    print(f"    [CoT-SC-only] Predicted: '{cot_result.predicted_answer}' | Correct: {cot_result.is_correct} | Tokens: {cot_result.tokens_spent}")
+    print(
+        f"    [CoT-SC-only] Predicted: '{cot_result.predicted_answer}' | Correct: {cot_result.is_correct} | Tokens: {cot_result.tokens_spent}"
+    )
 
-    mas_result = run_always_mas_baseline(task1, orchestrator_fn=orch, accountant=accountant, token_budget=1000)
-    print(f"    [Always-MAS]  Predicted: '{mas_result.predicted_answer}' | Correct: {mas_result.is_correct} | Tokens: {mas_result.tokens_spent}")
+    mas_result = run_always_mas_baseline(
+        task1, orchestrator_fn=orch, accountant=accountant, token_budget=1000
+    )
+    print(
+        f"    [Always-MAS]  Predicted: '{mas_result.predicted_answer}' | Correct: {mas_result.is_correct} | Tokens: {mas_result.tokens_spent}"
+    )
 
     # -------------------------------------------------------------
     # 4. Token Accounting Summary

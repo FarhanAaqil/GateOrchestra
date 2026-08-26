@@ -52,7 +52,7 @@ def load_split(split: SplitName) -> list[Task]:
     tasks: list[Task] = []
     errors: list[str] = []
 
-    with open(path, encoding="utf-8") as f:
+    with path.open(encoding="utf-8") as f:
         for lineno, line in enumerate(f, start=1):
             line = line.strip()
             if not line:
@@ -64,9 +64,7 @@ def load_split(split: SplitName) -> list[Task]:
                 errors.append(f"  Line {lineno}: {e}")
 
     if errors:
-        raise ValueError(
-            f"Validation errors in {path}:\n" + "\n".join(errors[:5])
-        )
+        raise ValueError(f"Validation errors in {path}:\n" + "\n".join(errors[:5]))
 
     return tasks
 
@@ -84,7 +82,7 @@ def split_stats(tasks: list[Task]) -> dict:
     """Compute basic statistics for a list of tasks."""
     depths = [t.depth_score for t in tasks if t.depth_score is not None]
     pars = [t.parallel_score for t in tasks if t.parallel_score is not None]
-    sources = {}
+    sources: dict[str, int] = {}
     for t in tasks:
         src = t.source_dataset or "unknown"
         sources[src] = sources.get(src, 0) + 1

@@ -14,14 +14,13 @@ Run:
 
 from __future__ import annotations
 
-import json
 import random
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
-from shared.config import DATASET_DIR, RANDOM_SEED, TEST_SPLIT, TRAIN_SPLIT, VAL_SPLIT
+from shared.config import DATASET_DIR, RANDOM_SEED, TRAIN_SPLIT, VAL_SPLIT
 from shared.schemas import Task
 
 random.seed(RANDOM_SEED)
@@ -344,6 +343,7 @@ PARALLEL_QUESTIONS = [
 # Task builder
 # -----------------------------------------------------------------------------
 
+
 def build_tasks() -> list[Task]:
     tasks: list[Task] = []
     idx = 0
@@ -351,42 +351,48 @@ def build_tasks() -> list[Task]:
     # 50 factoid tasks
     sampled_factoid = random.choices(FACTOID_QUESTIONS, k=50)
     for q, ans in sampled_factoid:
-        tasks.append(Task(
-            task_id=f"factoid_{idx:03d}",
-            question=q,
-            ground_truth=ans,
-            depth_score=random.choice([1, 2]),
-            parallel_score=1,
-            source_dataset="synthetic_factoid",
-        ))
+        tasks.append(
+            Task(
+                task_id=f"factoid_{idx:03d}",
+                question=q,
+                ground_truth=ans,
+                depth_score=random.choice([1, 2]),
+                parallel_score=1,
+                source_dataset="synthetic_factoid",
+            )
+        )
         idx += 1
 
     # 50 multi-hop tasks
     sampled_mh = random.choices(MULTIHOP_QUESTIONS, k=50)
     for q, ans, ctx in sampled_mh:
-        tasks.append(Task(
-            task_id=f"multihop_{idx:03d}",
-            question=q,
-            context=ctx,
-            ground_truth=ans,
-            depth_score=random.choice([3, 4]),
-            parallel_score=random.choice([1, 2]),
-            source_dataset="synthetic_multihop",
-        ))
+        tasks.append(
+            Task(
+                task_id=f"multihop_{idx:03d}",
+                question=q,
+                context=ctx,
+                ground_truth=ans,
+                depth_score=random.choice([3, 4]),
+                parallel_score=random.choice([1, 2]),
+                source_dataset="synthetic_multihop",
+            )
+        )
         idx += 1
 
     # 50 parallel tasks
     sampled_par = random.choices(PARALLEL_QUESTIONS, k=50)
     for q, ans, ctx in sampled_par:
-        tasks.append(Task(
-            task_id=f"parallel_{idx:03d}",
-            question=q,
-            context=ctx,
-            ground_truth=ans,
-            depth_score=random.choice([2, 3]),
-            parallel_score=random.choice([3, 4]),
-            source_dataset="synthetic_parallel",
-        ))
+        tasks.append(
+            Task(
+                task_id=f"parallel_{idx:03d}",
+                question=q,
+                context=ctx,
+                ground_truth=ans,
+                depth_score=random.choice([2, 3]),
+                parallel_score=random.choice([3, 4]),
+                source_dataset="synthetic_parallel",
+            )
+        )
         idx += 1
 
     random.shuffle(tasks)
@@ -400,8 +406,8 @@ def split_and_save(tasks: list[Task]) -> dict[str, int]:
 
     splits = {
         "train": tasks[:n_train],
-        "val": tasks[n_train:n_train + n_val],
-        "test": tasks[n_train + n_val:],
+        "val": tasks[n_train : n_train + n_val],
+        "test": tasks[n_train + n_val :],
     }
 
     DATASET_DIR.mkdir(parents=True, exist_ok=True)
@@ -409,7 +415,7 @@ def split_and_save(tasks: list[Task]) -> dict[str, int]:
     for split_name, split_tasks in splits.items():
         out_path = DATASET_DIR / split_name / f"{split_name}.jsonl"
         out_path.parent.mkdir(parents=True, exist_ok=True)
-        with open(out_path, "w", encoding="utf-8") as f:
+        with out_path.open("w", encoding="utf-8") as f:
             for t in split_tasks:
                 f.write(t.model_dump_json() + "\n")
         counts[split_name] = len(split_tasks)
