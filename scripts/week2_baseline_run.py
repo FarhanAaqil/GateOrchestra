@@ -41,16 +41,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from agents.baselines.simulated_probe import SimulatedProbe
-from gate.classifier import GateClassifier, make_classifier
-from gate.feature_extractor import extract_features
-from gate.random_gate import RandomGate
-from gate.rule_based_gate import RuleBasedGate
-from gate.train_gate import apply_label_rule, evaluate_classifier, train_gate
-from integration.pipeline import _exact_match
-from shared.config import K_DEFAULT, K_VALUES, LOGS_DIR
-from shared.schemas import EvalResult, GateDecision, GateFeatures, ProbeResult, Task
-from shared.token_logger import TokenAccountant
+from agents.baselines.simulated_probe import SimulatedProbe  # noqa: E402
+from gate.classifier import GateClassifier, make_classifier  # noqa: E402
+from gate.feature_extractor import extract_features  # noqa: E402
+from gate.random_gate import RandomGate  # noqa: E402
+from gate.rule_based_gate import RuleBasedGate  # noqa: E402
+from gate.train_gate import apply_label_rule, evaluate_classifier, train_gate  # noqa: E402
+from integration.pipeline import _exact_match  # noqa: E402
+from shared.config import K_DEFAULT, K_VALUES, LOGS_DIR  # noqa: E402
+from shared.schemas import EvalResult, GateDecision, GateFeatures, ProbeResult, Task  # noqa: E402
+from shared.token_logger import TokenAccountant  # noqa: E402
 
 # ── Logging setup ─────────────────────────────────────────────────────────────
 logging.basicConfig(
@@ -456,10 +456,10 @@ def main() -> None:
     # Map internal label → EvalResult.method (must match schema Literal)
     eval_gates = [
         (learned_gates["logreg"], "GateOrchestra", "LogRegGate"),
-        (learned_gates["gbt"],    "GateOrchestra", "GBTGate"),
-        (learned_gates["mlp"],    "GateOrchestra", "MLPGate"),
-        (rule_gate,               "RuleBasedGate", "RuleBasedGate"),
-        (rand_gate,               "RandomGate",    "RandomGate"),
+        (learned_gates["gbt"], "GateOrchestra", "GBTGate"),
+        (learned_gates["mlp"], "GateOrchestra", "MLPGate"),
+        (rule_gate, "RuleBasedGate", "RuleBasedGate"),
+        (rand_gate, "RandomGate", "RandomGate"),
     ]
 
     val_tasks_labeled = [t for t in val_tasks if t.task_id in labels_val]
@@ -540,7 +540,9 @@ def main() -> None:
         f"  Labels: {n_escalate}/{len(labels_train)} ESCALATE on train "
         f"({100*n_escalate/len(labels_train):.1f}%)"
     )
-    print(f"  Best:   {best_metrics['classifier']} | k={best_metrics['k']} | F1={best_metrics['f1']:.4f}")
+    print(
+        f"  Best:   {best_metrics['classifier']} | k={best_metrics['k']} | F1={best_metrics['f1']:.4f}"
+    )
     print()
     print(f"  {'Gate':<20} {'Accuracy':>9}  {'F1':>7}  {'EscRate':>8}")
     print(f"  {'-'*20} {'-'*9}  {'-'*7}  {'-'*8}")
