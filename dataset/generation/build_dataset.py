@@ -210,7 +210,7 @@ MULTIHOP_QUESTIONS = [
     ),
 ]
 
-PARALLEL_QUESTIONS = [
+PARALLEL_QUESTIONS: list[tuple[str, str, str | None]] = [
     (
         "What are the capitals of France, Germany, and Italy?",
         "Paris, Berlin, Rome",
@@ -381,12 +381,12 @@ def build_tasks() -> list[Task]:
 
     # 50 parallel tasks
     sampled_par = random.choices(PARALLEL_QUESTIONS, k=50)
-    for q, ans, ctx in sampled_par:
+    for q, ans, p_ctx in sampled_par:
         tasks.append(
             Task(
                 task_id=f"parallel_{idx:03d}",
                 question=q,
-                context=ctx,
+                context=p_ctx,
                 ground_truth=ans,
                 depth_score=random.choice([2, 3]),
                 parallel_score=random.choice([3, 4]),
@@ -434,7 +434,7 @@ def print_sample(tasks: list[Task], n: int = 3) -> None:
 
 
 def print_stats(tasks: list[Task]) -> None:
-    by_type = {}
+    by_type: dict[str, int] = {}
     for t in tasks:
         src = t.source_dataset or "unknown"
         by_type[src] = by_type.get(src, 0) + 1
