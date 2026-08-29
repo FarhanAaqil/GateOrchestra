@@ -53,7 +53,7 @@ class ReActAgent:
             )
         except Exception as e:
             logger.warning(f"[ReActAgent] LLM call error: {e}")
-            return f"Final Answer: {extract_answer(prompt)}", 10
+            return f"Final Answer: {extract_answer(prompt)}", 0
 
     def run(self, task: Task, token_budget: int) -> tuple[str, int]:
         """Execute ReAct reasoning loop up to max_steps or token budget exhaustion."""
@@ -81,15 +81,18 @@ class ReActAgent:
             # Check if final answer is reached
             if "final answer" in response.lower() or "the answer is" in response.lower():
                 answer = extract_answer(response)
-                return answer, total_tokens
+                return answer, min(total_tokens, token_budget)
+
+        if total_tokens >= token_budget:
+            return extract_answer(response), min(total_tokens, token_budget)
 
         # Final synthesis if loop ended without explicit Final Answer
         synthesis_prompt = "\n".join(history) + "\nConclude with: Final Answer: <answer>"
-        remaining_budget = max(10, token_budget - total_tokens)
+        remaining_budget = token_budget - total_tokens
         final_resp, fin_tokens = self._call(synthesis_prompt, remaining_budget)
         total_tokens += fin_tokens
 
-        return extract_answer(final_resp), total_tokens
+        return extract_answer(final_resp), min(total_tokens, token_budget)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -122,13 +125,13 @@ class DebateAgent:
             )
         except Exception as e:
             logger.warning(f"[DebateAgent] LLM call error: {e}")
-            return f"Final Answer: {extract_answer(prompt)}", 10
+            return f"Final Answer: {extract_answer(prompt)}", 0
 
     def run(self, task: Task, token_budget: int) -> tuple[str, int]:
         """Run multi-agent proposer and critic debate rounds."""
         total_tokens = 0
         context_str = f"Context: {task.context}\n" if task.context else ""
-        round_budget = max(20, token_budget // (self.num_rounds * 2 + 1))
+        round_budget = min(token_budget, max(20, token_budget // (self.num_rounds * 2 + 1)))
 
         # Round 1: Proposer initial solution
         prop_prompt = (
@@ -172,7 +175,7 @@ class DebateAgent:
             )
             total_tokens += tok_r
 
-        return extract_answer(current_solution), total_tokens
+        return extract_answer(current_solution), min(total_tokens, token_budget)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -203,13 +206,13 @@ class ReflexionAgent:
             )
         except Exception as e:
             logger.warning(f"[ReflexionAgent] LLM call error: {e}")
-            return f"Final Answer: {extract_answer(prompt)}", 10
+            return f"Final Answer: {extract_answer(prompt)}", 0
 
     def run(self, task: Task, token_budget: int) -> tuple[str, int]:
         """Draft an initial response, self-critique, and refine."""
         total_tokens = 0
         context_str = f"Context: {task.context}\n" if task.context else ""
-        step_budget = max(20, token_budget // 3)
+        step_budget = min(token_budget, max(20, token_budget // 3))
 
         # 1. Draft
         draft_prompt = (
@@ -221,7 +224,7 @@ class ReflexionAgent:
         total_tokens += tok1
 
         if total_tokens >= token_budget:
-            return extract_answer(draft), total_tokens
+            return extract_answer(draft), min(total_tokens, token_budget)
 
         # 2. Reflect
         reflect_prompt = (
@@ -233,7 +236,7 @@ class ReflexionAgent:
         total_tokens += tok2
 
         if total_tokens >= token_budget:
-            return extract_answer(draft), total_tokens
+            return extract_answer(draft), min(total_tokens, token_budget)
 
         # 3. Refine
         refine_prompt = (
@@ -244,4 +247,4 @@ class ReflexionAgent:
         refined, tok3 = self._call(refine_prompt, min(step_budget, token_budget - total_tokens))
         total_tokens += tok3
 
-        return extract_answer(refined), total_tokens
+        return extract_answer(refined), min(total_tokens, token_budget)

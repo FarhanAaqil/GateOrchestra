@@ -30,7 +30,7 @@ MODELS_DIR.mkdir(parents=True, exist_ok=True)
 # LLM / Probe
 # ─────────────────────────────────────────────────────────────────────────────
 
-MODEL_NAME: str = os.getenv("GATE_MODEL_NAME", "Qwen2.5-7B-Instruct")
+MODEL_NAME: str = os.getenv("GATE_MODEL_NAME", "qwen2.5:7b-instruct")
 MODEL_API_BASE: str = os.getenv("GATE_API_BASE", "http://localhost:11434")  # Ollama default
 
 PROBE_TOKEN_BUDGET: int = 500  # Max tokens the probe may spend per task
