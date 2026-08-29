@@ -317,8 +317,11 @@ class ProbeAgent:
             assigned = False
             for cluster in clusters:
                 rep_norm = normalized_answers[cluster[0]]
-                # Match if identical or token Jaccard >= 0.75 (semantic soft match)
-                if norm == rep_norm or (norm and rep_norm and _token_jaccard_similarity(norm, rep_norm) >= 0.75):
+                # Match if identical or token Jaccard >= 0.5 or token subset overlap
+                tokens_a = set(norm.split())
+                tokens_b = set(rep_norm.split())
+                is_subset = bool(tokens_a and tokens_b and (tokens_a.issubset(tokens_b) or tokens_b.issubset(tokens_a)))
+                if norm == rep_norm or is_subset or _token_jaccard_similarity(norm, rep_norm) >= 0.5:
                     cluster.append(i)
                     assigned = True
                     break

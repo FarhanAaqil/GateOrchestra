@@ -82,8 +82,8 @@ class LinUCBRouter:
             theta_hat = A_inv @ self.b[arm]
 
             # UCB score = expected reward + exploration bonus
-            mean = float(theta_hat.T @ x)
-            var = float(np.sqrt(x.T @ A_inv @ x))
+            mean = float((theta_hat.T @ x).item())
+            var = float(np.sqrt((x.T @ A_inv @ x).item()))
             p = mean + self.alpha * var
 
             if p > max_p:
