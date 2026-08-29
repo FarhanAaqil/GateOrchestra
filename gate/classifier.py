@@ -233,22 +233,30 @@ class MLPGate(GateClassifier):
 
     def train(self, features: list[GateFeatures], labels: list[str]) -> None:
         X = np.stack([features_to_array(f) for f in features])
-        y = np.array(labels)
+        # Encode string labels to integers — workaround for sklearn MLPClassifier
+        # early_stopping bug that calls np.isnan() on string label arrays.
+        unique_labels = sorted(set(labels))
+        label_to_int = {lab: i for i, lab in enumerate(unique_labels)}
+        y_int = np.array([label_to_int[lab] for lab in labels])
         X_scaled = self._scaler.fit_transform(X)
-        self._model.fit(X_scaled, y)
-        self._classes = list(self._model.classes_)
+        self._model.fit(X_scaled, y_int)
+        # Restore string class names in the expected order
+        self._classes = unique_labels
         self._is_trained = True
-        logger.info(f"MLPGate trained. Best val loss: {self._model.best_loss_:.4f}")
+        best_loss = getattr(self._model, "best_loss_", None)
+        loss_str = f"{best_loss:.4f}" if best_loss is not None else "N/A"
+        logger.info(f"MLPGate trained. Best val loss: {loss_str}")
 
     def predict(self, features: GateFeatures, k: int, probe_tokens: int) -> GateDecision:
         if not self._is_trained:
             raise RuntimeError("Call train() before predict()")
         x = features_to_array(features).reshape(1, -1)
         x_scaled = self._scaler.transform(x)
-        label = str(self._model.predict(x_scaled)[0])
+        # Model predicts integer class indices; decode back to string label
+        int_pred = int(self._model.predict(x_scaled)[0])
+        label = self._classes[int_pred]  # type: ignore[index]
         proba = self._model.predict_proba(x_scaled)[0]
-        idx = self._classes.index(label)  # type: ignore[union-attr]
-        confidence = float(proba[idx])
+        confidence = float(proba[int_pred])
         return self._make_decision(features.task_id, label, confidence, k, probe_tokens)
 
 
