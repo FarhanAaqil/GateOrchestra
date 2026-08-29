@@ -39,32 +39,34 @@ sources:
   - template_comparison
 
 # ── Depth Score Thresholds (depth_score: 1–5) ─────────────────────────────────
-# depth_score derived from: clause_count, hop_count, entity_count, word_count
+# depth_score derived from: hop_count, clause_count, entity_count, word_count
 depth_labeling:
   weights:
-    clause_count:  0.40
-    hop_count:     0.35
-    entity_count:  0.15
-    word_count:    0.10
-  thresholds:           # weighted_score → depth_score
-    score_1: [0.0, 1.0]
-    score_2: [1.0, 2.0]
-    score_3: [2.0, 3.2]
-    score_4: [3.2, 4.2]
-    score_5: [4.2, 999]
+    hop_count:       0.40
+    clause_count:    0.30
+    entity_count:    0.20
+    word_count_norm: 0.10
+  thresholds:           # score < upper_bound -> label
+    score_1: 0.45
+    score_2: 0.85
+    score_3: 1.30
+    score_4: 1.80
+    score_5: 999.0
 
 # ── Parallel Score Thresholds (parallel_score: 1–4) ───────────────────────────
-# parallel_score derived from: sub_question_count, conjunction_count, list_count
+# parallel_score derived from: sub_question_count, conjunction_count, list_count, choice_count, parallel_branches
 parallel_labeling:
   weights:
-    sub_question_count: 0.50
-    conjunction_count:  0.30
-    list_count:         0.20
-  thresholds:           # weighted_score → parallel_score
-    score_1: [0.0, 0.5]
-    score_2: [0.5, 1.5]
-    score_3: [1.5, 2.5]
-    score_4: [2.5, 999]
+    sub_question_count: 0.30
+    conjunction_count:  0.15
+    list_count:         0.15
+    choice_count:       0.20
+    parallel_branches:  0.20
+  thresholds:           # score < upper_bound -> label
+    score_1: 0.20
+    score_2: 0.50
+    score_3: 0.80
+    score_4: 999.0
 
 # ── Validation Rules ──────────────────────────────────────────────────────────
 validation:

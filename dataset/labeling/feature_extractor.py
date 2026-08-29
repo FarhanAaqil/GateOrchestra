@@ -48,7 +48,7 @@ def extract_labeling_features(
         hop_hint:   Number of reasoning hops from task pool metadata.
 
     Returns:
-        dict of feature name → value. All values are primitive types
+        dict of feature name -> value. All values are primitive types
         (int, float, bool) for easy serialization.
     """
     q = question.strip()
@@ -62,6 +62,16 @@ def extract_labeling_features(
     question_word_count = len(q.split())
     has_context = bool(ctx)
     context_word_count = len(ctx.split()) if ctx else 0
+    is_comparison = _detect_comparison(q)
+    is_arithmetic = _detect_arithmetic(q)
+    choice_count = _count_choice_entities(q)
+
+    # Estimate parallel branches (independent reasoning threads)
+    parallel_branches = max(
+        1,
+        sub_question_count + 1 if sub_question_count > 0 else 1,
+        choice_count if is_comparison else 1,
+    )
 
     return {
         "question_word_count": question_word_count,
@@ -73,6 +83,10 @@ def extract_labeling_features(
         "list_count": list_count,
         "has_context": has_context,
         "context_word_count": context_word_count,
+        "is_comparison": is_comparison,
+        "is_arithmetic": is_arithmetic,
+        "choice_count": choice_count,
+        "parallel_branches": parallel_branches,
     }
 
 
@@ -88,10 +102,10 @@ def _count_entities(text: str) -> int:
     sentence-initial false positives by requiring multi-word spans).
     Single capitalized words at non-sentence-start are also counted.
     """
-    # Multi-word capitalized spans (e.g., "New York", "Marie Curie")
-    multi = re.findall(r"\b([A-Z][a-z]+(?:\s+[A-Z][a-z]+)+)\b", text)
+    # Multi-word capitalized spans (e.g., "New York", "Marie Curie", "Louis XIV")
+    multi = re.findall(r"\b([A-Z][a-z]+(?:\s+(?:[A-Z][a-z]+|[IVXLCDM]+))+)\b", text)
     # Single capitalized words not at start of sentence (rough proxy)
-    single_mid = re.findall(r"(?<=[.!?]\s)([A-Z][a-z]+)\b|[a-z]\s+([A-Z][a-z]+)\b", text)
+    single_mid = re.findall(r"(?<=[.!?]\s)([A-Z][a-z]+)\b|[a-z:,]\s+([A-Z][a-z]+)\b", text)
     single_count = sum(1 for m in single_mid if any(g for g in m))
     return len(multi) + single_count
 
@@ -101,18 +115,18 @@ def _count_clauses(text: str) -> int:
     clause_keywords = (
         r"\b(that|which|when|where|who|whom|whose|because|although|"
         r"since|if|while|whereas|though|unless|until|after|before|"
-        r"as long as|so that)\b"
+        r"as long as|so that|in which|whereby)\b"
     )
     return len(re.findall(clause_keywords, text, flags=re.IGNORECASE))
 
 
 def _count_sub_questions(text: str) -> int:
     """Count sub-questions using question marks and question-introducing phrases."""
-    # Direct question marks (beyond the final one)
+    # Direct question marks (beyond the initial/final one)
     q_marks = len(re.findall(r"\?", text))
-    # Embedded question phrases: "what X", "which X", "who X" in mid-sentence
+    # Embedded question phrases: ", and what/which/who...", "and who...", "also what..."
     embedded = re.findall(
-        r",\s*(what|which|who|where|when|how|why)\b",
+        r"(?:,\s*and|\band|\balso|\bthen)\s+(what|which|who|where|when|how|why)\b",
         text,
         flags=re.IGNORECASE,
     )
@@ -120,20 +134,72 @@ def _count_sub_questions(text: str) -> int:
 
 
 def _count_conjunctions(text: str) -> int:
-    """Count list-forming conjunctions."""
-    pattern = r"\b(and|or|both|also|as well as|along with|together with)\b"
+    """Count list-forming and coordination conjunctions."""
+    pattern = r"\b(and|or|both|also|as well as|along with|together with|neither|nor)\b"
     return len(re.findall(pattern, text, flags=re.IGNORECASE))
 
 
 def _count_list_items(text: str) -> int:
-    """Detect comma-separated lists as proxy for parallel structure.
-
-    A list is detected when there are 2+ commas in a sequence without
-    a period separating them, or explicit enumeration words.
-    """
-    # Count comma clusters (3+ items in a list = 2+ commas)
+    """Detect comma-separated lists or enumeration markers."""
     comma_count = text.count(",")
-    # Enumeration markers
-    enum_words = re.findall(r"\b(first|second|third|finally|lastly|respectively)\b",
-                             text, flags=re.IGNORECASE)
+    enum_words = re.findall(
+        r"\b(first|second|third|finally|lastly|respectively|between|among)\b",
+        text,
+        flags=re.IGNORECASE,
+    )
     return comma_count + len(enum_words)
+
+
+def _detect_comparison(text: str) -> bool:
+    """Detect if question is a comparative query comparing two or more entities."""
+    patterns = [
+        r"\b(which|who)\s+(?:is|was|are|were|has|had|came|ruled|rotates|travels|weighs|lasted)\s+"
+        r"(?:more|less|higher|lower|faster|slower|older|younger|earlier|later|larger|smaller|"
+        r"longer|shorter|deeper|heavier|lighter|closer|further|greater|better)\b",
+        r"\b(?:compare|comparison|difference between|versus| vs\.?)\b",
+        r"\bbetween\s+[\w\s,]+(?:\s+or\s+|\s+and\s+)[\w\s,]+\s*,\s*(?:which|who)\b",
+        r":\s*[\w\s']+\s+(?:or|versus|vs\.?)\s+[\w\s']+\?",
+    ]
+    for pat in patterns:
+        if re.search(pat, text, flags=re.IGNORECASE):
+            return True
+    return False
+
+
+def _detect_arithmetic(text: str) -> bool:
+    """Detect if question requires arithmetic calculation or unit conversion."""
+    patterns = [
+        r"\b(sum|difference|total|product|ratio|average|mean|convert|percentage|percent|calculate|compute)\b",
+        r"\b(how many|how much|what is the cost|what is the total|what is the sum)\b",
+        r"\d+\s*(?:\+|\-|\*|\/|\%|\$|km|miles|hours|minutes|seconds|kg|grams|liters|gallons|meters|feet)\b",
+    ]
+    for pat in patterns:
+        if re.search(pat, text, flags=re.IGNORECASE):
+            return True
+    return False
+
+
+def _count_choice_entities(text: str) -> int:
+    """Count explicit candidate options in comparison questions (e.g. 'A or B' -> 2)."""
+    # Look for trailing pattern like ": Entity A or Entity B?" or "between X, Y, and Z"
+    colon_split = text.split(":")
+    if len(colon_split) > 1:
+        tail = colon_split[-1].rstrip("?")
+        options = re.split(r",\s*|\s+or\s+|\s+and\s+", tail)
+        options = [o.strip() for o in options if o.strip()]
+        if len(options) >= 2:
+            return len(options)
+
+    # Check for "between A and B" or "between A, B, and C"
+    between_match = re.search(r"\bbetween\s+([\w\s,]+?)(?:\s*,\s*(?:which|who|\?)|$)", text, flags=re.IGNORECASE)
+    if between_match:
+        items = re.split(r",\s*|\s+and\s+|\s+or\s+", between_match.group(1))
+        items = [i.strip() for i in items if i.strip()]
+        if len(items) >= 2:
+            return len(items)
+
+    # General 'X or Y' check
+    if re.search(r"\b\w+\s+or\s+\w+\b", text, flags=re.IGNORECASE):
+        return 2
+
+    return 0
