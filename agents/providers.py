@@ -168,8 +168,21 @@ def call_groq(
 
             return response_text, total_tokens
 
+    except urllib.error.HTTPError as e:
+        try:
+            raw_err = e.read().decode("utf-8")
+            error_body = json.loads(raw_err)
+            err_msg = error_body.get("error", {}).get("message", raw_err)
+        except Exception:
+            err_msg = str(e)
+        logger.error(f"[GroqProvider] Groq API returned HTTP {e.code}: {err_msg}")
+        raise RuntimeError(
+            f"Groq API Error ({e.code}): {err_msg}. "
+            f"Please verify model '{model}' is available on your Groq account (e.g., 'groq/compound', 'qwen/qwen3.6-27b')."
+        ) from e
+
     except (urllib.error.URLError, TimeoutError, OSError) as e:
-        logger.warning(f"[GroqProvider] Call to {url} failed: {e}")
+        logger.warning(f"[GroqProvider] Network call to {url} failed: {e}")
         raise
 
 
