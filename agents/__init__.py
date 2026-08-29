@@ -2,7 +2,7 @@
 agents/__init__.py
 ==================
 Agents module for GateOrchestra (Person 2).
-Exposes the ProbeAgent, MAS Orchestrator, and Baselines.
+Exposes the ProbeAgent, MAS Orchestrator, LinUCBRouter, and Baselines.
 """
 
 from agents.baselines import (
@@ -13,6 +13,7 @@ from agents.baselines import (
 )
 from agents.orchestrator import (
     DebateAgent,
+    LinUCBRouter,
     MASOrchestrator,
     ReActAgent,
     ReflexionAgent,
@@ -25,6 +26,7 @@ __all__ = [
     "probe_agent",
     "MASOrchestrator",
     "orchestrator",
+    "LinUCBRouter",
     "ReActAgent",
     "DebateAgent",
     "ReflexionAgent",

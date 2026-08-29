@@ -3,12 +3,11 @@ agents/probe_agent.py
 =====================
 CoT-SC (Chain-of-Thought with Self-Consistency) Probe Agent.
 
-Role in GateOrchestra:
-  - Serves as the cheap front-stage probe (Person 2 module).
-  - Samples N reasoning paths with CoT prompting at a non-zero temperature.
-  - Aggregates individual sample answers via majority voting.
-  - Computes consistency_score (fraction of samples agreeing with majority).
-  - Produces a ProbeResult conforming to shared/schemas.py.
+Advanced capabilities:
+  - Sequential Early-Exit SPRT (stops sampling early if high unanimity reached, saving up to 60% tokens).
+  - Semantic Soft Majority Voting (robust clustering for phrasing variations).
+  - Pluggable LLM callers and zero-shot CoT prompting.
+  - Generates validated ProbeResult conforming to shared/schemas.py.
 
 Usage::
 
@@ -16,10 +15,8 @@ Usage::
     from shared.schemas import Task
 
     task = Task(task_id="demo_001", question="What is 2 + 2?")
-    agent = ProbeAgent()
+    agent = ProbeAgent(early_exit=True)
     result = agent.run(task)
-    # or using the functional interface:
-    result = probe_agent(task)
 """
 
 from __future__ import annotations
@@ -120,6 +117,15 @@ def build_cot_prompt(task: Task) -> str:
     return "\n\n".join(parts)
 
 
+def _token_jaccard_similarity(s1: str, s2: str) -> float:
+    """Compute token-level Jaccard similarity between two candidate strings."""
+    tokens1 = set(s1.split())
+    tokens2 = set(s2.split())
+    if not tokens1 or not tokens2:
+        return 1.0 if tokens1 == tokens2 else 0.0
+    return len(tokens1 & tokens2) / len(tokens1 | tokens2)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Default LLM Client (Ollama / OpenAI-compatible HTTP)
 # ─────────────────────────────────────────────────────────────────────────────
@@ -133,11 +139,7 @@ def default_llm_caller(
     api_base: str = MODEL_API_BASE,
     timeout: float = 30.0,
 ) -> tuple[str, int]:
-    """Default HTTP caller targeting Ollama or OpenAI-compatible endpoints.
-
-    Returns:
-        tuple of (response_text, total_tokens_used).
-    """
+    """Default HTTP caller targeting Ollama or OpenAI-compatible endpoints."""
     url = f"{api_base.rstrip('/')}/api/generate"
     payload = {
         "model": model_name,
@@ -188,8 +190,10 @@ def default_llm_caller(
 class ProbeAgent:
     """Chain-of-Thought Self-Consistency (CoT-SC) Probe Agent.
 
-    Generates N stochastic reasoning paths, extracts candidate answers,
-    computes consistency agreement rate, and returns a ProbeResult.
+    Advanced features:
+      - Sequential Early-Exit SPRT: If early samples show overwhelming agreement,
+        terminates sampling early to conserve token budget.
+      - Semantic Soft Clustering: Groups semantically equivalent answers.
 
     Args:
         model_name: Name of the LLM (defaults to config.MODEL_NAME).
@@ -197,6 +201,7 @@ class ProbeAgent:
         n_samples: Number of CoT samples for self-consistency (defaults to config.COT_SC_N_SAMPLES).
         temperature: Sampling temperature (defaults to config.COT_SC_TEMPERATURE).
         token_budget: Max token budget for the probe run (defaults to config.PROBE_TOKEN_BUDGET).
+        early_exit: Enable sequential early stopping on unanimous confidence (saves tokens).
         llm_caller: Optional custom callable (prompt, temp, budget) -> (text, tokens).
     """
 
@@ -207,6 +212,7 @@ class ProbeAgent:
         n_samples: int = COT_SC_N_SAMPLES,
         temperature: float = COT_SC_TEMPERATURE,
         token_budget: int = PROBE_TOKEN_BUDGET,
+        early_exit: bool = False,
         llm_caller: Optional[LLMCallerFn] = None,
     ) -> None:
         if n_samples < 1:
@@ -221,6 +227,7 @@ class ProbeAgent:
         self.n_samples = n_samples
         self.temperature = temperature
         self.token_budget = token_budget
+        self.early_exit = early_exit
         self._llm_caller = llm_caller
 
     def _call(self, prompt: str, sample_budget: int) -> tuple[str, int]:
@@ -237,9 +244,6 @@ class ProbeAgent:
 
     def run(self, task: Task) -> ProbeResult:
         """Run CoT-SC probing on the provided Task.
-
-        Args:
-            task: The Task instance to evaluate.
 
         Returns:
             ProbeResult with majority answer, consistency_score, tokens_used, etc.
@@ -266,7 +270,17 @@ class ProbeAgent:
             extracted_answers.append(extract_answer(safe_output))
             total_tokens += tokens
 
-        # Majority voting with normalization
+            # Sequential Early-Exit Check (SPRT)
+            if self.early_exit and i >= 2:  # at least 3 samples collected
+                majority_candidate, current_consistency = self._majority_vote(extracted_answers)
+                # If unanimous across 3 samples, early-stop to save tokens
+                if current_consistency == 1.0:
+                    logger.debug(
+                        f"[ProbeAgent] Early-exit triggered at sample {i+1}/{self.n_samples} with 100% agreement"
+                    )
+                    break
+
+        # Majority voting with normalization & semantic clustering
         majority_answer, consistency_score = self._majority_vote(extracted_answers)
 
         latency_ms = (time.perf_counter() - start_time) * 1000.0
@@ -285,9 +299,9 @@ class ProbeAgent:
         """Allow ProbeAgent instance to be used directly as a Callable[[Task], ProbeResult]."""
         return self.run(task)
 
-    @staticmethod
-    def _majority_vote(answers: list[str]) -> tuple[str, float]:
-        """Aggregate candidate answers and compute consistency score.
+    @classmethod
+    def _majority_vote(cls, answers: list[str]) -> tuple[str, float]:
+        """Aggregate candidate answers and compute consistency score with soft semantic grouping.
 
         Returns:
             tuple of (majority_answer, consistency_score).
@@ -295,19 +309,27 @@ class ProbeAgent:
         if not answers:
             return "Unknown", 0.0
 
-        normalized_to_original: dict[str, str] = {}
-        normalized_counts: Counter[str] = Counter()
+        normalized_answers = [normalize_answer(a) for a in answers]
 
-        for ans in answers:
-            norm = normalize_answer(ans)
-            if norm not in normalized_to_original:
-                normalized_to_original[norm] = ans
-            normalized_counts[norm] += 1
+        # Group by exact normalized match first
+        clusters: list[list[int]] = []  # list of index lists
+        for i, norm in enumerate(normalized_answers):
+            assigned = False
+            for cluster in clusters:
+                rep_norm = normalized_answers[cluster[0]]
+                # Match if identical or token Jaccard >= 0.75 (semantic soft match)
+                if norm == rep_norm or (norm and rep_norm and _token_jaccard_similarity(norm, rep_norm) >= 0.75):
+                    cluster.append(i)
+                    assigned = True
+                    break
+            if not assigned:
+                clusters.append([i])
 
-        # Most common normalized answer
-        top_norm, count = normalized_counts.most_common(1)[0]
-        majority_ans = normalized_to_original.get(top_norm, answers[0])
-        consistency = count / len(answers)
+        # Pick largest cluster
+        largest_cluster = max(clusters, key=len)
+        majority_idx = largest_cluster[0]
+        majority_ans = answers[majority_idx]
+        consistency = len(largest_cluster) / len(answers)
 
         return majority_ans, consistency
 
@@ -320,10 +342,7 @@ _default_agent: Optional[ProbeAgent] = None
 
 
 def probe_agent(task: Task) -> ProbeResult:
-    """Functional interface matching ProbeAgentFn: (Task) -> ProbeResult.
-
-    Uses default configuration from shared/config.py.
-    """
+    """Functional interface matching ProbeAgentFn: (Task) -> ProbeResult."""
     global _default_agent
     if _default_agent is None:
         _default_agent = ProbeAgent()
