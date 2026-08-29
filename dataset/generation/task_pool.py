@@ -47,12 +47,10 @@ TASK_TYPES = {
 #   question, answer, context (None if absent), source, task_type, hop_hint
 
 RAW_TASKS: list[dict] = [
-
     # ══════════════════════════════════════════════════════════════════════════
     # SECTION A — Multi-Hop Bridge (HotpotQA-style) — 50 tasks
     # Require resolving two entities via a bridge fact
     # ══════════════════════════════════════════════════════════════════════════
-
     {
         "question": "What is the birth city of the person who invented the telephone?",
         "answer": "Edinburgh",
@@ -461,12 +459,10 @@ RAW_TASKS: list[dict] = [
         "task_type": "multihop_bridge",
         "hop_hint": 2,
     },
-
     # ══════════════════════════════════════════════════════════════════════════
     # SECTION B — Multi-Hop Compositional (MuSiQue-style) — 40 tasks
     # 2-3 reasoning hops, explicit chaining
     # ══════════════════════════════════════════════════════════════════════════
-
     {
         "question": "The scientist who discovered radioactivity was born in the same country as the mathematician who proved Fermat's Last Theorem. What is that country?",
         "answer": "Poland and United Kingdom respectively — they are not from the same country. Marie Curie was Polish, Andrew Wiles is British.",
@@ -779,12 +775,10 @@ RAW_TASKS: list[dict] = [
         "task_type": "multihop_compositional",
         "hop_hint": 3,
     },
-
     # ══════════════════════════════════════════════════════════════════════════
     # SECTION C — Arithmetic / Reasoning (template_arithmetic) — 40 tasks
     # Direct computation, unit conversion, or numeric reasoning
     # ══════════════════════════════════════════════════════════════════════════
-
     {
         "question": "If a train travels at 80 km/h and needs to cover 240 km, how many hours will the journey take?",
         "answer": "3 hours",
@@ -1105,12 +1099,10 @@ RAW_TASKS: list[dict] = [
         "task_type": "arithmetic",
         "hop_hint": 1,
     },
-
     # ══════════════════════════════════════════════════════════════════════════
     # SECTION D — Comparison Tasks (template_comparison) — 30 tasks
     # Require fetching and comparing two or more facts
     # ══════════════════════════════════════════════════════════════════════════
-
     {
         "question": "Which is larger: the area of China or the area of the United States?",
         "answer": "China (9.597 million km²) and the United States (9.834 million km²) — the United States is slightly larger",

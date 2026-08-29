@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import logging
 import re
-from typing import Optional
 
 from shared.config import SPACY_MODEL, USE_SPACY
 from shared.schemas import GateFeatures, ProbeResult, Task
@@ -27,12 +26,13 @@ logger = logging.getLogger(__name__)
 # ─────────────────────────────────────────────────────────────────────────────
 
 _nlp = None  # Lazy-loaded to avoid slow import at module level
+_nlp_unavailable = False  # Set to True if spaCy fails to load
 
 
 def _get_nlp():
     """Load the spaCy model once and cache it."""
-    global _nlp
-    if _nlp is None:
+    global _nlp, _nlp_unavailable
+    if _nlp is None and not _nlp_unavailable:
         try:
             import spacy  # noqa: PLC0415
 
@@ -42,8 +42,8 @@ def _get_nlp():
             logger.warning(
                 f"spaCy unavailable ({e}). Falling back to regex-based feature extraction."
             )
-            _nlp = "unavailable"
-    return _nlp if _nlp != "unavailable" else None
+            _nlp_unavailable = True
+    return _nlp if not _nlp_unavailable else None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -54,7 +54,7 @@ def _get_nlp():
 def extract_features(
     task: Task,
     probe: ProbeResult,
-    use_spacy: Optional[bool] = None,
+    use_spacy: bool | None = None,
 ) -> GateFeatures:
     """Extract GateFeatures from a Task and its ProbeResult.
 
@@ -67,9 +67,7 @@ def extract_features(
         GateFeatures ready to be fed into any gate classifier.
     """
     if task.task_id != probe.task_id:
-        raise ValueError(
-            f"task.task_id ({task.task_id!r}) != probe.task_id ({probe.task_id!r})"
-        )
+        raise ValueError(f"task.task_id ({task.task_id!r}) != probe.task_id ({probe.task_id!r})")
 
     _use_spacy = USE_SPACY if use_spacy is None else use_spacy
 

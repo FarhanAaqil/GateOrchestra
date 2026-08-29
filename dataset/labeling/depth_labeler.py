@@ -52,10 +52,10 @@ DEFAULT_WEIGHTS = {
 # Tuned to produce a natural spread across 1-hop arithmetic (depth 1-2)
 # through 3-hop compositional (depth 4-5)
 DEFAULT_THRESHOLDS = [
-    (0.45, 1),   # 1-hop, no clauses, short question
-    (0.85, 2),   # 1-2 hop, minimal clauses
-    (1.30, 3),   # 2 hop with clauses or 3 hop simple
-    (1.80, 4),   # 3 hop or complex 2-hop with many entities
+    (0.45, 1),  # 1-hop, no clauses, short question
+    (0.85, 2),  # 1-2 hop, minimal clauses
+    (1.30, 3),  # 2 hop with clauses or 3 hop simple
+    (1.80, 4),  # 3 hop or complex 2-hop with many entities
     (float("inf"), 5),  # deep multi-hop
 ]
 
@@ -95,15 +95,15 @@ def assign_depth(
     word_count = float(features.get("question_word_count", 0))
 
     # Normalize entity and clause counts to reasonable scale
-    entity_norm = min(entity_count / 3.0, 2.0)   # 3 entities → 1.0, capped at 2.0
-    clause_norm = min(clause_count / 2.0, 2.0)   # 2 clauses → 1.0, capped at 2.0
+    entity_norm = min(entity_count / 3.0, 2.0)  # 3 entities → 1.0, capped at 2.0
+    clause_norm = min(clause_count / 2.0, 2.0)  # 2 clauses → 1.0, capped at 2.0
     word_norm = min(word_count / WORD_COUNT_NORM_DENOMINATOR, 1.0)
 
     raw_score = (
-        hop_count   * w["hop_count"]
+        hop_count * w["hop_count"]
         + clause_norm * w["clause_count"]
         + entity_norm * w["entity_count"]
-        + word_norm   * w["word_count_norm"]
+        + word_norm * w["word_count_norm"]
     )
 
     depth_score = _threshold(raw_score, t)

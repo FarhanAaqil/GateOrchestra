@@ -7,17 +7,14 @@ Uses mock modules — no LLM calls.
 
 import pytest
 
+from gate.random_gate import RandomGate
+from gate.rule_based_gate import RuleBasedGate
+from integration.pipeline import _exact_match, run_batch, run_pipeline
 from shared.schemas import EvalResult
 from shared.token_logger import TokenAccountant
-
-from gate.rule_based_gate import RuleBasedGate
-from gate.random_gate import RandomGate
-
-from integration.pipeline import run_pipeline, run_batch, _exact_match
-
-from tests.mocks.mock_probe_agent import mock_probe_agent
-from tests.mocks.mock_orchestrator import mock_orchestrator
 from tests.mocks.mock_dataset import get_mock_tasks
+from tests.mocks.mock_orchestrator import mock_orchestrator
+from tests.mocks.mock_probe_agent import mock_probe_agent
 
 
 @pytest.fixture
@@ -54,7 +51,10 @@ class TestRunPipeline:
     def test_stop_decision_uses_probe_answer(self, accountant):
         """With a high-consistency simple task, gate should STOP and use probe answer."""
         from shared.schemas import Task
-        task = Task(task_id="simple_001", question="What is the capital of France?", ground_truth="Paris")
+
+        task = Task(
+            task_id="simple_001", question="What is the capital of France?", ground_truth="Paris"
+        )
         gate = RuleBasedGate(consistency_stop=0.0)  # Always STOP
         result = run_pipeline(task, gate, mock_probe_agent, mock_orchestrator, accountant)
         assert result.decision == "STOP" if hasattr(result, "decision") else True
@@ -87,6 +87,7 @@ class TestRunPipeline:
 
     def test_is_correct_none_without_ground_truth(self, accountant):
         from shared.schemas import Task
+
         task = Task(task_id="no_gt_001", question="Q?")  # No ground_truth
         gate = RuleBasedGate()
         result = run_pipeline(task, gate, mock_probe_agent, mock_orchestrator, accountant)
@@ -95,7 +96,9 @@ class TestRunPipeline:
     def test_token_accounting_logged(self, accountant):
         gate = RuleBasedGate()
         task = get_mock_tasks(1)[0]
-        run_pipeline(task, gate, mock_probe_agent, mock_orchestrator, accountant, method="RuleBasedGate")
+        run_pipeline(
+            task, gate, mock_probe_agent, mock_orchestrator, accountant, method="RuleBasedGate"
+        )
         spend = accountant.get_spend(task.task_id, method="RuleBasedGate")
         assert spend["total"] > 0
         assert "probe" in spend
@@ -127,7 +130,9 @@ class TestRunBatch:
 
     def test_total_tokens_logged(self, tasks, accountant):
         gate = RuleBasedGate()
-        run_batch(tasks, gate, mock_probe_agent, mock_orchestrator, accountant, method="RuleBasedGate")
+        run_batch(
+            tasks, gate, mock_probe_agent, mock_orchestrator, accountant, method="RuleBasedGate"
+        )
         total = accountant.get_total_by_method()
         assert "RuleBasedGate" in total
         assert total["RuleBasedGate"] > 0

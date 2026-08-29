@@ -35,12 +35,12 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).parent.parent
 sys.path.insert(0, str(REPO_ROOT))
 
-from shared.schemas import Task
-from dataset.generation.task_builder import build_tasks
-from dataset.generation.task_pool import RAW_TASKS
-from dataset.labeling.feature_extractor import extract_labeling_features
-from dataset.labeling.depth_labeler import assign_depth
-from dataset.labeling.parallel_labeler import assign_parallel
+from dataset.generation.task_builder import build_tasks  # noqa: E402
+from dataset.generation.task_pool import RAW_TASKS  # noqa: E402
+from dataset.labeling.depth_labeler import assign_depth  # noqa: E402
+from dataset.labeling.feature_extractor import extract_labeling_features  # noqa: E402
+from dataset.labeling.parallel_labeler import assign_parallel  # noqa: E402
+from shared.schemas import Task  # noqa: E402
 
 logging.basicConfig(
     level=logging.INFO,
@@ -72,7 +72,9 @@ def main() -> None:
         sys.exit(1)
 
     # ── Step 3: Feature extraction + labeling ─────────────────────────────
-    logger.info(f"\nSTEP 4-6: Extracting features and assigning labels for {len(tasks_unlabeled)} tasks...")
+    logger.info(
+        f"\nSTEP 4-6: Extracting features and assigning labels for {len(tasks_unlabeled)} tasks..."
+    )
 
     # We need the hop_hint from the raw pool — build a lookup by question fingerprint
     raw_hop_lookup = _build_hop_lookup()
@@ -149,13 +151,13 @@ def _build_hop_lookup() -> dict[str, int]:
 
 
 def _save_tasks_jsonl(tasks: list[Task], path: Path) -> None:
-    with open(path, "w", encoding="utf-8") as f:
+    with path.open("w", encoding="utf-8") as f:
         for task in tasks:
             f.write(json.dumps(task.model_dump(), ensure_ascii=False) + "\n")
 
 
 def _save_jsonl(rows: list[dict], path: Path) -> None:
-    with open(path, "w", encoding="utf-8") as f:
+    with path.open("w", encoding="utf-8") as f:
         for row in rows:
             f.write(json.dumps(row, ensure_ascii=False) + "\n")
 
@@ -198,7 +200,7 @@ def _print_summary(tasks: list[Task], rejected: list[dict]) -> None:
 
     print("\n" + "=" * 65)
     print("  [OK] Week 1 build complete.")
-    print(f"     Next: python scripts/clean_dataset.py")
+    print("     Next: python scripts/clean_dataset.py")
     print("=" * 65 + "\n")
 
 

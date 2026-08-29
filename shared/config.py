@@ -30,20 +30,20 @@ MODELS_DIR.mkdir(parents=True, exist_ok=True)
 # LLM / Probe
 # ─────────────────────────────────────────────────────────────────────────────
 
-MODEL_NAME: str = os.getenv("GATE_MODEL_NAME", "Qwen2.5-7B-Instruct")
+MODEL_NAME: str = os.getenv("GATE_MODEL_NAME", "qwen2.5:7b-instruct")
 MODEL_API_BASE: str = os.getenv("GATE_API_BASE", "http://localhost:11434")  # Ollama default
 
-PROBE_TOKEN_BUDGET: int = 500   # Max tokens the probe may spend per task
-COT_SC_N_SAMPLES: int = 5       # Number of CoT-SC samples per probe run
+PROBE_TOKEN_BUDGET: int = 500  # Max tokens the probe may spend per task
+COT_SC_N_SAMPLES: int = 5  # Number of CoT-SC samples per probe run
 COT_SC_TEMPERATURE: float = 0.7  # Sampling temperature for CoT-SC
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Dataset Splits
 # ─────────────────────────────────────────────────────────────────────────────
 
-TRAIN_SPLIT: float = 0.60   # ~90 tasks (out of 150)
-VAL_SPLIT: float = 0.20     # ~30 tasks
-TEST_SPLIT: float = 0.20    # ~30 tasks  ← held-out, do not touch until Week 10
+TRAIN_SPLIT: float = 0.60  # ~90 tasks (out of 150)
+VAL_SPLIT: float = 0.20  # ~30 tasks
+TEST_SPLIT: float = 0.20  # ~30 tasks  ← held-out, do not touch until Week 10
 RANDOM_SEED: int = 42
 
 # ─────────────────────────────────────────────────────────────────────────────
