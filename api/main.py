@@ -16,14 +16,14 @@ from fastapi import FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
 
+from agents.orchestrator.orchestrator import orchestrator
+from agents.probe_agent import probe_agent
 from gate.random_gate import RandomGate
 from gate.rule_based_gate import RuleBasedGate
 from integration.pipeline import run_pipeline
 from shared.config import K_DEFAULT
 from shared.schemas import Task
 from shared.token_logger import TokenAccountant
-from tests.mocks.mock_orchestrator import mock_orchestrator
-from tests.mocks.mock_probe_agent import mock_probe_agent
 
 # Make sure the repository root is available for imports
 ROOT = Path(__file__).resolve().parent.parent
@@ -137,8 +137,8 @@ def run_gateorchestra(request: RunRequest):
     result = run_pipeline(
         task=task,
         gate=gate,
-        probe_agent=mock_probe_agent,
-        orchestrator=mock_orchestrator,
+        probe_agent=probe_agent,
+        orchestrator=orchestrator,
         accountant=accountant,
         k=request.k,
         method=request.method,
