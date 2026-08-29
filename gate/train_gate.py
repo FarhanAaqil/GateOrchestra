@@ -204,7 +204,7 @@ def train_gate(
 def load_eval_results_from_jsonl(path: Path) -> dict[str, EvalResult]:
     """Load EvalResult objects from a JSONL file (Person 2's baseline logs)."""
     results: dict[str, EvalResult] = {}
-    with path.open(encoding="utf-8") as f:
+    with Path(path).open(encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line:

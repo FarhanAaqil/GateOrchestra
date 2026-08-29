@@ -19,16 +19,8 @@ Run:
 from __future__ import annotations
 
 import argparse
-import sys
-import time
-from pathlib import Path
-
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-# ─────────────────────────────────────────────────────────────────────────────
-# Simulated MAS orchestrator (calibrated to task difficulty)
-# ─────────────────────────────────────────────────────────────────────────────
 import random as _random
+import time
 
 from agents.baselines.simulated_probe import simulated_probe_agent
 from gate.random_gate import RandomGate

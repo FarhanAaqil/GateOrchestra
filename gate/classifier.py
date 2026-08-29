@@ -19,6 +19,7 @@ import logging
 import pickle
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Literal, cast
 
 import numpy as np
 from sklearn.ensemble import GradientBoostingClassifier
@@ -100,17 +101,17 @@ class GateClassifier(ABC):
 
     def save(self, path: str | Path) -> None:
         """Serialize the classifier to disk."""
-        Path(path).parent.mkdir(parents=True, exist_ok=True)
-        with Path(path).open("wb") as f:
+        target_path = Path(path)
+        target_path.parent.mkdir(parents=True, exist_ok=True)
+        with target_path.open("wb") as f:
             pickle.dump(self, f)
         logger.info(f"Saved {self.name} to {path}")
 
     @classmethod
     def load(cls, path: str | Path) -> GateClassifier:
         """Deserialize a classifier from disk."""
-        from typing import cast  # noqa: PLC0415
-
-        with Path(path).open("rb") as f:
+        target_path = Path(path)
+        with target_path.open("rb") as f:
             obj = pickle.load(f)
         logger.info(f"Loaded gate classifier from {path}")
         return cast(GateClassifier, obj)
@@ -126,7 +127,7 @@ class GateClassifier(ABC):
         """Helper to build a GateDecision with correct token_budget_cap logic."""
         return GateDecision(
             task_id=task_id,
-            decision=label,
+            decision=cast(Literal["STOP", "ESCALATE"], label),
             confidence=round(confidence, 4),
             token_budget_cap=k * probe_tokens if label == "ESCALATE" else None,
             gate_type="learned",
@@ -226,8 +227,7 @@ class MLPGate(GateClassifier):
             hidden_layer_sizes=hidden_layer_sizes,
             max_iter=max_iter,
             random_state=42,
-            early_stopping=True,
-            validation_fraction=0.15,
+            early_stopping=False,
         )
         self._classes: list[str] | None = None
 
