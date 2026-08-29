@@ -40,19 +40,38 @@ class MASOrchestrator:
 
     def __init__(
         self,
-        model_name: str = MODEL_NAME,
+        model_name: Optional[str] = None,
         default_strategy: str = "auto",
+        provider: Optional[str] = None,
+        api_key: Optional[str] = None,
         llm_caller: Optional[LLMCallerFn] = None,
         router: Optional[LinUCBRouter] = None,
     ) -> None:
-        self.model_name = model_name
+        self.model_name = model_name or MODEL_NAME
         self.default_strategy = default_strategy
+        self.provider = provider
+        self.api_key = api_key
         self.llm_caller = llm_caller
 
         # Sub-agent pool
-        self.react_agent = ReActAgent(model_name=model_name, llm_caller=llm_caller)
-        self.debate_agent = DebateAgent(model_name=model_name, llm_caller=llm_caller)
-        self.reflexion_agent = ReflexionAgent(model_name=model_name, llm_caller=llm_caller)
+        self.react_agent = ReActAgent(
+            model_name=model_name,
+            provider=provider,
+            api_key=api_key,
+            llm_caller=llm_caller,
+        )
+        self.debate_agent = DebateAgent(
+            model_name=model_name,
+            provider=provider,
+            api_key=api_key,
+            llm_caller=llm_caller,
+        )
+        self.reflexion_agent = ReflexionAgent(
+            model_name=model_name,
+            provider=provider,
+            api_key=api_key,
+            llm_caller=llm_caller,
+        )
 
         # Contextual Bandit Router
         self.bandit_router = router or LinUCBRouter()

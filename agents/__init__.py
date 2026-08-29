@@ -2,7 +2,7 @@
 agents/__init__.py
 ==================
 Agents module for GateOrchestra (Person 2).
-Exposes the ProbeAgent, MAS Orchestrator, LinUCBRouter, and Baselines.
+Exposes the ProbeAgent, MAS Orchestrator, LinUCBRouter, Providers, and Baselines.
 """
 
 from agents.baselines import (
@@ -20,6 +20,12 @@ from agents.orchestrator import (
     orchestrator,
 )
 from agents.probe_agent import ProbeAgent, probe_agent
+from agents.providers import (
+    call_groq,
+    call_ollama,
+    default_llm_caller,
+    get_llm_caller,
+)
 
 __all__ = [
     "ProbeAgent",
@@ -30,6 +36,10 @@ __all__ = [
     "ReActAgent",
     "DebateAgent",
     "ReflexionAgent",
+    "call_ollama",
+    "call_groq",
+    "get_llm_caller",
+    "default_llm_caller",
     "run_cot_sc_baseline",
     "run_cot_sc_batch",
     "run_always_mas_baseline",

@@ -30,9 +30,19 @@ import urllib.request
 from collections import Counter
 from typing import Any, Callable, Optional
 
+from agents.providers import (
+    call_groq,
+    call_ollama,
+    default_llm_caller,
+    get_llm_caller,
+)
 from shared.config import (
     COT_SC_N_SAMPLES,
     COT_SC_TEMPERATURE,
+    GROQ_API_BASE,
+    GROQ_API_KEY,
+    GROQ_MODEL_NAME,
+    LLM_PROVIDER,
     MODEL_API_BASE,
     MODEL_NAME,
     PROBE_TOKEN_BUDGET,
@@ -127,62 +137,6 @@ def _token_jaccard_similarity(s1: str, s2: str) -> float:
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Default LLM Client (Ollama / OpenAI-compatible HTTP)
-# ─────────────────────────────────────────────────────────────────────────────
-
-
-def default_llm_caller(
-    prompt: str,
-    temperature: float = COT_SC_TEMPERATURE,
-    max_tokens: int = PROBE_TOKEN_BUDGET,
-    model_name: str = MODEL_NAME,
-    api_base: str = MODEL_API_BASE,
-    timeout: float = 30.0,
-) -> tuple[str, int]:
-    """Default HTTP caller targeting Ollama or OpenAI-compatible endpoints."""
-    url = f"{api_base.rstrip('/')}/api/generate"
-    payload = {
-        "model": model_name,
-        "prompt": prompt,
-        "temperature": temperature,
-        "options": {
-            "temperature": temperature,
-            "num_predict": max_tokens,
-        },
-        "stream": False,
-    }
-
-    data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
-        url,
-        data=data,
-        headers={"Content-Type": "application/json"},
-        method="POST",
-    )
-
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            resp_data = json.loads(resp.read().decode("utf-8"))
-            response_text = resp_data.get("response", "")
-            prompt_eval_count = int(resp_data.get("prompt_eval_count", 0))
-            eval_count = int(resp_data.get("eval_count", 0))
-            total_tokens = prompt_eval_count + eval_count
-
-            # Fallback heuristic token count if server did not return token counts
-            if total_tokens <= 0:
-                total_tokens = max(1, len(prompt.split()) + len(response_text.split()))
-
-            return response_text, total_tokens
-
-    except (urllib.error.URLError, TimeoutError, OSError) as e:
-        logger.warning(
-            f"[ProbeAgent] LLM call to {url} failed: {e}. "
-            "Ensure Ollama/API server is running or provide a custom llm_caller."
-        )
-        raise
-
-
-# ─────────────────────────────────────────────────────────────────────────────
 # ProbeAgent Class
 # ─────────────────────────────────────────────────────────────────────────────
 
@@ -191,28 +145,33 @@ class ProbeAgent:
     """Chain-of-Thought Self-Consistency (CoT-SC) Probe Agent.
 
     Advanced features:
+      - Multi-Provider Support: Works seamlessly with local Ollama or Groq Cloud.
       - Sequential Early-Exit SPRT: If early samples show overwhelming agreement,
         terminates sampling early to conserve token budget.
       - Semantic Soft Clustering: Groups semantically equivalent answers.
 
     Args:
-        model_name: Name of the LLM (defaults to config.MODEL_NAME).
-        api_base: Base URL for LLM API (defaults to config.MODEL_API_BASE).
+        model_name: Name of the LLM (defaults to config.MODEL_NAME or GROQ_MODEL_NAME).
+        api_base: Base URL for LLM API (defaults to config.MODEL_API_BASE or GROQ_API_BASE).
         n_samples: Number of CoT samples for self-consistency (defaults to config.COT_SC_N_SAMPLES).
         temperature: Sampling temperature (defaults to config.COT_SC_TEMPERATURE).
         token_budget: Max token budget for the probe run (defaults to config.PROBE_TOKEN_BUDGET).
         early_exit: Enable sequential early stopping on unanimous confidence (saves tokens).
+        provider: 'ollama' | 'groq' (defaults to config.LLM_PROVIDER).
+        api_key: Optional Groq API key (defaults to config.GROQ_API_KEY).
         llm_caller: Optional custom callable (prompt, temp, budget) -> (text, tokens).
     """
 
     def __init__(
         self,
-        model_name: str = MODEL_NAME,
-        api_base: str = MODEL_API_BASE,
+        model_name: Optional[str] = None,
+        api_base: Optional[str] = None,
         n_samples: int = COT_SC_N_SAMPLES,
         temperature: float = COT_SC_TEMPERATURE,
         token_budget: int = PROBE_TOKEN_BUDGET,
         early_exit: bool = False,
+        provider: Optional[str] = None,
+        api_key: Optional[str] = None,
         llm_caller: Optional[LLMCallerFn] = None,
     ) -> None:
         if n_samples < 1:
@@ -222,8 +181,15 @@ class ProbeAgent:
         if token_budget < 1:
             raise ValueError(f"token_budget must be ≥ 1, got {token_budget}")
 
-        self.model_name = model_name
-        self.api_base = api_base
+        self.provider = provider or LLM_PROVIDER
+        self.api_key = api_key or GROQ_API_KEY
+        if self.provider == "groq":
+            self.model_name = model_name or GROQ_MODEL_NAME
+            self.api_base = api_base or GROQ_API_BASE
+        else:
+            self.model_name = model_name or MODEL_NAME
+            self.api_base = api_base or MODEL_API_BASE
+
         self.n_samples = n_samples
         self.temperature = temperature
         self.token_budget = token_budget
@@ -240,6 +206,8 @@ class ProbeAgent:
             max_tokens=sample_budget,
             model_name=self.model_name,
             api_base=self.api_base,
+            provider=self.provider,
+            api_key=self.api_key,
         )
 
     def run(self, task: Task) -> ProbeResult:

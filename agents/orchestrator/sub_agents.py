@@ -15,8 +15,14 @@ import logging
 import re
 from typing import Callable, Optional
 
-from agents.probe_agent import default_llm_caller, extract_answer
-from shared.config import MODEL_NAME
+from agents.probe_agent import extract_answer
+from agents.providers import default_llm_caller
+from shared.config import (
+    GROQ_API_KEY,
+    GROQ_MODEL_NAME,
+    LLM_PROVIDER,
+    MODEL_NAME,
+)
 from shared.schemas import Task
 
 logger = logging.getLogger(__name__)
@@ -34,11 +40,19 @@ class ReActAgent:
 
     def __init__(
         self,
-        model_name: str = MODEL_NAME,
+        model_name: Optional[str] = None,
         max_steps: int = 3,
+        provider: Optional[str] = None,
+        api_key: Optional[str] = None,
         llm_caller: Optional[LLMCallerFn] = None,
     ) -> None:
-        self.model_name = model_name
+        self.provider = provider or LLM_PROVIDER
+        self.api_key = api_key or GROQ_API_KEY
+        if self.provider == "groq":
+            self.model_name = model_name or GROQ_MODEL_NAME
+        else:
+            self.model_name = model_name or MODEL_NAME
+
         self.max_steps = max_steps
         self.llm_caller = llm_caller
 
@@ -51,6 +65,8 @@ class ReActAgent:
                 temperature=0.2,
                 max_tokens=budget,
                 model_name=self.model_name,
+                provider=self.provider,
+                api_key=self.api_key,
             )
         except Exception as e:
             logger.warning(f"[ReActAgent] LLM call error: {e}")
@@ -103,11 +119,19 @@ class DebateAgent:
 
     def __init__(
         self,
-        model_name: str = MODEL_NAME,
+        model_name: Optional[str] = None,
         num_rounds: int = 2,
+        provider: Optional[str] = None,
+        api_key: Optional[str] = None,
         llm_caller: Optional[LLMCallerFn] = None,
     ) -> None:
-        self.model_name = model_name
+        self.provider = provider or LLM_PROVIDER
+        self.api_key = api_key or GROQ_API_KEY
+        if self.provider == "groq":
+            self.model_name = model_name or GROQ_MODEL_NAME
+        else:
+            self.model_name = model_name or MODEL_NAME
+
         self.num_rounds = num_rounds
         self.llm_caller = llm_caller
 
@@ -120,6 +144,8 @@ class DebateAgent:
                 temperature=0.4,
                 max_tokens=budget,
                 model_name=self.model_name,
+                provider=self.provider,
+                api_key=self.api_key,
             )
         except Exception as e:
             logger.warning(f"[DebateAgent] LLM call error: {e}")
@@ -186,10 +212,18 @@ class ReflexionAgent:
 
     def __init__(
         self,
-        model_name: str = MODEL_NAME,
+        model_name: Optional[str] = None,
+        provider: Optional[str] = None,
+        api_key: Optional[str] = None,
         llm_caller: Optional[LLMCallerFn] = None,
     ) -> None:
-        self.model_name = model_name
+        self.provider = provider or LLM_PROVIDER
+        self.api_key = api_key or GROQ_API_KEY
+        if self.provider == "groq":
+            self.model_name = model_name or GROQ_MODEL_NAME
+        else:
+            self.model_name = model_name or MODEL_NAME
+
         self.llm_caller = llm_caller
 
     def _call(self, prompt: str, budget: int) -> tuple[str, int]:
@@ -201,6 +235,8 @@ class ReflexionAgent:
                 temperature=0.3,
                 max_tokens=budget,
                 model_name=self.model_name,
+                provider=self.provider,
+                api_key=self.api_key,
             )
         except Exception as e:
             logger.warning(f"[ReflexionAgent] LLM call error: {e}")
