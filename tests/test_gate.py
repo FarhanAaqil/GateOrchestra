@@ -354,6 +354,7 @@ class TestGateTrainingPipeline:
 
     def test_train_gate_models_and_jsonl_loader(self, tmp_path):
         import json
+
         from gate.train_gate import load_eval_results_from_jsonl, train_gate
         from shared.schemas import EvalResult
 
