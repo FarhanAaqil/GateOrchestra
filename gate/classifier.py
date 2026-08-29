@@ -193,7 +193,7 @@ class GBTGate(GateClassifier):
         self._model.fit(X, y)
         self._classes = list(self._model.classes_)
         self._is_trained = True
-        importances = dict(zip(FEATURE_NAMES, self._model.feature_importances_, strict=False))
+        importances = dict(zip(FEATURE_NAMES, self._model.feature_importances_, strict=True))
         logger.info(f"GBTGate trained. Feature importances: {importances}")
 
     def predict(self, features: GateFeatures, k: int, probe_tokens: int) -> GateDecision:
@@ -210,7 +210,7 @@ class GBTGate(GateClassifier):
         """Return feature importance scores (useful for analysis in Week 11)."""
         if not self._is_trained:
             raise RuntimeError("Call train() first")
-        return dict(zip(FEATURE_NAMES, self._model.feature_importances_, strict=False))
+        return dict(zip(FEATURE_NAMES, self._model.feature_importances_, strict=True))
 
 
 class MLPGate(GateClassifier):

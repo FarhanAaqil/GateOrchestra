@@ -16,7 +16,7 @@ import threading
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, TypedDict
 
 
 @dataclass
@@ -28,6 +28,16 @@ class _SpendRecord:
     stage: str  # "probe", "mas", "gate_feature" etc.
     tokens: int
     path: str  # routing path taken: "STOP" | "ESCALATE" | "N/A"
+
+
+class _RecordDict(TypedDict):
+    """Typed dict matching the JSON output format for a single spend record."""
+
+    task_id: str
+    method: str
+    stage: str
+    tokens: int
+    path: str
 
 
 @dataclass

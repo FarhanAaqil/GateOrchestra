@@ -102,11 +102,15 @@ def evaluate_classifier(
     preds = [gate.predict(f, k=k, probe_tokens=f.probe_tokens).decision for f in features]
 
     tp = sum(
-        1 for p, lbl in zip(preds, labels, strict=False) if p == "ESCALATE" and lbl == "ESCALATE"
+        1 for p, label in zip(preds, labels, strict=True) if p == "ESCALATE" and label == "ESCALATE"
     )
-    fp = sum(1 for p, lbl in zip(preds, labels, strict=False) if p == "ESCALATE" and lbl == "STOP")
-    tn = sum(1 for p, lbl in zip(preds, labels, strict=False) if p == "STOP" and lbl == "STOP")
-    fn = sum(1 for p, lbl in zip(preds, labels, strict=False) if p == "STOP" and lbl == "ESCALATE")
+    fp = sum(
+        1 for p, label in zip(preds, labels, strict=True) if p == "ESCALATE" and label == "STOP"
+    )
+    tn = sum(1 for p, label in zip(preds, labels, strict=True) if p == "STOP" and label == "STOP")
+    fn = sum(
+        1 for p, label in zip(preds, labels, strict=True) if p == "STOP" and label == "ESCALATE"
+    )
 
     accuracy = (tp + tn) / len(labels) if labels else 0.0
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0

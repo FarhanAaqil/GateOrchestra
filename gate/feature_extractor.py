@@ -26,12 +26,13 @@ logger = logging.getLogger(__name__)
 # ─────────────────────────────────────────────────────────────────────────────
 
 _nlp = None  # Lazy-loaded to avoid slow import at module level
+_nlp_unavailable = False  # Set to True if spaCy fails to load
 
 
 def _get_nlp():
     """Load the spaCy model once and cache it."""
-    global _nlp
-    if _nlp is None:
+    global _nlp, _nlp_unavailable
+    if _nlp is None and not _nlp_unavailable:
         try:
             import spacy  # noqa: PLC0415
 
@@ -41,8 +42,8 @@ def _get_nlp():
             logger.warning(
                 f"spaCy unavailable ({e}). Falling back to regex-based feature extraction."
             )
-            _nlp = "unavailable"
-    return _nlp if _nlp != "unavailable" else None
+            _nlp_unavailable = True
+    return _nlp if not _nlp_unavailable else None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
