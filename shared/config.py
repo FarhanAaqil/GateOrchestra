@@ -38,7 +38,7 @@ MODEL_API_BASE: str = os.getenv("GATE_API_BASE", "http://localhost:11434")  # Ol
 
 # Groq Cloud settings (Optional)
 GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
-GROQ_MODEL_NAME: str = os.getenv("GROQ_MODEL_NAME", "llama-3.3-70b-versatile")
+GROQ_MODEL_NAME: str = os.getenv("GROQ_MODEL_NAME", "groq/compound")
 GROQ_API_BASE: str = os.getenv("GROQ_API_BASE", "https://api.groq.com/openai/v1")
 
 PROBE_TOKEN_BUDGET: int = 500   # Max tokens the probe may spend per task

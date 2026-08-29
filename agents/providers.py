@@ -142,6 +142,7 @@ def call_groq(
         headers={
             "Content-Type": "application/json",
             "Authorization": f"Bearer {key}",
+            "User-Agent": "GateOrchestra/0.1.0",
         },
         method="POST",
     )
