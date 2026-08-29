@@ -26,19 +26,24 @@ function App() {
 
   const updateConversation = (id, updater) => setConversations((current) => current.map((conversation) => conversation.id === id ? updater(conversation) : conversation))
 
-  const handleSubmit = async (question, selectedStrategy) => {
+  const handleSubmit = async (question) => {
     const conversation = activeConversation || createConversation()
     if (!activeConversation) {
-      setConversations((current) => [conversation, ...current])
       setActiveId(conversation.id)
     }
     const taskId = `chat-${Date.now()}`
-    updateConversation(conversation.id, (current) => ({
-      ...current,
-      title: current.messages.length ? current.title : question.slice(0, 38),
-      messages: [...current.messages, { id: `${taskId}-user`, role: 'user', content: question }],
-      updatedAt: new Date().toISOString(),
-    }))
+    const userMessage = { id: `${taskId}-user`, role: 'user', content: question }
+    setConversations((current) => {
+      const existing = current.find((item) => item.id === conversation.id)
+      const updated = {
+        ...conversation,
+        ...(existing || {}),
+        title: existing?.messages.length ? existing.title : question.slice(0, 38),
+        messages: [...(existing?.messages || []), userMessage],
+        updatedAt: new Date().toISOString(),
+      }
+      return existing ? current.map((item) => item.id === conversation.id ? updated : item) : [updated, ...current]
+    })
     setLoading(true)
     setError('')
     try {
@@ -47,7 +52,7 @@ function App() {
         question,
         context: null,
         ground_truth: null,
-        method: selectedStrategy === '🎲 Random Gate' ? 'RandomGate' : 'RuleBasedGate',
+        method: 'RuleBasedGate',
         k: 3,
       })
       updateConversation(conversation.id, (current) => ({

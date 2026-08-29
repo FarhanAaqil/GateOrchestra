@@ -18,7 +18,8 @@ function ExecutionDetails({ result }) {
             <Detail label="Confidence" value={`${Math.round((decision.confidence || 0) * 100)}%`} />
             <Detail label="Token Budget" value={decision.token_budget_cap ?? '--'} />
             <Detail label="Tokens Spent" value={result.tokens_spent ?? '--'} />
-            <Detail label="Agents Used" value="4" />
+            <Detail label="Probe Tokens" value={result.probe_tokens ?? '--'} />
+            <Detail label="MAS Tokens" value={result.mas_tokens ?? '--'} />
             <Detail label="Decision" value={decision.decision || '--'} />
           </div>
           <AgentPipeline active={false} result={result} />

@@ -21,7 +21,7 @@ function ChatComposer({ onSubmit, loading, onPipeline }) {
   const submit = () => {
     const value = question.trim()
     if (!value || loading) return
-    onSubmit(value, selectedStrategy)
+    onSubmit(value)
     setQuestion('')
   }
 
