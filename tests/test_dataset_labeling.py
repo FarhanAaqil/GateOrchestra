@@ -9,25 +9,22 @@ Unit and integration tests for the dataset labeling pipeline (Week 2):
 """
 
 import json
-import pytest
 
-from shared.schemas import Task
-from dataset.labeling.feature_extractor import (
-    extract_labeling_features,
-    _count_entities,
-    _count_clauses,
-    _count_sub_questions,
-    _count_conjunctions,
-    _count_list_items,
-    _detect_comparison,
-    _detect_arithmetic,
-    _count_choice_entities,
-)
-from dataset.labeling.depth_labeler import assign_depth, DEFAULT_WEIGHTS as DEPTH_WEIGHTS
-from dataset.labeling.parallel_labeler import assign_parallel, DEFAULT_WEIGHTS as PARALLEL_WEIGHTS
 from dataset.generation.task_builder import build_tasks
 from dataset.generation.task_pool import RAW_TASKS
-
+from dataset.labeling.depth_labeler import assign_depth
+from dataset.labeling.feature_extractor import (
+    _count_choice_entities,
+    _count_clauses,
+    _count_conjunctions,
+    _count_list_items,
+    _count_sub_questions,
+    _detect_arithmetic,
+    _detect_comparison,
+    extract_labeling_features,
+)
+from dataset.labeling.parallel_labeler import assign_parallel
+from shared.schemas import Task
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. Feature Extractor Unit Tests
@@ -84,11 +81,18 @@ class TestFeatureExtractor:
 
     def test_count_choice_entities(self):
         assert _count_choice_entities("Which is older: Python or Java?") == 2
-        assert _count_choice_entities("Between Apollo 11, Apollo 12, and Apollo 13, which landed first?") == 3
+        assert (
+            _count_choice_entities(
+                "Between Apollo 11, Apollo 12, and Apollo 13, which landed first?"
+            )
+            == 3
+        )
         assert _count_choice_entities("What is the capital of Canada?") == 0
 
     def test_count_clauses(self):
-        multi_clause = "Who was the director of the film that won Best Picture when Parasite was released?"
+        multi_clause = (
+            "Who was the director of the film that won Best Picture when Parasite was released?"
+        )
         assert _count_clauses(multi_clause) >= 2
 
         simple = "What is 2 + 2?"
@@ -102,7 +106,9 @@ class TestFeatureExtractor:
         assert _count_sub_questions(single_q) == 0
 
     def test_count_conjunctions_and_lists(self):
-        text = "Find both the length and width, and compute first the area and second the perimeter."
+        text = (
+            "Find both the length and width, and compute first the area and second the perimeter."
+        )
         assert _count_conjunctions(text) >= 2
         assert _count_list_items(text) >= 2
 
@@ -135,9 +141,24 @@ class TestDepthLabeler:
                     assert 1 <= score <= 5
 
     def test_depth_monotonic_with_hops(self):
-        base_features_1 = {"hop_count": 1, "clause_count": 0, "entity_count": 0, "question_word_count": 8}
-        base_features_2 = {"hop_count": 2, "clause_count": 1, "entity_count": 2, "question_word_count": 14}
-        base_features_3 = {"hop_count": 3, "clause_count": 2, "entity_count": 3, "question_word_count": 20}
+        base_features_1 = {
+            "hop_count": 1,
+            "clause_count": 0,
+            "entity_count": 0,
+            "question_word_count": 8,
+        }
+        base_features_2 = {
+            "hop_count": 2,
+            "clause_count": 1,
+            "entity_count": 2,
+            "question_word_count": 14,
+        }
+        base_features_3 = {
+            "hop_count": 3,
+            "clause_count": 2,
+            "entity_count": 3,
+            "question_word_count": 20,
+        }
 
         r1 = assign_depth(base_features_1)
         r2 = assign_depth(base_features_2)
@@ -148,7 +169,12 @@ class TestDepthLabeler:
 
     def test_custom_weights_and_thresholds(self):
         features = {"hop_count": 1, "clause_count": 0, "entity_count": 0, "question_word_count": 5}
-        custom_weights = {"hop_count": 1.0, "clause_count": 0.0, "entity_count": 0.0, "word_count_norm": 0.0}
+        custom_weights = {
+            "hop_count": 1.0,
+            "clause_count": 0.0,
+            "entity_count": 0.0,
+            "word_count_norm": 0.0,
+        }
         custom_thresholds = [(0.5, 1), (1.5, 3), (float("inf"), 5)]
 
         res = assign_depth(features, weights=custom_weights, thresholds=custom_thresholds)

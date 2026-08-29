@@ -190,7 +190,9 @@ def _count_choice_entities(text: str) -> int:
             return len(options)
 
     # Check for "between A and B" or "between A, B, and C"
-    between_match = re.search(r"\bbetween\s+([\w\s,]+?)(?:\s*,\s*(?:which|who|\?)|$)", text, flags=re.IGNORECASE)
+    between_match = re.search(
+        r"\bbetween\s+([\w\s,]+?)(?:\s*,\s*(?:which|who|\?)|$)", text, flags=re.IGNORECASE
+    )
     if between_match:
         items = re.split(r",\s*|\s+and\s+|\s+or\s+", between_match.group(1))
         items = [i.strip() for i in items if i.strip()]

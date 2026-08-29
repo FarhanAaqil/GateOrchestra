@@ -48,9 +48,9 @@ DEFAULT_WEIGHTS = {
 
 # (upper_bound, label) — score < upper_bound -> label
 DEFAULT_THRESHOLDS = [
-    (0.20, 1),   # strictly sequential (single entity/target)
-    (0.50, 2),   # mild: 2-way comparison, 1 sub-question
-    (0.80, 3),   # moderate: 2 sub-questions, 3-way comparison, or lists
+    (0.20, 1),  # strictly sequential (single entity/target)
+    (0.50, 2),  # mild: 2-way comparison, 1 sub-question
+    (0.80, 3),  # moderate: 2 sub-questions, 3-way comparison, or lists
     (float("inf"), 4),  # high: 3+ sub-questions or large parallel sets
 ]
 
@@ -141,4 +141,3 @@ def _threshold(score: float, thresholds: list[tuple[float, int]]) -> int:
         if score < upper_bound:
             return label
     return thresholds[-1][1]
-
