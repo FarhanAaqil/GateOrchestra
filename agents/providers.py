@@ -16,7 +16,7 @@ import json
 import logging
 import urllib.error
 import urllib.request
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from shared.config import (
     GROQ_API_BASE,
@@ -43,8 +43,8 @@ def call_ollama(
     prompt: str,
     temperature: float = 0.7,
     max_tokens: int = PROBE_TOKEN_BUDGET,
-    model_name: Optional[str] = None,
-    api_base: Optional[str] = None,
+    model_name: str | None = None,
+    api_base: str | None = None,
     timeout: float = 30.0,
 ) -> tuple[str, int]:
     """Execute generation against a local Ollama server.
@@ -105,9 +105,9 @@ def call_groq(
     prompt: str,
     temperature: float = 0.7,
     max_tokens: int = PROBE_TOKEN_BUDGET,
-    model_name: Optional[str] = None,
-    api_key: Optional[str] = None,
-    api_base: Optional[str] = None,
+    model_name: str | None = None,
+    api_key: str | None = None,
+    api_base: str | None = None,
     timeout: float = 30.0,
 ) -> tuple[str, int]:
     """Execute generation against Groq API via OpenAI-compatible endpoint.
@@ -128,9 +128,7 @@ def call_groq(
 
     payload = {
         "model": model,
-        "messages": [
-            {"role": "user", "content": prompt}
-        ],
+        "messages": [{"role": "user", "content": prompt}],
         "temperature": temperature,
         "max_tokens": max_tokens,
     }
@@ -192,10 +190,10 @@ def call_groq(
 
 
 def get_llm_caller(
-    provider: Optional[str] = None,
-    model_name: Optional[str] = None,
-    api_base: Optional[str] = None,
-    api_key: Optional[str] = None,
+    provider: str | None = None,
+    model_name: str | None = None,
+    api_base: str | None = None,
+    api_key: str | None = None,
     timeout: float = 30.0,
 ) -> LLMCallerFn:
     """Factory returning a standard LLMCallerFn for the selected provider.
@@ -210,6 +208,7 @@ def get_llm_caller(
     prov = (provider or LLM_PROVIDER or "ollama").lower()
 
     if prov == "groq":
+
         def groq_caller(prompt: str, temperature: float, max_tokens: int) -> tuple[str, int]:
             return call_groq(
                 prompt=prompt,
@@ -220,6 +219,7 @@ def get_llm_caller(
                 api_base=api_base,
                 timeout=timeout,
             )
+
         return groq_caller
 
     # Default to Ollama
@@ -232,6 +232,7 @@ def get_llm_caller(
             api_base=api_base,
             timeout=timeout,
         )
+
     return ollama_caller
 
 
@@ -239,10 +240,10 @@ def default_llm_caller(
     prompt: str,
     temperature: float = 0.7,
     max_tokens: int = PROBE_TOKEN_BUDGET,
-    model_name: Optional[str] = None,
-    api_base: Optional[str] = None,
-    provider: Optional[str] = None,
-    api_key: Optional[str] = None,
+    model_name: str | None = None,
+    api_base: str | None = None,
+    provider: str | None = None,
+    api_key: str | None = None,
     timeout: float = 30.0,
 ) -> tuple[str, int]:
     """Default unified HTTP caller dispatching to either Ollama or Groq."""

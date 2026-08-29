@@ -15,15 +15,12 @@ from agents.probe_agent import (
     build_cot_prompt,
     extract_answer,
     normalize_answer,
-    probe_agent,
 )
+from gate.rule_based_gate import RuleBasedGate
 from integration.pipeline import run_pipeline
-from shared.config import COT_SC_N_SAMPLES
 from shared.schemas import EvalResult, ProbeResult, Task
 from shared.token_logger import TokenAccountant
 from tests.mocks.mock_orchestrator import mock_orchestrator
-from gate.rule_based_gate import RuleBasedGate
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Test Answer Extraction & Normalization

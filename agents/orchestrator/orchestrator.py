@@ -12,7 +12,7 @@ while strictly enforcing the token budget cap (`k * probe_tokens`).
 from __future__ import annotations
 
 import logging
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from agents.orchestrator.bandit_router import LinUCBRouter
 from agents.orchestrator.sub_agents import (
@@ -40,12 +40,12 @@ class MASOrchestrator:
 
     def __init__(
         self,
-        model_name: Optional[str] = None,
+        model_name: str | None = None,
         default_strategy: str = "auto",
-        provider: Optional[str] = None,
-        api_key: Optional[str] = None,
-        llm_caller: Optional[LLMCallerFn] = None,
-        router: Optional[LinUCBRouter] = None,
+        provider: str | None = None,
+        api_key: str | None = None,
+        llm_caller: LLMCallerFn | None = None,
+        router: LinUCBRouter | None = None,
     ) -> None:
         self.model_name = model_name or MODEL_NAME
         self.default_strategy = default_strategy
@@ -118,7 +118,9 @@ class MASOrchestrator:
 
         return safe_ans, safe_tokens
 
-    def update_bandit_reward(self, task: Task, chosen_strategy: str, is_correct: bool, tokens_spent: int, budget: int) -> None:
+    def update_bandit_reward(
+        self, task: Task, chosen_strategy: str, is_correct: bool, tokens_spent: int, budget: int
+    ) -> None:
         """Update LinUCB bandit with observed reward."""
         # Reward = +1.0 for correct, -0.2 * (tokens_spent / budget) penalty
         token_penalty = 0.2 * (tokens_spent / max(1, budget))
@@ -134,7 +136,7 @@ class MASOrchestrator:
 # Module-level default orchestrator
 # ─────────────────────────────────────────────────────────────────────────────
 
-_default_orchestrator: Optional[MASOrchestrator] = None
+_default_orchestrator: MASOrchestrator | None = None
 
 
 def orchestrator(task: Task, token_budget: int) -> tuple[str, int]:

@@ -21,20 +21,13 @@ Usage::
 
 from __future__ import annotations
 
-import json
 import logging
 import re
 import time
-import urllib.error
-import urllib.request
-from collections import Counter
-from typing import Any, Callable, Optional
+from collections.abc import Callable
 
 from agents.providers import (
-    call_groq,
-    call_ollama,
     default_llm_caller,
-    get_llm_caller,
 )
 from shared.config import (
     COT_SC_N_SAMPLES,
@@ -164,15 +157,15 @@ class ProbeAgent:
 
     def __init__(
         self,
-        model_name: Optional[str] = None,
-        api_base: Optional[str] = None,
+        model_name: str | None = None,
+        api_base: str | None = None,
         n_samples: int = COT_SC_N_SAMPLES,
         temperature: float = COT_SC_TEMPERATURE,
         token_budget: int = PROBE_TOKEN_BUDGET,
         early_exit: bool = False,
-        provider: Optional[str] = None,
-        api_key: Optional[str] = None,
-        llm_caller: Optional[LLMCallerFn] = None,
+        provider: str | None = None,
+        api_key: str | None = None,
+        llm_caller: LLMCallerFn | None = None,
     ) -> None:
         if n_samples < 1:
             raise ValueError(f"n_samples must be ≥ 1, got {n_samples}")
@@ -288,8 +281,16 @@ class ProbeAgent:
                 # Match if identical or token Jaccard >= 0.5 or token subset overlap
                 tokens_a = set(norm.split())
                 tokens_b = set(rep_norm.split())
-                is_subset = bool(tokens_a and tokens_b and (tokens_a.issubset(tokens_b) or tokens_b.issubset(tokens_a)))
-                if norm == rep_norm or is_subset or _token_jaccard_similarity(norm, rep_norm) >= 0.5:
+                is_subset = bool(
+                    tokens_a
+                    and tokens_b
+                    and (tokens_a.issubset(tokens_b) or tokens_b.issubset(tokens_a))
+                )
+                if (
+                    norm == rep_norm
+                    or is_subset
+                    or _token_jaccard_similarity(norm, rep_norm) >= 0.5
+                ):
                     cluster.append(i)
                     assigned = True
                     break
@@ -309,7 +310,7 @@ class ProbeAgent:
 # Module-level convenience function (satisfies ProbeAgentFn interface)
 # ─────────────────────────────────────────────────────────────────────────────
 
-_default_agent: Optional[ProbeAgent] = None
+_default_agent: ProbeAgent | None = None
 
 
 def probe_agent(task: Task) -> ProbeResult:

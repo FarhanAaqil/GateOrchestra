@@ -5,23 +5,20 @@ Unit tests for LLM provider abstraction (Ollama & Groq).
 Tests mock network calls completely so no real API keys or running servers are needed.
 """
 
-import io
 import json
-import urllib.request
 from unittest.mock import MagicMock, patch
 
 import pytest
 
+from agents.orchestrator import MASOrchestrator
+from agents.probe_agent import ProbeAgent
 from agents.providers import (
     call_groq,
     call_ollama,
     default_llm_caller,
     get_llm_caller,
 )
-from agents.probe_agent import ProbeAgent
-from agents.orchestrator import MASOrchestrator
 from shared.schemas import Task
-
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 1. Test Ollama Provider
@@ -32,11 +29,13 @@ class TestOllamaProvider:
     @patch("urllib.request.urlopen")
     def test_call_ollama_success(self, mock_urlopen):
         mock_response = MagicMock()
-        mock_response.read.return_value = json.dumps({
-            "response": "Final Answer: Paris",
-            "prompt_eval_count": 25,
-            "eval_count": 15,
-        }).encode("utf-8")
+        mock_response.read.return_value = json.dumps(
+            {
+                "response": "Final Answer: Paris",
+                "prompt_eval_count": 25,
+                "eval_count": 15,
+            }
+        ).encode("utf-8")
         mock_response.__enter__.return_value = mock_response
         mock_urlopen.return_value = mock_response
 
@@ -68,21 +67,23 @@ class TestGroqProvider:
     @patch("urllib.request.urlopen")
     def test_call_groq_success(self, mock_urlopen):
         mock_response = MagicMock()
-        mock_response.read.return_value = json.dumps({
-            "choices": [
-                {
-                    "message": {
-                        "role": "assistant",
-                        "content": "Step 1: 2+2=4.\nFinal Answer: 4",
+        mock_response.read.return_value = json.dumps(
+            {
+                "choices": [
+                    {
+                        "message": {
+                            "role": "assistant",
+                            "content": "Step 1: 2+2=4.\nFinal Answer: 4",
+                        }
                     }
-                }
-            ],
-            "usage": {
-                "prompt_tokens": 20,
-                "completion_tokens": 15,
-                "total_tokens": 35,
-            },
-        }).encode("utf-8")
+                ],
+                "usage": {
+                    "prompt_tokens": 20,
+                    "completion_tokens": 15,
+                    "total_tokens": 35,
+                },
+            }
+        ).encode("utf-8")
         mock_response.__enter__.return_value = mock_response
         mock_urlopen.return_value = mock_response
 

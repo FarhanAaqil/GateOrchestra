@@ -12,8 +12,7 @@ Includes:
 from __future__ import annotations
 
 import logging
-import re
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from agents.probe_agent import extract_answer
 from agents.providers import default_llm_caller
@@ -40,11 +39,11 @@ class ReActAgent:
 
     def __init__(
         self,
-        model_name: Optional[str] = None,
+        model_name: str | None = None,
         max_steps: int = 3,
-        provider: Optional[str] = None,
-        api_key: Optional[str] = None,
-        llm_caller: Optional[LLMCallerFn] = None,
+        provider: str | None = None,
+        api_key: str | None = None,
+        llm_caller: LLMCallerFn | None = None,
     ) -> None:
         self.provider = provider or LLM_PROVIDER
         self.api_key = api_key or GROQ_API_KEY
@@ -119,11 +118,11 @@ class DebateAgent:
 
     def __init__(
         self,
-        model_name: Optional[str] = None,
+        model_name: str | None = None,
         num_rounds: int = 2,
-        provider: Optional[str] = None,
-        api_key: Optional[str] = None,
-        llm_caller: Optional[LLMCallerFn] = None,
+        provider: str | None = None,
+        api_key: str | None = None,
+        llm_caller: LLMCallerFn | None = None,
     ) -> None:
         self.provider = provider or LLM_PROVIDER
         self.api_key = api_key or GROQ_API_KEY
@@ -168,7 +167,7 @@ class DebateAgent:
 
         current_solution = proposer_ans
 
-        for r in range(1, self.num_rounds + 1):
+        for _r in range(1, self.num_rounds + 1):
             if total_tokens >= token_budget:
                 break
 
@@ -212,10 +211,10 @@ class ReflexionAgent:
 
     def __init__(
         self,
-        model_name: Optional[str] = None,
-        provider: Optional[str] = None,
-        api_key: Optional[str] = None,
-        llm_caller: Optional[LLMCallerFn] = None,
+        model_name: str | None = None,
+        provider: str | None = None,
+        api_key: str | None = None,
+        llm_caller: LLMCallerFn | None = None,
     ) -> None:
         self.provider = provider or LLM_PROVIDER
         self.api_key = api_key or GROQ_API_KEY
@@ -266,9 +265,7 @@ class ReflexionAgent:
             f"Draft: {draft}\n"
             f"Critique: Are there any logical fallacies, arithmetic errors, or missed nuances?"
         )
-        reflection, tok2 = self._call(
-            reflect_prompt, min(step_budget, token_budget - total_tokens)
-        )
+        reflection, tok2 = self._call(reflect_prompt, min(step_budget, token_budget - total_tokens))
         total_tokens += tok2
 
         if total_tokens >= token_budget:
@@ -280,9 +277,7 @@ class ReflexionAgent:
             f"Reflection: {reflection}\n"
             f"Provide the final corrected answer. Format: Final Answer: <answer>"
         )
-        refined, tok3 = self._call(
-            refine_prompt, min(step_budget, token_budget - total_tokens)
-        )
+        refined, tok3 = self._call(refine_prompt, min(step_budget, token_budget - total_tokens))
         total_tokens += tok3
 
         return extract_answer(refined), total_tokens

@@ -12,7 +12,7 @@ from __future__ import annotations
 
 import logging
 import time
-from typing import Callable, Optional
+from collections.abc import Callable
 
 from agents.orchestrator.orchestrator import orchestrator as default_orchestrator
 from shared.config import K_DEFAULT, PROBE_TOKEN_BUDGET
@@ -38,9 +38,9 @@ def _exact_match(predicted: str, ground_truth: str) -> bool:
 
 def run_always_mas_baseline(
     task: Task,
-    orchestrator_fn: Optional[OrchestratorFn] = None,
-    accountant: Optional[TokenAccountant] = None,
-    token_budget: Optional[int] = None,
+    orchestrator_fn: OrchestratorFn | None = None,
+    accountant: TokenAccountant | None = None,
+    token_budget: int | None = None,
 ) -> EvalResult:
     """Run the Always-MAS baseline on a single task.
 
@@ -70,7 +70,7 @@ def run_always_mas_baseline(
 
     latency_ms = (time.perf_counter() - start_time) * 1000.0
 
-    is_correct: Optional[bool] = None
+    is_correct: bool | None = None
     if task.ground_truth is not None:
         is_correct = _exact_match(answer, task.ground_truth)
 
@@ -89,9 +89,9 @@ def run_always_mas_baseline(
 
 def run_always_mas_batch(
     tasks: list[Task],
-    orchestrator_fn: Optional[OrchestratorFn] = None,
-    accountant: Optional[TokenAccountant] = None,
-    token_budget: Optional[int] = None,
+    orchestrator_fn: OrchestratorFn | None = None,
+    accountant: TokenAccountant | None = None,
+    token_budget: int | None = None,
 ) -> list[EvalResult]:
     """Run the Always-MAS baseline across a list of tasks."""
     return [

@@ -17,7 +17,6 @@ from shared.schemas import (
     Task,
 )
 
-
 # ─────────────────────────────────────────────────────────────────────────────
 # Task
 # ─────────────────────────────────────────────────────────────────────────────
@@ -60,7 +59,7 @@ class TestTask:
 
     def test_task_is_frozen(self):
         t = Task(task_id="t006", question="Q?")
-        with pytest.raises(Exception):
+        with pytest.raises(ValidationError):
             t.question = "Modified"  # type: ignore
 
     def test_json_roundtrip(self):
@@ -76,12 +75,12 @@ class TestTask:
 
 class TestProbeResult:
     def _base(self) -> dict:
-        return dict(
-            task_id="t001",
-            answer="Paris",
-            consistency_score=0.8,
-            tokens_used=100,
-        )
+        return {
+            "task_id": "t001",
+            "answer": "Paris",
+            "consistency_score": 0.8,
+            "tokens_used": 100,
+        }
 
     def test_valid_probe_result(self):
         pr = ProbeResult(**self._base())
@@ -117,15 +116,15 @@ class TestProbeResult:
 
 class TestGateFeatures:
     def _base(self) -> dict:
-        return dict(
-            task_id="t001",
-            consistency_score=0.8,
-            probe_tokens=100,
-            question_word_count=10,
-            entity_count=2,
-            clause_count=1,
-            has_context=False,
-        )
+        return {
+            "task_id": "t001",
+            "consistency_score": 0.8,
+            "probe_tokens": 100,
+            "question_word_count": 10,
+            "entity_count": 2,
+            "clause_count": 1,
+            "has_context": False,
+        }
 
     def test_valid_features(self):
         gf = GateFeatures(**self._base())
@@ -181,12 +180,12 @@ class TestGateDecision:
 
 class TestEvalResult:
     def _base(self) -> dict:
-        return dict(
-            task_id="t001",
-            method="GateOrchestra",
-            predicted_answer="Paris",
-            tokens_spent=120,
-        )
+        return {
+            "task_id": "t001",
+            "method": "GateOrchestra",
+            "predicted_answer": "Paris",
+            "tokens_spent": 120,
+        }
 
     def test_minimal_eval_result(self):
         er = EvalResult(**self._base())

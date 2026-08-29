@@ -90,7 +90,7 @@ class RuleBasedGate:
 
         return GateDecision(
             task_id=features.task_id,
-            decision=trace.decision,  # type: ignore[arg-type]
+            decision=trace.decision,
             confidence=1.0,  # Rule-based: always 100% confident (deterministic)
             token_budget_cap=k * probe_tokens if trace.decision == "ESCALATE" else None,
             gate_type="rule_based",
@@ -119,17 +119,12 @@ class RuleBasedGate:
             )
 
         # ── Rule 2a: Deep multi-hop task → ESCALATE ────────────────────────
-        if (
-            features.estimated_depth is not None
-            and features.estimated_depth >= self.depth_escalate
-        ):
+        if features.estimated_depth is not None and features.estimated_depth >= self.depth_escalate:
             return RuleTrace(
                 rule_id=2,
                 rule_name="deep_task_escalate",
                 decision="ESCALATE",
-                reason=(
-                    f"estimated_depth={features.estimated_depth:.2f} >= {self.depth_escalate}"
-                ),
+                reason=(f"estimated_depth={features.estimated_depth:.2f} >= {self.depth_escalate}"),
             )
 
         # ── Rule 2b: Highly parallel task → ESCALATE ───────────────────────

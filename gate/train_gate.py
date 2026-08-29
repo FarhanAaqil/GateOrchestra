@@ -20,20 +20,14 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Optional
 
+from gate.classifier import GateClassifier, make_classifier
 from shared.config import (
     BEST_MODEL_PATH,
     CLASSIFIER_NAMES,
-    DEFAULT_CLASSIFIER,
     K_VALUES,
-    RANDOM_SEED,
-    TAU_ACC,
-    TAU_ACC_SWEEP,
 )
 from shared.schemas import EvalResult, GateFeatures
-
-from gate.classifier import GateClassifier, make_classifier
 
 logger = logging.getLogger(__name__)
 
@@ -107,10 +101,12 @@ def evaluate_classifier(
     """
     preds = [gate.predict(f, k=k, probe_tokens=f.probe_tokens).decision for f in features]
 
-    tp = sum(1 for p, l in zip(preds, labels) if p == "ESCALATE" and l == "ESCALATE")
-    fp = sum(1 for p, l in zip(preds, labels) if p == "ESCALATE" and l == "STOP")
-    tn = sum(1 for p, l in zip(preds, labels) if p == "STOP" and l == "STOP")
-    fn = sum(1 for p, l in zip(preds, labels) if p == "STOP" and l == "ESCALATE")
+    tp = sum(
+        1 for p, lbl in zip(preds, labels, strict=False) if p == "ESCALATE" and lbl == "ESCALATE"
+    )
+    fp = sum(1 for p, lbl in zip(preds, labels, strict=False) if p == "ESCALATE" and lbl == "STOP")
+    tn = sum(1 for p, lbl in zip(preds, labels, strict=False) if p == "STOP" and lbl == "STOP")
+    fn = sum(1 for p, lbl in zip(preds, labels, strict=False) if p == "STOP" and lbl == "ESCALATE")
 
     accuracy = (tp + tn) / len(labels) if labels else 0.0
     precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
@@ -138,9 +134,9 @@ def train_gate(
     train_labels: list[str],
     val_features: list[GateFeatures],
     val_labels: list[str],
-    classifier_names: Optional[list[str]] = None,
-    k_values: Optional[list[int]] = None,
-    save_path: Optional[Path] = None,
+    classifier_names: list[str] | None = None,
+    k_values: list[int] | None = None,
+    save_path: Path | None = None,
 ) -> tuple[GateClassifier, dict]:
     """Train gate classifiers and select the best one on the validation set.
 
@@ -160,7 +156,7 @@ def train_gate(
     k_values = k_values or K_VALUES
     save_path = save_path or BEST_MODEL_PATH
 
-    best_gate: Optional[GateClassifier] = None
+    best_gate: GateClassifier | None = None
     best_metrics: dict = {}
     best_f1 = -1.0
 
@@ -204,7 +200,7 @@ def train_gate(
 def load_eval_results_from_jsonl(path: Path) -> dict[str, EvalResult]:
     """Load EvalResult objects from a JSONL file (Person 2's baseline logs)."""
     results: dict[str, EvalResult] = {}
-    with open(path, encoding="utf-8") as f:
+    with Path(path).open(encoding="utf-8") as f:
         for line in f:
             line = line.strip()
             if line:

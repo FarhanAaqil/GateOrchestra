@@ -12,7 +12,6 @@ from __future__ import annotations
 import json
 import logging
 from pathlib import Path
-from typing import Optional
 
 import numpy as np
 
@@ -32,7 +31,7 @@ class LinUCBRouter:
 
     def __init__(
         self,
-        arms: Optional[list[str]] = None,
+        arms: list[str] | None = None,
         alpha: float = 0.5,
         feature_dim: int = 6,
     ) -> None:
@@ -90,7 +89,9 @@ class LinUCBRouter:
                 max_p = p
                 best_arm = arm
 
-        logger.debug(f"[LinUCBRouter] task={task.task_id} chosen_arm={best_arm} ucb_score={max_p:.3f}")
+        logger.debug(
+            f"[LinUCBRouter] task={task.task_id} chosen_arm={best_arm} ucb_score={max_p:.3f}"
+        )
         return best_arm
 
     def update(self, task: Task, arm: str, reward: float) -> None:

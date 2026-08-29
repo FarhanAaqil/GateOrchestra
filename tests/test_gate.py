@@ -6,13 +6,11 @@ Unit tests for all gate/ modules.
 
 import pytest
 
-from shared.schemas import GateFeatures, Task, ProbeResult
-
-from gate.feature_extractor import extract_features, _regex_features, _estimate_depth
-from gate.rule_based_gate import RuleBasedGate
+from gate.classifier import LogRegGate, make_classifier
+from gate.feature_extractor import _regex_features, extract_features
 from gate.random_gate import RandomGate
-from gate.classifier import LogRegGate, GBTGate, make_classifier
-
+from gate.rule_based_gate import RuleBasedGate
+from shared.schemas import GateFeatures, ProbeResult, Task
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Fixtures
@@ -100,9 +98,7 @@ class TestFeatureExtractor:
         assert entities >= 3  # Marie Curie, Warsaw, Poland
 
     def test_word_count_accurate(self, simple_features):
-        assert simple_features.question_word_count == len(
-            "What is the capital of France?".split()
-        )
+        assert simple_features.question_word_count == len("What is the capital of France?".split())
 
     def test_depth_estimate_nonnegative(self, simple_features, complex_features):
         assert simple_features.estimated_depth >= 0
@@ -264,3 +260,161 @@ class TestClassifiers:
         importances = gate.feature_importances()  # type: ignore[attr-defined]
         assert len(importances) == 8  # 8 features
         assert abs(sum(importances.values()) - 1.0) < 1e-6
+
+    def test_mlp_gate_train_and_predict(self, simple_features):
+        from gate.classifier import MLPGate
+
+        train_features, train_labels = _make_toy_data(30)
+        gate = MLPGate()
+        gate.train(train_features, train_labels)
+        decision = gate.predict(simple_features, k=3, probe_tokens=100)
+        assert decision.decision in ("STOP", "ESCALATE")
+
+    def test_classifier_save_and_load(self, tmp_path, simple_features):
+        from gate.classifier import GateClassifier
+
+        train_features, train_labels = _make_toy_data(30)
+        gate = make_classifier("logreg")
+        gate.train(train_features, train_labels)
+        save_path = tmp_path / "test_gate.pkl"
+        gate.save(save_path)
+        loaded = GateClassifier.load(save_path)
+        d1 = gate.predict(simple_features, k=3, probe_tokens=100)
+        d2 = loaded.predict(simple_features, k=3, probe_tokens=100)
+        assert d1.decision == d2.decision
+        assert d1.confidence == d2.confidence
+
+
+class TestGateTrainingPipeline:
+    def test_apply_label_rule(self):
+        from gate.train_gate import apply_label_rule
+        from shared.schemas import EvalResult
+
+        cot_sc = {
+            "t1": EvalResult(
+                task_id="t1",
+                method="CoT-SC-only",
+                predicted_answer="A",
+                is_correct=False,
+                tokens_spent=100,
+            ),
+            "t2": EvalResult(
+                task_id="t2",
+                method="CoT-SC-only",
+                predicted_answer="B",
+                is_correct=True,
+                tokens_spent=100,
+            ),
+            "t3": EvalResult(
+                task_id="t3",
+                method="CoT-SC-only",
+                predicted_answer="C",
+                is_correct=False,
+                tokens_spent=100,
+            ),
+        }
+        mas = {
+            "t1": EvalResult(
+                task_id="t1",
+                method="Always-MAS",
+                predicted_answer="A",
+                is_correct=True,
+                tokens_spent=300,
+            ),
+            "t2": EvalResult(
+                task_id="t2",
+                method="Always-MAS",
+                predicted_answer="B",
+                is_correct=True,
+                tokens_spent=300,
+            ),
+            "t3": EvalResult(
+                task_id="t3",
+                method="Always-MAS",
+                predicted_answer="X",
+                is_correct=False,
+                tokens_spent=300,
+            ),
+        }
+        labels = apply_label_rule(cot_sc, mas)
+        assert labels["t1"] == "ESCALATE"
+        assert labels["t2"] == "STOP"
+        assert labels["t3"] == "STOP"
+
+    def test_evaluate_gate(self):
+        from gate.train_gate import evaluate_classifier
+
+        train_features, train_labels = _make_toy_data(30)
+        gate = make_classifier("logreg")
+        gate.train(train_features, train_labels)
+        metrics = evaluate_classifier(gate, train_features, train_labels, k=3)
+        assert "accuracy" in metrics
+        assert "f1" in metrics
+        assert 0.0 <= metrics["accuracy"] <= 1.0
+
+    def test_train_gate_models_and_jsonl_loader(self, tmp_path):
+        import json
+        from gate.train_gate import load_eval_results_from_jsonl, train_gate
+        from shared.schemas import EvalResult
+
+        # Write mock jsonl files
+        cot_path = tmp_path / "cot.jsonl"
+        mas_path = tmp_path / "mas.jsonl"
+        features, _ = _make_toy_data(20)
+
+        with cot_path.open("w", encoding="utf-8") as f:
+            for feat in features:
+                er = EvalResult(
+                    task_id=feat.task_id,
+                    method="CoT-SC-only",
+                    predicted_answer="A",
+                    is_correct=(int(feat.task_id.split("_")[1]) % 2 == 0),
+                    tokens_spent=feat.probe_tokens,
+                )
+                f.write(json.dumps(er.model_dump()) + "\n")
+
+        with mas_path.open("w", encoding="utf-8") as f:
+            for feat in features:
+                er = EvalResult(
+                    task_id=feat.task_id,
+                    method="Always-MAS",
+                    predicted_answer="A",
+                    is_correct=True,
+                    tokens_spent=feat.probe_tokens * 3,
+                )
+                f.write(json.dumps(er.model_dump()) + "\n")
+
+        cot_loaded = load_eval_results_from_jsonl(cot_path)
+        assert len(cot_loaded) == 20
+
+        out_model = tmp_path / "best_model.pkl"
+        train_labels = ["ESCALATE" if i % 2 == 0 else "STOP" for i in range(15)]
+        val_labels = ["ESCALATE" if i % 2 == 0 else "STOP" for i in range(5)]
+        best_gate, best_metrics = train_gate(
+            train_features=features[:15],
+            train_labels=train_labels,
+            val_features=features[15:],
+            val_labels=val_labels,
+            save_path=out_model,
+        )
+        assert best_gate is not None
+        assert out_model.exists()
+
+
+class TestTokenAccountantMethods:
+    def test_accountant_persistence_and_summary(self, tmp_path):
+        from shared.token_logger import TokenAccountant
+
+        acc = TokenAccountant()
+        acc.log(task_id="t1", method="GateOrchestra", stage="probe", tokens=100, path="STOP")
+        acc.log(task_id="t2", method="GateOrchestra", stage="mas", tokens=300, path="ESCALATE")
+
+        assert acc.get_escalation_rate("GateOrchestra") == 0.5
+        assert acc.get_total_by_method()["GateOrchestra"] == 400
+
+        json_path = tmp_path / "summary.json"
+        acc.save_to_json(json_path)
+        assert json_path.exists()
+
+        loaded_acc = TokenAccountant.load_from_json(json_path)
+        assert loaded_acc.get_total_by_method()["GateOrchestra"] == 400

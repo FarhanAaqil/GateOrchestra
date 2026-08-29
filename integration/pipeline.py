@@ -20,14 +20,13 @@ Week 10: swap mock injections for real Person 2 modules
 from __future__ import annotations
 
 import logging
-from typing import Callable, Optional
-
-from shared.config import K_DEFAULT
-from shared.schemas import EvalResult, GateDecision, ProbeResult, Task
-from shared.token_logger import TokenAccountant
+from collections.abc import Callable
 
 from gate.classifier import GateClassifier
 from gate.feature_extractor import extract_features
+from shared.config import K_DEFAULT
+from shared.schemas import EvalResult, GateDecision, ProbeResult, Task
+from shared.token_logger import TokenAccountant
 
 logger = logging.getLogger(__name__)
 
@@ -107,13 +106,13 @@ def run_pipeline(
 
     # ── Stage 5: Build result ─────────────────────────────────────────────
     total_tokens = probe.tokens_used + mas_tokens
-    is_correct: Optional[bool] = None
+    is_correct: bool | None = None
     if task.ground_truth is not None:
         is_correct = _exact_match(answer, task.ground_truth)
 
     return EvalResult(
         task_id=task.task_id,
-        method=method,  # type: ignore[arg-type]
+        method=method,
         predicted_answer=answer,
         is_correct=is_correct,
         tokens_spent=total_tokens,
@@ -153,8 +152,10 @@ def run_batch(
 def _exact_match(predicted: str, ground_truth: str) -> bool:
     """Normalized exact match (lowercase, strip punctuation)."""
     import re
+
     def normalize(s: str) -> str:
         s = s.lower().strip()
         s = re.sub(r"[^\w\s]", "", s)
         return " ".join(s.split())
+
     return normalize(predicted) == normalize(ground_truth)

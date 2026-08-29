@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import random
+from typing import Literal
 
 from shared.schemas import GateDecision, GateFeatures
 
@@ -63,16 +64,15 @@ class RandomGate:
         """
         self._call_count += 1
         escalate = self._rng.random() < self.escalation_rate
-        decision = "ESCALATE" if escalate else "STOP"
+        decision: Literal["STOP", "ESCALATE"] = "ESCALATE" if escalate else "STOP"
 
         logger.debug(
-            f"[RandomGate] task={features.task_id} "
-            f"roll={self._call_count} decision={decision}"
+            f"[RandomGate] task={features.task_id} " f"roll={self._call_count} decision={decision}"
         )
 
         return GateDecision(
             task_id=features.task_id,
-            decision=decision,  # type: ignore[arg-type]
+            decision=decision,
             confidence=0.5,  # Always 50% — by definition uncertain
             token_budget_cap=k * probe_tokens if decision == "ESCALATE" else None,
             gate_type="random",
@@ -99,6 +99,8 @@ class RandomGate:
             has_context=False,
         )
         escalations = sum(
-            1 for _ in range(n) if gate.predict(dummy_features, k=3, probe_tokens=100).decision == "ESCALATE"
+            1
+            for _ in range(n)
+            if gate.predict(dummy_features, k=3, probe_tokens=100).decision == "ESCALATE"
         )
         return escalations / n

@@ -16,7 +16,7 @@ import threading
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Optional
+from typing import Any
 
 
 @dataclass
@@ -25,9 +25,9 @@ class _SpendRecord:
 
     task_id: str
     method: str
-    stage: str          # "probe", "mas", "gate_feature" etc.
+    stage: str  # "probe", "mas", "gate_feature" etc.
     tokens: int
-    path: str           # routing path taken: "STOP" | "ESCALATE" | "N/A"
+    path: str  # routing path taken: "STOP" | "ESCALATE" | "N/A"
 
 
 @dataclass
@@ -69,13 +69,11 @@ class TokenAccountant:
         """
         if tokens < 0:
             raise ValueError(f"tokens must be ≥ 0, got {tokens}")
-        record = _SpendRecord(
-            task_id=task_id, method=method, stage=stage, tokens=tokens, path=path
-        )
+        record = _SpendRecord(task_id=task_id, method=method, stage=stage, tokens=tokens, path=path)
         with self._lock:
             self._records.append(record)
 
-    def get_spend(self, task_id: str, method: Optional[str] = None) -> dict[str, int]:
+    def get_spend(self, task_id: str, method: str | None = None) -> dict[str, int]:
         """Return aggregated token spend for a task (and optionally a specific method).
 
         Returns:
@@ -148,7 +146,7 @@ class TokenAccountant:
             }
         """
         with self._lock:
-            records_data = [
+            records_data: list[dict[str, Any]] = [
                 {
                     "task_id": r.task_id,
                     "method": r.method,
@@ -159,10 +157,10 @@ class TokenAccountant:
                 for r in self._records
             ]
 
-        methods = {r["method"] for r in records_data}
-        summary = {}
+        methods: set[str] = {str(r["method"]) for r in records_data}
+        summary: dict[str, Any] = {}
         for m in methods:
-            total = sum(r["tokens"] for r in records_data if r["method"] == m)
+            total = sum(int(r["tokens"]) for r in records_data if r["method"] == m)
             summary[m] = {
                 "total_tokens": total,
                 "escalation_rate": self.get_escalation_rate(m),
@@ -172,7 +170,7 @@ class TokenAccountant:
         Path(path).write_text(json.dumps(output, indent=2), encoding="utf-8")
 
     @classmethod
-    def load_from_json(cls, path: str | Path) -> "TokenAccountant":
+    def load_from_json(cls, path: str | Path) -> TokenAccountant:
         """Reload a TokenAccountant from a saved JSON file."""
         data = json.loads(Path(path).read_text(encoding="utf-8"))
         accountant = cls()
@@ -203,7 +201,7 @@ class TokenAccountant:
 # Module-level singleton (optional convenience import)
 # ─────────────────────────────────────────────────────────────────────────────
 
-_global_accountant: Optional[TokenAccountant] = None
+_global_accountant: TokenAccountant | None = None
 
 
 def get_global_accountant() -> TokenAccountant:

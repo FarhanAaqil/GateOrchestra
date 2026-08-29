@@ -8,12 +8,12 @@ Unit tests for advanced research components in Person 2:
   - Bandit reward update and strategy adaptation
 """
 
-import pytest
 import numpy as np
+import pytest
 
-from agents.probe_agent import ProbeAgent, extract_answer, normalize_answer
 from agents.orchestrator import LinUCBRouter, MASOrchestrator
-from shared.schemas import Task, ProbeResult
+from agents.probe_agent import ProbeAgent
+from shared.schemas import ProbeResult, Task
 
 
 @pytest.fixture
@@ -54,7 +54,13 @@ class TestEarlyExitProbe:
 
     def test_no_early_exit_when_split(self, sample_task):
         call_count = 0
-        responses = ["Final Answer: 12", "Final Answer: 10", "Final Answer: 12", "Final Answer: 12", "Final Answer: 12"]
+        responses = [
+            "Final Answer: 12",
+            "Final Answer: 10",
+            "Final Answer: 12",
+            "Final Answer: 12",
+            "Final Answer: 12",
+        ]
 
         def split_caller(prompt: str, temp: float, budget: int) -> tuple[str, int]:
             nonlocal call_count
@@ -145,4 +151,10 @@ class TestOrchestratorBanditMode:
         assert tokens > 0
 
         # Update bandit reward
-        orch.update_bandit_reward(sample_task, chosen_strategy="reflexion", is_correct=True, tokens_spent=tokens, budget=100)
+        orch.update_bandit_reward(
+            sample_task,
+            chosen_strategy="reflexion",
+            is_correct=True,
+            tokens_spent=tokens,
+            budget=100,
+        )
