@@ -24,7 +24,6 @@ from __future__ import annotations
 import logging
 import re
 import time
-from collections import Counter
 from collections.abc import Callable
 
 from agents.providers import (

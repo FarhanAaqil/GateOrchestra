@@ -59,7 +59,7 @@ def simulated_mas(task: Task, token_budget: int) -> tuple[str, int]:
         answer = correct
     else:
         answer = correct + " (MAS wrong)"
-    
+
     # Token cost: higher than probe, scales with difficulty
     base = int(token_budget * 0.7)
     noise = _mas_rng.randint(-50, 50)
@@ -139,7 +139,6 @@ def print_task_table(results: list[EvalResult], tasks_by_id: dict) -> None:
         print(
             f"{prefix}{r.task_id:<22} {src:<10} {d:>2} {p:>2}  "
             f"{consist:>7}  {gate:>5}  {r.tokens_spent:>6}  {correct:>7}"
->>>>>>> origin/main
         )
 
 
