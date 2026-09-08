@@ -71,6 +71,7 @@ def extract_answer(raw_output: str) -> str:
       - Final Answer: <ans>
       - The answer is: <ans>
       - #### <ans>
+      - \boxed{<ans>}
       - Answer: <ans>
     Falls back to the last non-empty line if no explicit pattern is found.
     """
@@ -79,10 +80,16 @@ def extract_answer(raw_output: str) -> str:
 
     cleaned = raw_output.strip()
 
+    # Strip reasoning tags if present
+    cleaned = re.sub(r"<think>.*?</think>", "", cleaned, flags=re.DOTALL).strip()
+    if not cleaned:
+        cleaned = raw_output.strip()
+
     # Pattern priority list
     patterns = [
         r"(?:final\s+answer|the\s+final\s+answer\s+is)\s*[:=]?\s*([^\n\r]+)",
         r"(?:the\s+answer\s+is|answer)\s*[:=]?\s*([^\n\r]+)",
+        r"\\boxed\{([^}]+)\}",
         r"####\s*([^\n\r]+)",
         r"\*\*answer\*\*\s*[:=]?\s*([^\n\r]+)",
     ]
@@ -91,8 +98,8 @@ def extract_answer(raw_output: str) -> str:
         matches = list(re.finditer(pat, cleaned, flags=re.IGNORECASE))
         if matches:
             ans = matches[-1].group(1).strip()
-            # Clean trailing periods / markdown
-            ans = re.sub(r"^[*\s:=-]+|[*\s.]+$", "", ans)
+            # Clean trailing periods / markdown / quotes
+            ans = re.sub(r"^[*\s:=\"']+|[*\s.\"']+$", "", ans)
             if ans:
                 return ans
 
@@ -100,7 +107,7 @@ def extract_answer(raw_output: str) -> str:
     lines = [line.strip() for line in cleaned.splitlines() if line.strip()]
     if lines:
         last_line = lines[-1]
-        last_line = re.sub(r"^[*\s:=-]+|[*\s.]+$", "", last_line)
+        last_line = re.sub(r"^[*\s:=\"']+|[*\s.\"']+$", "", last_line)
         if last_line:
             return last_line
 
@@ -211,7 +218,7 @@ class ProbeAgent:
         """
         start_time = time.perf_counter()
         prompt = build_cot_prompt(task)
-        sample_budget = max(1, self.token_budget // self.n_samples)
+        sample_budget = min(self.token_budget, max(300, (self.token_budget * 2) // self.n_samples))
 
         raw_outputs: list[str] = []
         extracted_answers: list[str] = []

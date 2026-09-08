@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import urllib.error
 import urllib.request
 from collections.abc import Callable
@@ -116,7 +117,7 @@ def call_groq(
     Returns:
         tuple of (response_text, total_tokens_used).
     """
-    key = api_key or GROQ_API_KEY
+    key = api_key if api_key is not None else (os.getenv("GROQ_API_KEY") or GROQ_API_KEY)
     if not key:
         raise ValueError(
             "GROQ_API_KEY is not set. Please set the GROQ_API_KEY environment variable "
@@ -135,54 +136,70 @@ def call_groq(
     }
 
     data = json.dumps(payload).encode("utf-8")
-    req = urllib.request.Request(
-        url,
-        data=data,
-        headers={
-            "Content-Type": "application/json",
-            "Authorization": f"Bearer {key}",
-            "User-Agent": "GateOrchestra/0.1.0",
-        },
-        method="POST",
-    )
+    max_retries = 3
+    base_delay = 3.0
 
-    try:
-        with urllib.request.urlopen(req, timeout=timeout) as resp:
-            resp_data = json.loads(resp.read().decode("utf-8"))
-            choices = resp_data.get("choices", [])
-            response_text = ""
-            if choices and "message" in choices[0]:
-                response_text = choices[0]["message"].get("content", "")
+    for attempt in range(max_retries + 1):
+        req = urllib.request.Request(
+            url,
+            data=data,
+            headers={
+                "Content-Type": "application/json",
+                "Authorization": f"Bearer {key}",
+                "User-Agent": "GateOrchestra/0.1.0",
+            },
+            method="POST",
+        )
 
-            usage = resp_data.get("usage", {})
-            total_tokens = int(usage.get("total_tokens", 0))
-
-            if total_tokens <= 0:
-                prompt_toks = int(usage.get("prompt_tokens", 0))
-                comp_toks = int(usage.get("completion_tokens", 0))
-                total_tokens = prompt_toks + comp_toks
-
-            if total_tokens <= 0:
-                total_tokens = max(1, len(prompt.split()) + len(response_text.split()))
-
-            return response_text, total_tokens
-
-    except urllib.error.HTTPError as e:
         try:
-            raw_err = e.read().decode("utf-8")
-            error_body = json.loads(raw_err)
-            err_msg = error_body.get("error", {}).get("message", raw_err)
-        except Exception:
-            err_msg = str(e)
-        logger.error(f"[GroqProvider] Groq API returned HTTP {e.code}: {err_msg}")
-        raise RuntimeError(
-            f"Groq API Error ({e.code}): {err_msg}. "
-            f"Please verify model '{model}' is available on your Groq account (e.g., 'groq/compound', 'qwen/qwen3.6-27b')."
-        ) from e
+            with urllib.request.urlopen(req, timeout=timeout) as resp:
+                resp_data = json.loads(resp.read().decode("utf-8"))
+                choices = resp_data.get("choices", [])
+                response_text = ""
+                if choices and "message" in choices[0]:
+                    response_text = choices[0]["message"].get("content", "")
 
-    except (urllib.error.URLError, TimeoutError, OSError) as e:
-        logger.warning(f"[GroqProvider] Network call to {url} failed: {e}")
-        raise
+                usage = resp_data.get("usage", {})
+                total_tokens = int(usage.get("total_tokens", 0))
+
+                if total_tokens <= 0:
+                    prompt_toks = int(usage.get("prompt_tokens", 0))
+                    comp_toks = int(usage.get("completion_tokens", 0))
+                    total_tokens = prompt_toks + comp_toks
+
+                if total_tokens <= 0:
+                    total_tokens = max(1, len(prompt.split()) + len(response_text.split()))
+
+                return response_text, total_tokens
+
+        except urllib.error.HTTPError as e:
+            raw_err = ""
+            try:
+                raw_err = e.read().decode("utf-8")
+                error_body = json.loads(raw_err)
+                err_msg = error_body.get("error", {}).get("message", raw_err)
+            except Exception:
+                err_msg = str(e)
+
+            if e.code == 429 and attempt < max_retries:
+                import time
+
+                delay = base_delay * (attempt + 1)
+                logger.warning(
+                    f"[GroqProvider] Rate limited (429). Retrying in {delay:.1f}s (attempt {attempt + 1}/{max_retries})..."
+                )
+                time.sleep(delay)
+                continue
+
+            logger.error(f"[GroqProvider] Groq API returned HTTP {e.code}: {err_msg}")
+            raise RuntimeError(
+                f"Groq API Error ({e.code}): {err_msg}. "
+                f"Please verify model '{model}' is available on your Groq account."
+            ) from e
+
+        except (urllib.error.URLError, TimeoutError, OSError) as e:
+            logger.warning(f"[GroqProvider] Network call to {url} failed: {e}")
+            raise
 
 
 # ─────────────────────────────────────────────────────────────────────────────
