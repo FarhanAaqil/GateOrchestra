@@ -15,7 +15,6 @@ from collections import deque
 from pathlib import Path
 from typing import Any
 
-import numpy as np
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -31,7 +30,6 @@ from agents.baselines.simulated_probe import SimulatedProbe  # noqa: E402
 from agents.orchestrator.orchestrator import orchestrator  # noqa: E402
 from agents.probe_agent import probe_agent  # noqa: E402
 from gate.classifier import (  # noqa: E402
-    FEATURE_NAMES,
     GateClassifier,
     GBTGate,
     LogRegGate,
@@ -48,7 +46,7 @@ from shared.config import (  # noqa: E402
     MODEL_NAME,
 )
 from shared.data_loader import load_split  # noqa: E402
-from shared.schemas import Task  # noqa: E402
+from shared.schemas import GateFeatures, Task  # noqa: E402
 from shared.token_logger import TokenAccountant  # noqa: E402
 
 logger = logging.getLogger(__name__)
@@ -78,15 +76,61 @@ _HISTORY: deque[dict[str, Any]] = deque(maxlen=50)
 _CACHED_LEARNED_GATE: GateClassifier | None = None
 
 
+def _make_dummy_gate_features() -> list[GateFeatures]:
+    """Generate synthetic gate features to bootstrap untrained gates."""
+    return [
+        GateFeatures(
+            task_id="dummy_1",
+            consistency_score=1.0,
+            probe_tokens=100,
+            question_word_count=10,
+            entity_count=1,
+            clause_count=1,
+            has_context=False,
+            estimated_depth=1.0,
+            estimated_parallel=1.0,
+        ),
+        GateFeatures(
+            task_id="dummy_2",
+            consistency_score=0.9,
+            probe_tokens=150,
+            question_word_count=15,
+            entity_count=2,
+            clause_count=1,
+            has_context=False,
+            estimated_depth=2.0,
+            estimated_parallel=1.0,
+        ),
+        GateFeatures(
+            task_id="dummy_3",
+            consistency_score=0.3,
+            probe_tokens=400,
+            question_word_count=30,
+            entity_count=5,
+            clause_count=4,
+            has_context=True,
+            estimated_depth=4.0,
+            estimated_parallel=3.0,
+        ),
+        GateFeatures(
+            task_id="dummy_4",
+            consistency_score=0.2,
+            probe_tokens=500,
+            question_word_count=45,
+            entity_count=6,
+            clause_count=5,
+            has_context=True,
+            estimated_depth=5.0,
+            estimated_parallel=4.0,
+        ),
+    ]
+
+
 def _ensure_fitted(gate: Any) -> Any:
-    """Ensure a learned gate is fitted with dummy data if not already trained."""
-    if hasattr(gate, "_fitted") and not getattr(gate, "_fitted", False):
-        dummy_x = np.zeros((4, len(FEATURE_NAMES)))
-        dummy_x[1, 0] = 1.0
-        dummy_x[2, 6] = 4.0
-        dummy_x[3, 7] = 3.0
-        dummy_y = ["STOP", "STOP", "ESCALATE", "ESCALATE"]
-        gate.train(dummy_x, dummy_y)
+    """Ensure a learned gate is trained with dummy data if not already trained."""
+    is_trained = getattr(gate, "_is_trained", None)
+    if is_trained is False:
+        gate.train(_make_dummy_gate_features(), ["STOP", "STOP", "ESCALATE", "ESCALATE"])
     return gate
 
 
@@ -105,7 +149,7 @@ def get_trained_gate() -> GateClassifier:
         if candidate.exists():
             try:
                 loaded = GateClassifier.load(candidate)
-                if getattr(loaded, "_fitted", False):
+                if getattr(loaded, "_is_trained", False):
                     _CACHED_LEARNED_GATE = loaded
                     logger.info(f"Loaded trained gate from {candidate}")
                     return _CACHED_LEARNED_GATE

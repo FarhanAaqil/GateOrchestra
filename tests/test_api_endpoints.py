@@ -14,6 +14,7 @@ pytest.importorskip("httpx")
 from fastapi.testclient import TestClient
 
 from api.main import app
+from shared.data_loader import load_split
 
 
 @pytest.fixture
@@ -60,7 +61,7 @@ class TestTaskExploration:
         data = response.json()
         assert data["split"] == "val"
         assert len(data["tasks"]) == 5
-        assert data["total"] == 30
+        assert data["total"] == len(load_split("val"))
         first = data["tasks"][0]
         assert "task_id" in first
         assert "question" in first
@@ -71,7 +72,7 @@ class TestTaskExploration:
         data = response.json()
         assert data["split"] == "train"
         assert len(data["tasks"]) == 10
-        assert data["total"] == 90
+        assert data["total"] == len(load_split("train"))
 
     def test_tasks_search(self, client: TestClient) -> None:
         response = client.get("/tasks?split=val&search=who")
