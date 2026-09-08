@@ -23,6 +23,7 @@ from shared.config import (
     GROQ_API_KEY,
     GROQ_MODEL_NAME,
     LLM_PROVIDER,
+    LLM_REQUEST_TIMEOUT_SECONDS,
     MODEL_API_BASE,
     MODEL_NAME,
     PROBE_TOKEN_BUDGET,
@@ -45,7 +46,7 @@ def call_ollama(
     max_tokens: int = PROBE_TOKEN_BUDGET,
     model_name: str | None = None,
     api_base: str | None = None,
-    timeout: float = 30.0,
+    timeout: float = LLM_REQUEST_TIMEOUT_SECONDS,
 ) -> tuple[str, int]:
     """Execute generation against a local Ollama server.
 
@@ -108,7 +109,7 @@ def call_groq(
     model_name: str | None = None,
     api_key: str | None = None,
     api_base: str | None = None,
-    timeout: float = 30.0,
+    timeout: float = LLM_REQUEST_TIMEOUT_SECONDS,
 ) -> tuple[str, int]:
     """Execute generation against Groq API via OpenAI-compatible endpoint.
 
@@ -210,7 +211,7 @@ def get_llm_caller(
     model_name: str | None = None,
     api_base: str | None = None,
     api_key: str | None = None,
-    timeout: float = 30.0,
+    timeout: float = LLM_REQUEST_TIMEOUT_SECONDS,
 ) -> LLMCallerFn:
     """Factory returning a standard LLMCallerFn for the selected provider.
 
@@ -260,7 +261,7 @@ def default_llm_caller(
     api_base: str | None = None,
     provider: str | None = None,
     api_key: str | None = None,
-    timeout: float = 30.0,
+    timeout: float = LLM_REQUEST_TIMEOUT_SECONDS,
 ) -> tuple[str, int]:
     """Default unified HTTP caller dispatching to either Ollama or Groq."""
     caller = get_llm_caller(

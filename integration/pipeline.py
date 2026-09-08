@@ -25,6 +25,7 @@ from collections.abc import Callable
 from gate.classifier import GateClassifier
 from gate.feature_extractor import extract_features
 from shared.config import K_DEFAULT
+from shared.data_loader import exact_match
 from shared.schemas import EvalResult, GateDecision, ProbeResult, Task
 from shared.token_logger import TokenAccountant
 
@@ -156,13 +157,4 @@ def run_batch(
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def _exact_match(predicted: str, ground_truth: str) -> bool:
-    """Normalized exact match (lowercase, strip punctuation)."""
-    import re
-
-    def normalize(s: str) -> str:
-        s = s.lower().strip()
-        s = re.sub(r"[^\w\s]", "", s)
-        return " ".join(s.split())
-
-    return normalize(predicted) == normalize(ground_truth)
+_exact_match = exact_match
