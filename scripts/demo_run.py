@@ -19,10 +19,10 @@ Run:
 from __future__ import annotations
 
 import argparse
-from pathlib import Path
 import random as _random
 import sys
 import time
+from pathlib import Path
 
 # Ensure project root is in sys.path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))

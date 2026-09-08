@@ -89,13 +89,20 @@ class GateClassifier(ABC):
         ...
 
     @abstractmethod
-    def predict(self, features: GateFeatures, k: int, probe_tokens: int) -> GateDecision:
+    def predict(
+        self,
+        features: GateFeatures,
+        k: int,
+        probe_tokens: int,
+        threshold: float | None = None,
+    ) -> GateDecision:
         """Predict gate decision for a single task.
 
         Args:
             features:     Extracted GateFeatures for the task.
             k:            Token budget multiplier (token_budget_cap = k × probe_tokens).
             probe_tokens: Probe token count (used to compute token_budget_cap).
+            threshold:    Optional probability threshold for ESCALATE decision.
         """
         ...
 
@@ -285,7 +292,13 @@ class MLPGate(GateClassifier):
         loss_str = f"{best_loss:.4f}" if best_loss is not None else "N/A"
         logger.info(f"MLPGate trained. Best val loss: {loss_str}")
 
-    def predict(self, features: GateFeatures, k: int, probe_tokens: int) -> GateDecision:
+    def predict(
+        self,
+        features: GateFeatures,
+        k: int,
+        probe_tokens: int,
+        threshold: float | None = None,
+    ) -> GateDecision:
         if not self._is_trained:
             raise RuntimeError("Call train() before predict()")
         x = features_to_array(features).reshape(1, -1)

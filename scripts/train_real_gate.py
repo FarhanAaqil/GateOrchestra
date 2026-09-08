@@ -31,15 +31,14 @@ sys.path.insert(0, str(ROOT))
 import numpy as np
 
 from agents.orchestrator import MASOrchestrator
-from agents.probe_agent import ProbeAgent, normalize_answer
-from gate.classifier import GBTGate, features_to_array
+from agents.probe_agent import ProbeAgent
+from gate.classifier import GBTGate
 from gate.feature_extractor import extract_features
 from gate.train_gate import apply_label_rule, evaluate_classifier
 from integration.pipeline import _exact_match
 from shared.config import LOGS_DIR
 from shared.data_loader import load_split
 from shared.schemas import EvalResult, GateFeatures, ProbeResult, Task
-from shared.token_logger import TokenAccountant
 
 logging.basicConfig(
     level=logging.INFO,
@@ -57,7 +56,7 @@ def collect_real_traces(
 ) -> tuple[list[GateFeatures], list[str], dict[str, EvalResult], dict[str, EvalResult]]:
     """Execute live Groq calls on tasks and extract real features and labels."""
     logger.info(f"Collecting real Groq traces for {len(tasks)} tasks from split '{split_name}'...")
-    
+
     cot_sc_results: dict[str, EvalResult] = {}
     mas_results: dict[str, EvalResult] = {}
     features_list: list[GateFeatures] = []
@@ -149,7 +148,9 @@ def main():
 
     # 3. Collect or Load Real Traces for Train and Val
     if cache_train_path.exists() and cache_val_path.exists():
-        print(f"\n[3] Loading previously collected real Groq traces from {cache_train_path.name}...")
+        print(
+            f"\n[3] Loading previously collected real Groq traces from {cache_train_path.name}..."
+        )
         with open(cache_train_path, encoding="utf-8") as f:
             t_data = json.load(f)
             train_features = [GateFeatures(**x) for x in t_data["features"]][: args.n_train]
@@ -196,8 +197,12 @@ def main():
     n_val_esc = val_labels.count("ESCALATE")
     n_val_stop = val_labels.count("STOP")
 
-    print(f"  - Train Class Distribution: {n_train_stop} STOP ({n_train_stop/len(train_labels)*100:.1f}%), {n_train_esc} ESCALATE ({n_train_esc/len(train_labels)*100:.1f}%)")
-    print(f"  - Val Class Distribution:   {n_val_stop} STOP ({n_val_stop/len(val_labels)*100:.1f}%), {n_val_esc} ESCALATE ({n_val_esc/len(val_labels)*100:.1f}%)")
+    print(
+        f"  - Train Class Distribution: {n_train_stop} STOP ({n_train_stop/len(train_labels)*100:.1f}%), {n_train_esc} ESCALATE ({n_train_esc/len(train_labels)*100:.1f}%)"
+    )
+    print(
+        f"  - Val Class Distribution:   {n_val_stop} STOP ({n_val_stop/len(val_labels)*100:.1f}%), {n_val_esc} ESCALATE ({n_val_esc/len(val_labels)*100:.1f}%)"
+    )
 
     probe_tokens_all = [f.probe_tokens for f in train_features]
     consist_all = [f.consistency_score for f in train_features]
@@ -205,10 +210,18 @@ def main():
     depth_all = [f.estimated_depth or 0.0 for f in train_features]
 
     print("\n  - Real Training Feature Ranges:")
-    print(f"    - probe_tokens:      min={min(probe_tokens_all)}, max={max(probe_tokens_all)}, mean={np.mean(probe_tokens_all):.1f}")
-    print(f"    - consistency_score: min={min(consist_all):.2f}, max={max(consist_all):.2f}, mean={np.mean(consist_all):.2f}")
-    print(f"    - entity_count:      min={min(entity_all)}, max={max(entity_all)}, mean={np.mean(entity_all):.1f}")
-    print(f"    - estimated_depth:   min={min(depth_all):.1f}, max={max(depth_all):.1f}, mean={np.mean(depth_all):.1f}")
+    print(
+        f"    - probe_tokens:      min={min(probe_tokens_all)}, max={max(probe_tokens_all)}, mean={np.mean(probe_tokens_all):.1f}"
+    )
+    print(
+        f"    - consistency_score: min={min(consist_all):.2f}, max={max(consist_all):.2f}, mean={np.mean(consist_all):.2f}"
+    )
+    print(
+        f"    - entity_count:      min={min(entity_all)}, max={max(entity_all)}, mean={np.mean(entity_all):.1f}"
+    )
+    print(
+        f"    - estimated_depth:   min={min(depth_all):.1f}, max={max(depth_all):.1f}, mean={np.mean(depth_all):.1f}"
+    )
 
     # Ensure binary classes exist for GBT training
     if len(set(train_labels)) < 2:
@@ -259,16 +272,26 @@ def main():
         except Exception as err:
             logger.warning(f"Could not evaluate old gate: {err}")
 
-    print(f"\n  {'Model Name':<24} {'Accuracy':<10} {'Precision':<11} {'Recall':<9} {'F1':<8} {'EscRate':<9}")
+    print(
+        f"\n  {'Model Name':<24} {'Accuracy':<10} {'Precision':<11} {'Recall':<9} {'F1':<8} {'EscRate':<9}"
+    )
     print(f"  {'-'*24} {'-'*10} {'-'*11} {'-'*9} {'-'*8} {'-'*9}")
     if old_metrics:
-        print(f"  {'Old GBT (Week 2)':<24} {old_metrics['accuracy']:<10.4f} {old_metrics['precision']:<11.4f} {old_metrics['recall']:<9.4f} {old_metrics['f1']:<8.4f} {old_metrics['escalation_rate']:<9.4f}")
-    print(f"  {'New GBT (Week 7 Real)':<24} {new_metrics['accuracy']:<10.4f} {new_metrics['precision']:<11.4f} {new_metrics['recall']:<9.4f} {new_metrics['f1']:<8.4f} {new_metrics['escalation_rate']:<9.4f}")
+        print(
+            f"  {'Old GBT (Week 2)':<24} {old_metrics['accuracy']:<10.4f} {old_metrics['precision']:<11.4f} {old_metrics['recall']:<9.4f} {old_metrics['f1']:<8.4f} {old_metrics['escalation_rate']:<9.4f}"
+        )
+    print(
+        f"  {'New GBT (Week 7 Real)':<24} {new_metrics['accuracy']:<10.4f} {new_metrics['precision']:<11.4f} {new_metrics['recall']:<9.4f} {new_metrics['f1']:<8.4f} {new_metrics['escalation_rate']:<9.4f}"
+    )
 
     print("\n  - Detailed Confusion Matrices:")
     if old_cm:
-        print(f"    - Old GBT (Week 2):      TP={old_cm['TP']}, FP={old_cm['FP']}, TN={old_cm['TN']}, FN={old_cm['FN']}")
-    print(f"    - New GBT (Week 7 Real): TP={new_cm['TP']}, FP={new_cm['FP']}, TN={new_cm['TN']}, FN={new_cm['FN']}")
+        print(
+            f"    - Old GBT (Week 2):      TP={old_cm['TP']}, FP={old_cm['FP']}, TN={old_cm['TN']}, FN={old_cm['FN']}"
+        )
+    print(
+        f"    - New GBT (Week 7 Real): TP={new_cm['TP']}, FP={new_cm['FP']}, TN={new_cm['TN']}, FN={new_cm['FN']}"
+    )
 
     print("\n  - New GBT Feature Importances:")
     for feat_name, imp in new_gbt.feature_importances().items():

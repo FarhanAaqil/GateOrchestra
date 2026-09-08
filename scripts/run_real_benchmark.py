@@ -29,12 +29,12 @@ sys.path.insert(0, str(ROOT))
 
 from agents.orchestrator import MASOrchestrator
 from agents.probe_agent import ProbeAgent
-from gate.classifier import GBTGate, LogRegGate, MLPGate
+from gate.classifier import GBTGate
 from gate.rule_based_gate import RuleBasedGate
-from integration.pipeline import run_batch, run_pipeline
-from shared.config import BEST_MODEL_PATH, K_DEFAULT, LOGS_DIR
+from integration.pipeline import run_pipeline
+from shared.config import K_DEFAULT, LOGS_DIR
 from shared.data_loader import load_split
-from shared.schemas import EvalResult, Task
+from shared.schemas import EvalResult
 from shared.token_logger import TokenAccountant
 
 logging.basicConfig(
@@ -60,7 +60,9 @@ def main():
 
     print("=" * 74)
     print("  [GateOrchestra] -- Week 7 Real LLM Benchmark Execution")
-    print(f"  Split: {args.split!r}  |  Sample Size: {args.n}  |  k={args.k}  |  threshold={args.threshold}")
+    print(
+        f"  Split: {args.split!r}  |  Sample Size: {args.n}  |  k={args.k}  |  threshold={args.threshold}"
+    )
     print("=" * 74)
 
     # 1. Load real dataset tasks
