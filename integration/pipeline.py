@@ -54,6 +54,7 @@ def run_pipeline(
     accountant: TokenAccountant,
     k: int = K_DEFAULT,
     method: str = "GateOrchestra",
+    threshold: float | None = None,
 ) -> EvalResult:
     """Run the full GateOrchestra pipeline for a single task.
 
@@ -73,6 +74,7 @@ def run_pipeline(
         accountant:   TokenAccountant instance to log spend.
         k:            Token budget multiplier for MAS.
         method:       Label for logging (e.g. "GateOrchestra", "RuleBasedGate").
+        threshold:    Optional probability threshold for ESCALATE decision.
 
     Returns:
         EvalResult for this task.
@@ -88,7 +90,12 @@ def run_pipeline(
     features = extract_features(task, probe)
 
     # ── Stage 3: Gate decision ────────────────────────────────────────────
-    decision: GateDecision = gate.predict(features, k=k, probe_tokens=probe.tokens_used)
+    try:
+        decision: GateDecision = gate.predict(
+            features, k=k, probe_tokens=probe.tokens_used, threshold=threshold
+        )
+    except TypeError:
+        decision = gate.predict(features, k=k, probe_tokens=probe.tokens_used)
     logger.debug(f"  Gate: decision={decision.decision} confidence={decision.confidence:.2f}")
 
     # ── Stage 4: Route ────────────────────────────────────────────────────

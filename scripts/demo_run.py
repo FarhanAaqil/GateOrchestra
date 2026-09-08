@@ -19,8 +19,13 @@ Run:
 from __future__ import annotations
 
 import argparse
+from pathlib import Path
 import random as _random
+import sys
 import time
+
+# Ensure project root is in sys.path
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from agents.baselines.simulated_probe import simulated_probe_agent
 from gate.random_gate import RandomGate

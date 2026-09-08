@@ -157,15 +157,34 @@ class LogRegGate(GateClassifier):
         self._is_trained = True
         logger.info(f"LogRegGate trained on {len(labels)} examples. Classes: {self._classes}")
 
-    def predict(self, features: GateFeatures, k: int, probe_tokens: int) -> GateDecision:
+    def predict(
+        self,
+        features: GateFeatures,
+        k: int,
+        probe_tokens: int,
+        threshold: float | None = None,
+    ) -> GateDecision:
         if not self._is_trained:
             raise RuntimeError("Call train() before predict()")
         x = features_to_array(features).reshape(1, -1)
         x_scaled = self._scaler.transform(x)
-        label = str(self._model.predict(x_scaled)[0])
         proba = self._model.predict_proba(x_scaled)[0]
-        idx = self._classes.index(label)  # type: ignore[union-attr]
-        confidence = float(proba[idx])
+
+        if threshold is not None and self._classes and "ESCALATE" in self._classes:
+            esc_idx = self._classes.index("ESCALATE")
+            esc_prob = float(proba[esc_idx])
+            if esc_prob >= threshold:
+                label = "ESCALATE"
+                confidence = esc_prob
+            else:
+                label = "STOP"
+                stop_idx = self._classes.index("STOP") if "STOP" in self._classes else (1 - esc_idx)
+                confidence = float(proba[stop_idx])
+        else:
+            label = str(self._model.predict(x_scaled)[0])
+            idx = self._classes.index(label)  # type: ignore[union-attr]
+            confidence = float(proba[idx])
+
         return self._make_decision(features.task_id, label, confidence, k, probe_tokens)
 
 
@@ -196,14 +215,33 @@ class GBTGate(GateClassifier):
         importances = dict(zip(FEATURE_NAMES, self._model.feature_importances_, strict=True))
         logger.info(f"GBTGate trained. Feature importances: {importances}")
 
-    def predict(self, features: GateFeatures, k: int, probe_tokens: int) -> GateDecision:
+    def predict(
+        self,
+        features: GateFeatures,
+        k: int,
+        probe_tokens: int,
+        threshold: float | None = None,
+    ) -> GateDecision:
         if not self._is_trained:
             raise RuntimeError("Call train() before predict()")
         x = features_to_array(features).reshape(1, -1)
-        label = str(self._model.predict(x)[0])
         proba = self._model.predict_proba(x)[0]
-        idx = self._classes.index(label)  # type: ignore[union-attr]
-        confidence = float(proba[idx])
+
+        if threshold is not None and self._classes and "ESCALATE" in self._classes:
+            esc_idx = self._classes.index("ESCALATE")
+            esc_prob = float(proba[esc_idx])
+            if esc_prob >= threshold:
+                label = "ESCALATE"
+                confidence = esc_prob
+            else:
+                label = "STOP"
+                stop_idx = self._classes.index("STOP") if "STOP" in self._classes else (1 - esc_idx)
+                confidence = float(proba[stop_idx])
+        else:
+            label = str(self._model.predict(x)[0])
+            idx = self._classes.index(label)  # type: ignore[union-attr]
+            confidence = float(proba[idx])
+
         return self._make_decision(features.task_id, label, confidence, k, probe_tokens)
 
     def feature_importances(self) -> dict[str, float]:
