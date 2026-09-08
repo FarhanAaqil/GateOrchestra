@@ -112,6 +112,44 @@ All 4 team members code against `shared/schemas.py`. **Do not change these model
 
 ---
 
+## LLM Provider Configuration (Local Ollama vs Cloud Groq)
+
+GateOrchestra supports both local open-weight models via **Ollama** and cloud fast inference via **Groq**.
+
+### Option A: Local Ollama (Default)
+Runs locally with zero external API fees.
+```bash
+# 1. Start Ollama and pull Qwen2.5
+ollama serve
+ollama pull qwen2.5:7b-instruct
+
+# 2. Environment variables (Optional — these are defaults)
+export GATE_LLM_PROVIDER=ollama
+export GATE_MODEL_NAME=Qwen2.5-7B-Instruct
+export GATE_API_BASE=http://localhost:11434
+```
+
+### Option B: Cloud Groq API (Optional)
+Runs cloud inference using Groq's high-speed LPU endpoints.
+```bash
+# 1. Set your Groq API key (never commit this key to git)
+export GROQ_API_KEY="gsk_your_groq_api_key_here"
+
+# 2. Switch provider to Groq
+export GATE_LLM_PROVIDER=groq
+export GROQ_MODEL_NAME=llama-3.3-70b-versatile    # or llama-3.1-8b-instant
+export GROQ_API_BASE=https://api.groq.com/openai/v1
+```
+
+On Windows PowerShell:
+```powershell
+$env:GROQ_API_KEY = "gsk_your_groq_api_key_here"
+$env:GATE_LLM_PROVIDER = "groq"
+$env:GROQ_MODEL_NAME = "llama-3.3-70b-versatile"
+```
+
+---
+
 ## Key Hyperparameters
 
 | Parameter | Default | Description |
