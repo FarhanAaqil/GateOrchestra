@@ -96,7 +96,9 @@ def check_task_fields(
     if task.source_dataset is None:
         errors.append("source_dataset is None")
     elif task.source_dataset not in sources:
-        errors.append(f"Unknown source_dataset: {task.source_dataset!r} (expected one of {sorted(sources)})")
+        errors.append(
+            f"Unknown source_dataset: {task.source_dataset!r} (expected one of {sorted(sources)})"
+        )
 
     # 5. Depth score checks
     if task.depth_score is not None:
@@ -127,11 +129,13 @@ def check_collection_integrity(tasks: list[Task]) -> list[dict[str, Any]]:
     violations: list[dict[str, Any]] = []
 
     if not tasks:
-        violations.append({
-            "type": "empty_dataset",
-            "message": "Dataset task list is completely empty",
-            "task_ids": [],
-        })
+        violations.append(
+            {
+                "type": "empty_dataset",
+                "message": "Dataset task list is completely empty",
+                "task_ids": [],
+            }
+        )
         return violations
 
     # Check Task ID collisions
@@ -142,11 +146,13 @@ def check_collection_integrity(tasks: list[Task]) -> list[dict[str, Any]]:
     id_collisions = {tid: indices for tid, indices in seen_ids.items() if len(indices) > 1}
     if id_collisions:
         for tid, indices in id_collisions.items():
-            violations.append({
-                "type": "task_id_collision",
-                "message": f"Duplicate task_id found: '{tid}' at indices {indices}",
-                "task_ids": [tid],
-            })
+            violations.append(
+                {
+                    "type": "task_id_collision",
+                    "message": f"Duplicate task_id found: '{tid}' at indices {indices}",
+                    "task_ids": [tid],
+                }
+            )
 
     # Check exact Question duplicates
     seen_questions: dict[str, list[str]] = {}
@@ -156,11 +162,13 @@ def check_collection_integrity(tasks: list[Task]) -> list[dict[str, Any]]:
 
     q_duplicates = {q: tids for q, tids in seen_questions.items() if len(tids) > 1}
     if q_duplicates:
-        for q, tids in q_duplicates.items():
-            violations.append({
-                "type": "duplicate_question",
-                "message": f"Duplicate question text across task IDs: {tids}",
-                "task_ids": tids,
-            })
+        for _q, tids in q_duplicates.items():
+            violations.append(
+                {
+                    "type": "duplicate_question",
+                    "message": f"Duplicate question text across task IDs: {tids}",
+                    "task_ids": tids,
+                }
+            )
 
     return violations

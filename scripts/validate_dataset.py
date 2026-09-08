@@ -40,9 +40,7 @@ logger = logging.getLogger(__name__)
 
 
 def parse_args() -> argparse.Namespace:
-    parser = argparse.ArgumentParser(
-        description="GateOrchestra Dataset Validation CLI"
-    )
+    parser = argparse.ArgumentParser(description="GateOrchestra Dataset Validation CLI")
     parser.add_argument(
         "--input",
         type=str,

@@ -12,14 +12,12 @@ Unit and integration tests for dataset cleaning and deduplication (Week 3):
 from dataset.cleaning.cleaner import (
     canonicalize_answer,
     clean_dataset_records,
-    clean_task,
     format_question,
     normalize_text,
 )
 from dataset.cleaning.deduplicator import (
     FuzzyDeduplicator,
     compute_question_similarity,
-    detect_duplicates,
     exact_fingerprint,
 )
 from shared.schemas import Task
@@ -39,7 +37,7 @@ class TestTextNormalization:
         assert "-" in cleaned
 
     def test_zero_width_and_invisible_chars(self):
-        raw = "What\u200B is \uFEFFthe\u00A0capital?"
+        raw = "What\u200b is \ufeffthe\u00a0capital?"
         cleaned = normalize_text(raw)
         assert cleaned == "What is the capital?"
         assert "\u200b" not in cleaned
@@ -80,8 +78,12 @@ class TestAnswerCanonicalization:
 class TestQuestionFormatting:
     def test_enforce_question_mark_for_interrogatives(self):
         assert format_question("Who directed Inception") == "Who directed Inception?"
-        assert format_question("Which is larger: Mars or Venus") == "Which is larger: Mars or Venus?"
-        assert format_question("Calculate the sum of 10 and 20") == "Calculate the sum of 10 and 20?"
+        assert (
+            format_question("Which is larger: Mars or Venus") == "Which is larger: Mars or Venus?"
+        )
+        assert (
+            format_question("Calculate the sum of 10 and 20") == "Calculate the sum of 10 and 20?"
+        )
 
     def test_already_punctuated(self):
         assert format_question("Who directed Inception?") == "Who directed Inception?"
@@ -154,7 +156,7 @@ class TestCleanDatasetPipeline:
         tasks = [
             Task(
                 task_id="t1",
-                question="“Who was the first president of the US” \u200B",
+                question="“Who was the first president of the US” \u200b",
                 ground_truth='"George Washington."',
                 source_dataset="hotpotqa_style",
                 depth_score=1,

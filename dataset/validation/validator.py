@@ -43,9 +43,7 @@ class ValidationReport:
     warnings: list[dict[str, Any]] = field(default_factory=list)
     statistics: dict[str, Any] = field(default_factory=dict)
     min_size_met: bool = True
-    timestamp: str = field(
-        default_factory=lambda: datetime.now(timezone.utc).isoformat()
-    )
+    timestamp: str = field(default_factory=lambda: datetime.now(timezone.utc).isoformat())
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)
@@ -201,13 +199,9 @@ class DatasetValidator:
 
             # Track statistics
             if task.source_dataset:
-                source_counts[task.source_dataset] = (
-                    source_counts.get(task.source_dataset, 0) + 1
-                )
+                source_counts[task.source_dataset] = source_counts.get(task.source_dataset, 0) + 1
             if task.depth_score is not None:
-                depth_counts[task.depth_score] = (
-                    depth_counts.get(task.depth_score, 0) + 1
-                )
+                depth_counts[task.depth_score] = depth_counts.get(task.depth_score, 0) + 1
             if task.parallel_score is not None:
                 parallel_counts[task.parallel_score] = (
                     parallel_counts.get(task.parallel_score, 0) + 1
@@ -231,12 +225,8 @@ class DatasetValidator:
             "source_distribution": source_counts,
             "depth_distribution": depth_counts,
             "parallel_distribution": parallel_counts,
-            "avg_question_length": (
-                round(sum(q_lengths) / len(q_lengths), 1) if q_lengths else 0
-            ),
-            "avg_answer_length": (
-                round(sum(a_lengths) / len(a_lengths), 1) if a_lengths else 0
-            ),
+            "avg_question_length": (round(sum(q_lengths) / len(q_lengths), 1) if q_lengths else 0),
+            "avg_answer_length": (round(sum(a_lengths) / len(a_lengths), 1) if a_lengths else 0),
         }
 
         is_valid = len(errors) == 0
