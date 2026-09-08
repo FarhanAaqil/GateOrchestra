@@ -1,0 +1,14 @@
+{
+  "is_clean": true,
+  "total_inspected": 161,
+  "split_counts": {
+    "train": 97,
+    "val": 32,
+    "test": 32
+  },
+  "violations": [],
+  "pair_comparisons": 7232,
+  "max_ngram_similarity": 0.4286,
+  "timestamp": "2026-09-08T09:52:30.557195+00:00",
+  "violations_count": 0
+}
