@@ -1,0 +1,32 @@
+{
+  "is_valid": true,
+  "total_tasks": 161,
+  "passed_count": 161,
+  "failed_count": 0,
+  "errors": [],
+  "warnings": [],
+  "statistics": {
+    "source_distribution": {
+      "hotpotqa_style": 51,
+      "musique_style": 39,
+      "template_arithmetic": 40,
+      "template_comparison": 31
+    },
+    "depth_distribution": {
+      "3": 98,
+      "4": 42,
+      "5": 10,
+      "2": 9,
+      "1": 2
+    },
+    "parallel_distribution": {
+      "1": 122,
+      "2": 31,
+      "3": 8
+    },
+    "avg_question_length": 86.2,
+    "avg_answer_length": 31.9
+  },
+  "min_size_met": true,
+  "timestamp": "2026-09-08T09:09:52.427024+00:00"
+}
