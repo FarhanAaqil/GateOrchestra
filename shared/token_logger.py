@@ -16,7 +16,7 @@ import threading
 from collections import defaultdict
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import TypedDict
+from typing import Any, TypedDict
 
 
 @dataclass
@@ -156,7 +156,7 @@ class TokenAccountant:
             }
         """
         with self._lock:
-            records_data: list[_RecordDict] = [
+            records_data: list[dict[str, Any]] = [
                 {
                     "task_id": r.task_id,
                     "method": r.method,
@@ -167,10 +167,10 @@ class TokenAccountant:
                 for r in self._records
             ]
 
-        methods: set[str] = {r["method"] for r in records_data}
-        summary: dict[str, dict[str, object]] = {}
+        methods: set[str] = {str(r["method"]) for r in records_data}
+        summary: dict[str, Any] = {}
         for m in methods:
-            total = sum(r["tokens"] for r in records_data if r["method"] == m)
+            total = sum(int(r["tokens"]) for r in records_data if r["method"] == m)
             summary[m] = {
                 "total_tokens": total,
                 "escalation_rate": self.get_escalation_rate(m),

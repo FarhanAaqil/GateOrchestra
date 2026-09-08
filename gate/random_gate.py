@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import logging
 import random
+from typing import Literal
 
 from shared.schemas import GateDecision, GateFeatures
 
@@ -63,7 +64,7 @@ class RandomGate:
         """
         self._call_count += 1
         escalate = self._rng.random() < self.escalation_rate
-        decision = "ESCALATE" if escalate else "STOP"
+        decision: Literal["STOP", "ESCALATE"] = "ESCALATE" if escalate else "STOP"
 
         logger.debug(
             f"[RandomGate] task={features.task_id} " f"roll={self._call_count} decision={decision}"
