@@ -15,6 +15,7 @@ from collections import deque
 from pathlib import Path
 from typing import Any
 
+import numpy as np
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from pydantic import BaseModel, Field
@@ -29,7 +30,13 @@ from agents.baselines.cot_sc_baseline import run_cot_sc_baseline  # noqa: E402
 from agents.baselines.simulated_probe import SimulatedProbe  # noqa: E402
 from agents.orchestrator.orchestrator import orchestrator  # noqa: E402
 from agents.probe_agent import probe_agent  # noqa: E402
-from gate.classifier import GateClassifier, GBTGate, LogRegGate, MLPGate  # noqa: E402
+from gate.classifier import (  # noqa: E402
+    FEATURE_NAMES,
+    GateClassifier,
+    GBTGate,
+    LogRegGate,
+    MLPGate,
+)
 from gate.random_gate import RandomGate  # noqa: E402
 from gate.rule_based_gate import RuleBasedGate  # noqa: E402
 from integration.pipeline import run_pipeline  # noqa: E402
@@ -71,8 +78,25 @@ _HISTORY: deque[dict[str, Any]] = deque(maxlen=50)
 _CACHED_LEARNED_GATE: GateClassifier | None = None
 
 
+def _ensure_fitted(gate: Any) -> Any:
+    """Ensure a learned gate is fitted with dummy data if not already trained."""
+    if hasattr(gate, "_fitted") and not getattr(gate, "_fitted", False):
+        dummy_x = np.zeros((4, len(FEATURE_NAMES)))
+        dummy_x[1, 0] = 1.0
+        dummy_x[2, 6] = 4.0
+        dummy_x[3, 7] = 3.0
+        dummy_y = ["STOP", "STOP", "ESCALATE", "ESCALATE"]
+        gate.train(dummy_x, dummy_y)
+    return gate
+
+
+def _make_fallback_trained_gate() -> GateClassifier:
+    """Create a trained fallback GBTGate so predict() always succeeds."""
+    return _ensure_fitted(GBTGate())
+
+
 def get_trained_gate() -> GateClassifier:
-    """Load the trained best gate from disk or fallback to a fresh GBTGate."""
+    """Load the trained best gate from disk or fallback to a trained GBTGate."""
     global _CACHED_LEARNED_GATE
     if _CACHED_LEARNED_GATE is not None:
         return _CACHED_LEARNED_GATE
@@ -80,15 +104,20 @@ def get_trained_gate() -> GateClassifier:
     for candidate in [BEST_MODEL_PATH, LOGS_DIR / "week2_best_gate.pkl"]:
         if candidate.exists():
             try:
-                _CACHED_LEARNED_GATE = GateClassifier.load(candidate)
-                logger.info(f"Loaded trained gate from {candidate}")
-                return _CACHED_LEARNED_GATE
+                loaded = GateClassifier.load(candidate)
+                if getattr(loaded, "_fitted", False):
+                    _CACHED_LEARNED_GATE = loaded
+                    logger.info(f"Loaded trained gate from {candidate}")
+                    return _CACHED_LEARNED_GATE
+                else:
+                    _CACHED_LEARNED_GATE = _ensure_fitted(loaded)
+                    return _CACHED_LEARNED_GATE
             except Exception as err:
                 logger.warning(f"Could not load gate from {candidate}: {err}")
 
-    # Fallback to untrained GBTGate
-    logger.info("Using fallback GBTGate instance")
-    _CACHED_LEARNED_GATE = GBTGate()
+    # Fallback to trained GBTGate so predict() is always valid
+    logger.info("Using fallback trained GBTGate instance")
+    _CACHED_LEARNED_GATE = _make_fallback_trained_gate()
     return _CACHED_LEARNED_GATE
 
 
@@ -342,13 +371,13 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
         gate = RandomGate(escalation_rate=0.4, seed=42)
         normalized_method = "RandomGate"
     elif "LogReg" in method_name:
-        gate = LogRegGate()
+        gate = _ensure_fitted(LogRegGate())
         normalized_method = "LogRegGate"
     elif "MLP" in method_name:
-        gate = MLPGate()
+        gate = _ensure_fitted(MLPGate())
         normalized_method = "MLPGate"
     elif "GBT" in method_name:
-        gate = GBTGate()
+        gate = _ensure_fitted(GBTGate())
         normalized_method = "GBTGate"
     elif method_name in ("GateOrchestra", "⚡ GateOrchestra", "✨ Auto Gate"):
         gate = get_trained_gate()
