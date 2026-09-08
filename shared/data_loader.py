@@ -96,6 +96,18 @@ def split_stats(tasks: list[Task]) -> dict:
     }
 
 
+def exact_match(predicted: str, ground_truth: str) -> bool:
+    """Normalized exact match (lowercase, strip punctuation)."""
+    import re
+
+    def normalize(s: str) -> str:
+        s = s.lower().strip()
+        s = re.sub(r"[^\w\s]", "", s)
+        return " ".join(s.split())
+
+    return normalize(predicted) == normalize(ground_truth)
+
+
 # ─────────────────────────────────────────────────────────────────────────────
 # Demo
 # ─────────────────────────────────────────────────────────────────────────────

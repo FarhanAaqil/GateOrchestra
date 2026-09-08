@@ -55,17 +55,25 @@ def load_dataset(split: str) -> list[Task]:
     if split not in _VALID_SPLITS:
         raise ValueError(f"split must be one of {_VALID_SPLITS}, got {split!r}")
 
+    # Check both flat (dataset/masbench_mini/train.jsonl) and nested (dataset/masbench_mini/train/train.jsonl)
     split_file = DATASET_DIR / f"{split}.jsonl"
+    if not split_file.exists():
+        split_file = DATASET_DIR / split / f"{split}.jsonl"
 
     if not split_file.exists():
         raise FileNotFoundError(
-            f"Split file not found: {split_file}\n"
-            f"Run `python scripts/build_dataset.py` first to generate the dataset."
+            f"Split file not found for split '{split}' in {DATASET_DIR}\n"
+            f"Run `python scripts/create_splits.py` or `python scripts/build_dataset.py` first."
         )
 
     tasks = _load_jsonl_tasks(split_file)
     logger.info(f"[Loader] Loaded {len(tasks)} tasks from split={split!r}")
     return tasks
+
+
+def load_all_splits() -> dict[str, list[Task]]:
+    """Load all three splits as a dictionary mapping split name to list of Tasks."""
+    return {split: load_dataset(split) for split in ["train", "val", "test"]}
 
 
 def load_all_tasks() -> list[Task]:
