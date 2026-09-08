@@ -43,7 +43,9 @@ htmlcov/
 dataset/masbench_mini/**/*.json
 logs/*.json
 logs/*.jsonl
+configs/**/*.pkl
 configs/*.pkl
+configs/**/*.joblib
 configs/*.joblib
 
 # OS
