@@ -81,7 +81,12 @@ def _checkpoint_path(seed: int, split_limit: int | None) -> Path:
 
 
 def _run_metadata(
-    *, train_tasks: list[Task], val_tasks: list[Task], test_tasks: list[Task], seed: int, n: int | None
+    *,
+    train_tasks: list[Task],
+    val_tasks: list[Task],
+    test_tasks: list[Task],
+    seed: int,
+    n: int | None,
 ) -> dict[str, Any]:
     """Build the immutable identity used to validate a resume checkpoint."""
     return {
@@ -165,9 +170,7 @@ def _result_key(phase: str, method: str, task_id: str) -> str:
 def _validate_probe(probe: ProbeResult, task: Task) -> ProbeResult:
     """Reject provider fallbacks so failed probes are retried, not checkpointed."""
     if probe.task_id != task.task_id:
-        raise RuntimeError(
-            f"Probe task mismatch: expected {task.task_id!r}, got {probe.task_id!r}"
-        )
+        raise RuntimeError(f"Probe task mismatch: expected {task.task_id!r}, got {probe.task_id!r}")
     if probe.tokens_used <= 0 or any(output.startswith("Error:") for output in probe.raw_outputs):
         raise RuntimeError(f"Probe failed for task_id={task.task_id!r}")
     return probe
@@ -275,7 +278,9 @@ def _run_checkpointed_baseline(
         if saved_result is not None:
             result = _validate_eval_result(EvalResult.model_validate(saved_result), task, method)
             results.append(result)
-            print(f"[{phase}/{method}] task {index}/{len(tasks)} resumed: {task.task_id}", flush=True)
+            print(
+                f"[{phase}/{method}] task {index}/{len(tasks)} resumed: {task.task_id}", flush=True
+            )
             continue
 
         for attempt in range(1, MAX_TASK_ATTEMPTS + 1):
@@ -298,7 +303,10 @@ def _run_checkpointed_baseline(
             state["results"][key] = result.model_dump(mode="json")
             _save_checkpoint(state, checkpoint_path)
             results.append(result)
-            print(f"[{phase}/{method}] task {index}/{len(tasks)} completed: {task.task_id}", flush=True)
+            print(
+                f"[{phase}/{method}] task {index}/{len(tasks)} completed: {task.task_id}",
+                flush=True,
+            )
             break
     return results
 
@@ -326,13 +334,18 @@ def _run_checkpointed_pipeline(
                     features, k=K_DEFAULT, probe_tokens=features.probe_tokens
                 )
                 saved_decision = EvalResult.model_validate(saved_result).gate_decision
-                if saved_decision is None or replayed_decision.model_dump() != saved_decision.model_dump():
+                if (
+                    saved_decision is None
+                    or replayed_decision.model_dump() != saved_decision.model_dump()
+                ):
                     raise RuntimeError(
                         f"RandomGate decision mismatch for checkpointed task_id={task.task_id!r}"
                     )
             result = _validate_eval_result(EvalResult.model_validate(saved_result), task, method)
             results.append(result)
-            print(f"[{phase}/{method}] task {index}/{len(tasks)} resumed: {task.task_id}", flush=True)
+            print(
+                f"[{phase}/{method}] task {index}/{len(tasks)} resumed: {task.task_id}", flush=True
+            )
             continue
 
         for attempt in range(1, MAX_TASK_ATTEMPTS + 1):
@@ -382,7 +395,10 @@ def _run_checkpointed_pipeline(
             state["results"][key] = result.model_dump(mode="json")
             _save_checkpoint(state, checkpoint_path)
             results.append(result)
-            print(f"[{phase}/{method}] task {index}/{len(tasks)} completed: {task.task_id}", flush=True)
+            print(
+                f"[{phase}/{method}] task {index}/{len(tasks)} completed: {task.task_id}",
+                flush=True,
+            )
             break
     return results
 
