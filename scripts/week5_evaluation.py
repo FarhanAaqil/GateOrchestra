@@ -223,7 +223,7 @@ def _run_seed(seed: int) -> dict[str, Any]:
     print(f"  [1/5] CoT-SC baseline on train ({len(train_tasks)} tasks)…", flush=True)
     train_cot = _cot_sc_baseline(train_tasks, probe_fn)
 
-    print(f"  [2/5] Always-MAS baseline on train…", flush=True)
+    print("  [2/5] Always-MAS baseline on train…", flush=True)
     train_mas = _always_mas_baseline(train_tasks, mas_fn, token_budget)
 
     # -- 2. Derive labels -> extract features ----------------------------------
