@@ -26,20 +26,28 @@ MODELS_DIR: Path = CONFIGS_DIR / "models"
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(ROOT_DIR / ".env")
+except ImportError:
+    pass
+
 # ─────────────────────────────────────────────────────────────────────────────
 # LLM / Providers (Ollama & Groq)
 # ─────────────────────────────────────────────────────────────────────────────
 
-LLM_PROVIDER: str = os.getenv("GATE_LLM_PROVIDER", "ollama").lower()
+LLM_PROVIDER: str = os.getenv("GATE_LLM_PROVIDER", "groq").lower()
 
 # Ollama / Local settings (Default)
-MODEL_NAME: str = os.getenv("GATE_MODEL_NAME", "Qwen2.5-7B-Instruct")
+MODEL_NAME: str = os.getenv("GATE_MODEL_NAME", "qwen2.5:7b-instruct")
 MODEL_API_BASE: str = os.getenv("GATE_API_BASE", "http://localhost:11434")  # Ollama default
 
 # Groq Cloud settings (Optional)
 GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
-GROQ_MODEL_NAME: str = os.getenv("GROQ_MODEL_NAME", "qwen/qwen3.6-27b")
+GROQ_MODEL_NAME: str = os.getenv("GROQ_MODEL_NAME", "openai/gpt-oss-20b")
 GROQ_API_BASE: str = os.getenv("GROQ_API_BASE", "https://api.groq.com/openai/v1")
+LLM_REQUEST_TIMEOUT_SECONDS: float = float(os.getenv("GATE_LLM_TIMEOUT", "120"))
 PROBE_TOKEN_BUDGET: int = 500  # Max tokens the probe may spend per task
 COT_SC_N_SAMPLES: int = 5  # Number of CoT-SC samples per probe run
 COT_SC_TEMPERATURE: float = 0.7  # Sampling temperature for CoT-SC
@@ -56,6 +64,9 @@ RANDOM_SEED: int = 42
 # ─────────────────────────────────────────────────────────────────────────────
 # Gate Hyperparameters
 # ─────────────────────────────────────────────────────────────────────────────
+
+GATE_ESCALATE_THRESHOLD: float = float(os.getenv("GATE_ESCALATE_THRESHOLD", "0.15"))
+"""Probability threshold for ESCALATE decision to handle class imbalance."""
 
 TAU_ACC: float = 0.05
 """Accuracy threshold for gate labeling.
