@@ -63,11 +63,11 @@ _DEFAULT_LOG_PATH = (
 Verdict = Literal["approve", "fix_answer", "fix_question", "flag_remove", "skip"]
 
 VERDICT_LABELS: dict[str, str] = {
-    "approve":      "Approve        — task is correct as-is",
-    "fix_answer":   "Fix answer     — ground_truth needs correction",
+    "approve": "Approve        — task is correct as-is",
+    "fix_answer": "Fix answer     — ground_truth needs correction",
     "fix_question": "Fix question   — question wording is ambiguous/bad",
-    "flag_remove":  "Flag remove    — task should be dropped",
-    "skip":         "Skip           — cannot judge right now",
+    "flag_remove": "Flag remove    — task should be dropped",
+    "skip": "Skip           — cannot judge right now",
 }
 
 
@@ -148,7 +148,8 @@ class ReviewLog:
             fh.write(entry.model_dump_json() + "\n")
         logger.debug(
             "[ReviewLog] Appended entry: task_id='%s' verdict='%s'",
-            entry.task_id, entry.verdict,
+            entry.task_id,
+            entry.verdict,
         )
 
     def append_many(self, entries: list[ReviewEntry]) -> None:
@@ -184,9 +185,7 @@ class ReviewLog:
                 try:
                     entries.append(ReviewEntry(**json.loads(raw)))
                 except Exception as exc:
-                    logger.error(
-                        "[ReviewLog] Parse error at line %d: %s", line_num, exc
-                    )
+                    logger.error("[ReviewLog] Parse error at line %d: %s", line_num, exc)
         return entries
 
     def load_latest(self) -> dict[str, ReviewEntry]:
@@ -258,11 +257,11 @@ class ReviewLog:
         """Pretty-print the review progress to stdout."""
         s = self.summary()
         print(f"\n{'='*50}")
-        print(f"  Review Log Summary")
+        print("  Review Log Summary")
         print(f"  Log: {s['log_path']}")
         print(f"{'='*50}")
         print(f"  Total reviewed : {s['total_reviewed']}")
-        print(f"  By verdict:")
+        print("  By verdict:")
         for verdict, count in sorted(s["by_verdict"].items()):
             label = VERDICT_LABELS.get(verdict, verdict)
             print(f"    {label:<42} {count:>4}")
@@ -297,7 +296,4 @@ class ReviewLog:
 
     def __repr__(self) -> str:
         s = self.summary()
-        return (
-            f"ReviewLog(path={self.log_path}, "
-            f"reviewed={s['total_reviewed']})"
-        )
+        return f"ReviewLog(path={self.log_path}, " f"reviewed={s['total_reviewed']})"

@@ -7,12 +7,12 @@
 #   from dataset import load_split_filtered, load_batches, get_dataset_metadata
 
 from dataset.loader import (
+    get_dataset_metadata,
     load_all_splits,
     load_all_tasks,
+    load_batches,
     load_dataset,
     load_features_df,
-    load_batches,
-    get_dataset_metadata,
     load_task_by_id,
 )
 from dataset.repository import JSONLTaskRepository, TaskRepository

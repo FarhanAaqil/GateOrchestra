@@ -23,7 +23,6 @@ from __future__ import annotations
 
 import csv
 import json
-import tempfile
 from pathlib import Path
 
 import pytest
@@ -104,6 +103,7 @@ def tmp_repo_dir(tmp_path: Path):
 def repo(tmp_repo_dir):
     """Return a JSONLTaskRepository pointing at the temp dir."""
     from dataset.repository import JSONLTaskRepository
+
     return JSONLTaskRepository(dataset_dir=tmp_repo_dir)
 
 

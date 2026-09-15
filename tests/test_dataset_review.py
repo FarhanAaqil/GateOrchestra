@@ -39,10 +39,9 @@ from pathlib import Path
 
 import pytest
 
-from shared.schemas import Task
+from dataset.review.reviewer import VERDICT_LABELS, ReviewEntry, ReviewLog
 from dataset.review.sampler import ReviewSampler, select_review_sample
-from dataset.review.reviewer import ReviewEntry, ReviewLog, VERDICT_LABELS
-
+from shared.schemas import Task
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Shared fixtures
@@ -189,7 +188,6 @@ class TestReviewSampler:
 class TestSelectReviewSampleHelper:
     def test_helper_uses_defaults(self, tmp_path):
         """select_review_sample() should work with a real JSONL dir."""
-        from dataset.repository import JSONLTaskRepository
 
         # Write tasks to a temp dir
         train_tasks = _make_tasks(20, source="hotpotqa", depth=2)
@@ -424,13 +422,15 @@ class TestReviewLogSummary:
 
 class TestExportFlaggedCSV:
     def _populate_mixed(self, log: ReviewLog) -> None:
-        log.append_many([
-            ReviewEntry(task_id="t1", verdict="approve"),
-            ReviewEntry(task_id="t2", verdict="fix_answer", suggested_answer="Berlin"),
-            ReviewEntry(task_id="t3", verdict="fix_question", notes="Ambiguous"),
-            ReviewEntry(task_id="t4", verdict="flag_remove", notes="Duplicate"),
-            ReviewEntry(task_id="t5", verdict="skip"),
-        ])
+        log.append_many(
+            [
+                ReviewEntry(task_id="t1", verdict="approve"),
+                ReviewEntry(task_id="t2", verdict="fix_answer", suggested_answer="Berlin"),
+                ReviewEntry(task_id="t3", verdict="fix_question", notes="Ambiguous"),
+                ReviewEntry(task_id="t4", verdict="flag_remove", notes="Duplicate"),
+                ReviewEntry(task_id="t5", verdict="skip"),
+            ]
+        )
 
     def test_creates_csv_file(self, review_log, tmp_path):
         self._populate_mixed(review_log)

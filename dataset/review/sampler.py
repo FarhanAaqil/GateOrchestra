@@ -38,7 +38,7 @@ from __future__ import annotations
 import logging
 import random
 from collections import defaultdict
-from typing import Sequence
+from collections.abc import Sequence
 
 from shared.schemas import Task
 
@@ -117,8 +117,7 @@ class ReviewSampler:
         remainder = target_n - total_allocated
         if remainder > 0:
             fractional = {
-                k: (stratum_sizes[k] / len(tasks)) * target_n - allocations[k]
-                for k in allocations
+                k: (stratum_sizes[k] / len(tasks)) * target_n - allocations[k] for k in allocations
             }
             for key in sorted(fractional, key=lambda k: -fractional[k])[:remainder]:
                 allocations[key] += 1
@@ -136,7 +135,11 @@ class ReviewSampler:
 
         logger.info(
             "[Sampler] split=%-6s  pool=%d  target=%d  selected=%d  (rate=%.0f%%)",
-            split_label, len(tasks), target_n, len(selected), self.sample_rate * 100,
+            split_label,
+            len(tasks),
+            target_n,
+            len(selected),
+            self.sample_rate * 100,
         )
         return selected
 
@@ -165,7 +168,9 @@ class ReviewSampler:
 
         logger.info(
             "[Sampler] Total sampled across all splits: %d tasks (%.0f%% of %d)",
-            len(sampled), self.sample_rate * 100, repo.count(),
+            len(sampled),
+            self.sample_rate * 100,
+            repo.count(),
         )
         return sampled
 

@@ -174,10 +174,7 @@ def export_huggingface(
     try:
         from datasets import Dataset, DatasetDict  # type: ignore[import]
     except ImportError:
-        logger.error(
-            "[Export] 'datasets' package not installed.  "
-            "Run: pip install datasets"
-        )
+        logger.error("[Export] 'datasets' package not installed.  " "Run: pip install datasets")
         sys.exit(1)
 
     split_dicts: dict[str, Dataset] = {}
@@ -190,7 +187,9 @@ def export_huggingface(
         split_dicts[split] = Dataset.from_list(rows)
         logger.info(
             "[Export] HF %-6s  %4d tasks  (schema: %s)",
-            split, len(tasks), list(rows[0].keys()),
+            split,
+            len(tasks),
+            list(rows[0].keys()),
         )
 
     ds_dict = DatasetDict(split_dicts)
@@ -220,15 +219,9 @@ def export_metadata_json(
     meta: dict = {"splits": {}}
     for split in splits:
         tasks = repo.list_by_split(split)
-        source_counter = Counter(
-            t.source_dataset for t in tasks if t.source_dataset
-        )
-        depth_counter = Counter(
-            t.depth_score for t in tasks if t.depth_score is not None
-        )
-        parallel_counter = Counter(
-            t.parallel_score for t in tasks if t.parallel_score is not None
-        )
+        source_counter = Counter(t.source_dataset for t in tasks if t.source_dataset)
+        depth_counter = Counter(t.depth_score for t in tasks if t.depth_score is not None)
+        parallel_counter = Counter(t.parallel_score for t in tasks if t.parallel_score is not None)
         meta["splits"][split] = {
             "count": len(tasks),
             "source_distribution": dict(source_counter.most_common()),
@@ -270,7 +263,7 @@ Examples:
         choices=["csv", "combined", "hf"],
         default="csv",
         help="Export format: 'csv' (one file per split), 'combined' (single merged CSV), "
-             "or 'hf' (Hugging Face DatasetDict). Default: csv.",
+        "or 'hf' (Hugging Face DatasetDict). Default: csv.",
     )
     parser.add_argument(
         "--splits",

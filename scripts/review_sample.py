@@ -56,9 +56,9 @@ ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
-from dataset.review.reviewer import ReviewEntry, ReviewLog, VERDICT_LABELS  # noqa: E402
-from dataset.review.sampler import ReviewSampler  # noqa: E402
 from dataset.repository import JSONLTaskRepository  # noqa: E402
+from dataset.review.reviewer import VERDICT_LABELS, ReviewEntry, ReviewLog  # noqa: E402
+from dataset.review.sampler import ReviewSampler  # noqa: E402
 from shared.schemas import Task  # noqa: E402
 
 logging.basicConfig(
@@ -70,6 +70,7 @@ logger = logging.getLogger(__name__)
 # ─── ANSI colours (gracefully degraded on Windows if not supported) ───────────
 try:
     import os
+
     _USE_COLOR = os.name != "nt" or "ANSICON" in os.environ or "WT_SESSION" in os.environ
 except Exception:
     _USE_COLOR = False
@@ -97,10 +98,7 @@ def _display_task(task: Task, index: int, total: int, split: str | None) -> None
     """Render a task card to stdout."""
     split_label = f"[{split}]" if split else ""
     print(f"\n{'─'*60}")
-    print(
-        _c(f"  Task {index}/{total}  {split_label}", BOLD)
-        + _c(f"  ID: {task.task_id}", DIM)
-    )
+    print(_c(f"  Task {index}/{total}  {split_label}", BOLD) + _c(f"  ID: {task.task_id}", DIM))
     print(f"{'─'*60}")
     print(_c("  Question:", BOLD))
     print(f"    {task.question}")
@@ -126,7 +124,13 @@ def _display_task(task: Task, index: int, total: int, split: str | None) -> None
 def _display_verdict_menu() -> None:
     """Print the verdict selection menu."""
     print(_c("\n  Verdict:", BOLD))
-    shortcuts = {"a": "approve", "f": "fix_answer", "q": "fix_question", "r": "flag_remove", "s": "skip"}
+    shortcuts = {
+        "a": "approve",
+        "f": "fix_answer",
+        "q": "fix_question",
+        "r": "flag_remove",
+        "s": "skip",
+    }
     colours = {"a": GREEN, "f": YELLOW, "q": YELLOW, "r": RED, "s": DIM}
     for shortcut, verdict in shortcuts.items():
         label = VERDICT_LABELS[verdict]
@@ -168,17 +172,13 @@ def _get_verdict(task: Task) -> tuple[str, str, str | None]:
             # Prompt for additional info when needed
             if verdict in ("fix_answer", "fix_question", "flag_remove"):
                 try:
-                    notes = input(
-                        _c(f"  Notes (optional): ", DIM)
-                    ).strip()
+                    notes = input(_c("  Notes (optional): ", DIM)).strip()
                 except EOFError:
                     notes = ""
 
             if verdict == "fix_answer":
                 try:
-                    suggested_answer = input(
-                        _c("  Suggested answer: ", YELLOW)
-                    ).strip() or None
+                    suggested_answer = input(_c("  Suggested answer: ", YELLOW)).strip() or None
                 except EOFError:
                     suggested_answer = None
 
@@ -246,8 +246,11 @@ def run_review_session(
 
             # Inline confirmation
             verdict_colour = {
-                "approve": GREEN, "fix_answer": YELLOW,
-                "fix_question": YELLOW, "flag_remove": RED, "skip": DIM,
+                "approve": GREEN,
+                "fix_answer": YELLOW,
+                "fix_question": YELLOW,
+                "flag_remove": RED,
+                "skip": DIM,
             }.get(verdict, BOLD)
             print(_c(f"  Logged: {verdict}", verdict_colour))
 

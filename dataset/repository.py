@@ -33,8 +33,8 @@ from __future__ import annotations
 import json
 import logging
 from abc import ABC, abstractmethod
+from collections.abc import Iterator
 from pathlib import Path
-from typing import Iterator
 
 from shared.config import DATASET_DIR
 from shared.schemas import Task
@@ -204,9 +204,7 @@ class JSONLTaskRepository(TaskRepository):
         tasks: list[Task] = []
 
         if not path.exists():
-            logger.warning(
-                "[Repository] Split file not found: %s -- returning empty list.", path
-            )
+            logger.warning("[Repository] Split file not found: %s -- returning empty list.", path)
             self._cache[split] = tasks
             return tasks
 
@@ -220,13 +218,13 @@ class JSONLTaskRepository(TaskRepository):
                 except Exception as exc:
                     logger.error(
                         "[Repository] Parse error in %s:%d -- %s",
-                        path.name, line_num, exc,
+                        path.name,
+                        line_num,
+                        exc,
                     )
 
         self._cache[split] = tasks
-        logger.debug(
-            "[Repository] Loaded %d tasks from split='%s' (%s)", len(tasks), split, path
-        )
+        logger.debug("[Repository] Loaded %d tasks from split='%s' (%s)", len(tasks), split, path)
         return tasks
 
     def _load_all(self) -> list[Task]:
@@ -246,9 +244,7 @@ class JSONLTaskRepository(TaskRepository):
             self._cache.pop(split, None)
         else:
             self._cache.clear()
-        logger.debug(
-            "[Repository] Cache invalidated for split='%s'.", split or "ALL"
-        )
+        logger.debug("[Repository] Cache invalidated for split='%s'.", split or "ALL")
 
     # -- TaskRepository interface -----------------------------------------------
 
@@ -262,9 +258,7 @@ class JSONLTaskRepository(TaskRepository):
 
     def list_by_split(self, split: str) -> list[Task]:
         if split not in _VALID_SPLITS:
-            raise ValueError(
-                f"split must be one of {_VALID_SPLITS}, got {split!r}"
-            )
+            raise ValueError(f"split must be one of {_VALID_SPLITS}, got {split!r}")
         return list(self._load_split(split))  # return a copy
 
     def filter(
@@ -277,9 +271,7 @@ class JSONLTaskRepository(TaskRepository):
         pool: list[Task]
         if split is not None:
             if split not in _VALID_SPLITS:
-                raise ValueError(
-                    f"split must be one of {_VALID_SPLITS}, got {split!r}"
-                )
+                raise ValueError(f"split must be one of {_VALID_SPLITS}, got {split!r}")
             pool = self._load_split(split)
         else:
             pool = self._load_all()
@@ -296,7 +288,11 @@ class JSONLTaskRepository(TaskRepository):
 
         logger.debug(
             "[Repository] filter(source=%r, depth=%s, parallel=%s, split=%r) -> %d tasks",
-            source, depth, parallel, split, len(results),
+            source,
+            depth,
+            parallel,
+            split,
+            len(results),
         )
         return results
 
@@ -305,9 +301,7 @@ class JSONLTaskRepository(TaskRepository):
 
     def save(self, task: Task, split: str) -> None:
         if split not in _VALID_SPLITS:
-            raise ValueError(
-                f"split must be one of {_VALID_SPLITS}, got {split!r}"
-            )
+            raise ValueError(f"split must be one of {_VALID_SPLITS}, got {split!r}")
 
         path = self._split_path(split)
         path.parent.mkdir(parents=True, exist_ok=True)
@@ -332,9 +326,7 @@ class JSONLTaskRepository(TaskRepository):
 
     def stream(self, split: str) -> Iterator[Task]:
         if split not in _VALID_SPLITS:
-            raise ValueError(
-                f"split must be one of {_VALID_SPLITS}, got {split!r}"
-            )
+            raise ValueError(f"split must be one of {_VALID_SPLITS}, got {split!r}")
 
         path = self._split_path(split)
         if not path.exists():
@@ -351,15 +343,15 @@ class JSONLTaskRepository(TaskRepository):
                 except Exception as exc:
                     logger.error(
                         "[Repository] stream parse error %s:%d -- %s",
-                        path.name, line_num, exc,
+                        path.name,
+                        line_num,
+                        exc,
                     )
 
     def count(self, split: str | None = None) -> int:
         if split is not None:
             if split not in _VALID_SPLITS:
-                raise ValueError(
-                    f"split must be one of {_VALID_SPLITS}, got {split!r}"
-                )
+                raise ValueError(f"split must be one of {_VALID_SPLITS}, got {split!r}")
             return len(self._load_split(split))
         return len(self._load_all())
 
@@ -440,7 +432,7 @@ class SupabaseTaskRepository(TaskRepository):
         self._table = table
 
         if not self._url or not self._key:
-            raise EnvironmentError(
+            raise OSError(
                 "SupabaseTaskRepository requires SUPABASE_URL and SUPABASE_KEY "
                 "to be set (as env vars or constructor args)."
             )
