@@ -1,0 +1,17 @@
+# dataset/reviewed/review_log.jsonl
+# ===================================
+# Manual review log for GateOrchestra MASBench-mini dataset.
+# Format : JSONL — one ReviewEntry JSON object per line.
+# Written by: scripts/review_sample.py  (Week 6)
+# Owner   : Person 1 (Dataset Engineer)
+#
+# Each entry schema:
+#   task_id          : str   — unique task identifier
+#   verdict          : str   — approve | fix_answer | fix_question | flag_remove | skip
+#   reviewer         : str   — reviewer name/handle
+#   notes            : str   — free-text notes
+#   suggested_answer : str?  — corrected answer (when verdict=fix_answer)
+#   reviewed_at      : str   — UTC ISO-8601 timestamp
+#   split            : str?  — which split (train/val/test)
+#
+# To start reviewing: python scripts/review_sample.py --reviewer <your_name>

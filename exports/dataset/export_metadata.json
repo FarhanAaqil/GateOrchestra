@@ -1,0 +1,66 @@
+{
+  "splits": {
+    "train": {
+      "count": 97,
+      "source_distribution": {
+        "hotpotqa_style": 31,
+        "template_arithmetic": 25,
+        "musique_style": 22,
+        "template_comparison": 19
+      },
+      "depth_distribution": {
+        "2": 5,
+        "3": 60,
+        "4": 25,
+        "5": 7
+      },
+      "parallel_distribution": {
+        "1": 73,
+        "2": 18,
+        "3": 6
+      }
+    },
+    "val": {
+      "count": 32,
+      "source_distribution": {
+        "hotpotqa_style": 11,
+        "template_arithmetic": 7,
+        "template_comparison": 7,
+        "musique_style": 7
+      },
+      "depth_distribution": {
+        "1": 1,
+        "2": 2,
+        "3": 19,
+        "4": 9,
+        "5": 1
+      },
+      "parallel_distribution": {
+        "1": 24,
+        "2": 6,
+        "3": 2
+      }
+    },
+    "test": {
+      "count": 32,
+      "source_distribution": {
+        "musique_style": 10,
+        "hotpotqa_style": 9,
+        "template_arithmetic": 8,
+        "template_comparison": 5
+      },
+      "depth_distribution": {
+        "1": 1,
+        "2": 2,
+        "3": 19,
+        "4": 8,
+        "5": 2
+      },
+      "parallel_distribution": {
+        "1": 25,
+        "2": 7
+      }
+    }
+  },
+  "total": 161
+}
