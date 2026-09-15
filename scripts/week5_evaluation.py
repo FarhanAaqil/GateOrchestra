@@ -232,8 +232,12 @@ def _run_seed(seed: int) -> dict[str, Any]:
         {r.task_id: r for r in train_mas},
     )
     train_features = _build_features(train_tasks, probe_fn)
-    train_feats_labeled = [f for t, f in zip(train_tasks, train_features) if t.task_id in train_labels_map]
-    train_labels_list = [train_labels_map[t.task_id] for t in train_tasks if t.task_id in train_labels_map]
+    train_feats_labeled = [
+        f for t, f in zip(train_tasks, train_features) if t.task_id in train_labels_map
+    ]
+    train_labels_list = [
+        train_labels_map[t.task_id] for t in train_tasks if t.task_id in train_labels_map
+    ]
 
     # -- 3. Val baselines for gate selection -----------------------------------
     val_cot = _cot_sc_baseline(val_tasks, probe_fn)
@@ -277,16 +281,22 @@ def _run_seed(seed: int) -> dict[str, Any]:
     # RandomGate
     acct_random = TokenAccountant()
     random_gate = RandomGate(escalation_rate=0.5, seed=seed)
-    rand_results = run_batch(test_tasks, random_gate, probe_fn, mas_fn, acct_random, k=K_DEFAULT, method="RandomGate")
+    rand_results = run_batch(
+        test_tasks, random_gate, probe_fn, mas_fn, acct_random, k=K_DEFAULT, method="RandomGate"
+    )
 
     # RuleBasedGate
     acct_rule = TokenAccountant()
     rule_gate = RuleBasedGate()
-    rule_results = run_batch(test_tasks, rule_gate, probe_fn, mas_fn, acct_rule, k=K_DEFAULT, method="RuleBasedGate")
+    rule_results = run_batch(
+        test_tasks, rule_gate, probe_fn, mas_fn, acct_rule, k=K_DEFAULT, method="RuleBasedGate"
+    )
 
     # GateOrchestra (learned)
     acct_gate = TokenAccountant()
-    gate_results = run_batch(test_tasks, best_gate, probe_fn, mas_fn, acct_gate, k=K_DEFAULT, method="GateOrchestra")
+    gate_results = run_batch(
+        test_tasks, best_gate, probe_fn, mas_fn, acct_gate, k=K_DEFAULT, method="GateOrchestra"
+    )
 
     # -- 6. Aggregate metrics --------------------------------------------------
     print("  [5/5] Aggregating metrics…", flush=True)
