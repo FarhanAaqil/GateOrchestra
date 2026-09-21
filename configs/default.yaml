@@ -13,6 +13,7 @@ probe:
 
 gate:
   tau_acc: 0.05          # Accuracy delta threshold for ESCALATE labeling
+  n_repeats: 3           # Independent train/validation runs per task for label aggregation
   k: 3                   # Default token budget multiplier (MAS budget = k × probe_tokens)
   classifier: "gbt"      # Default classifier: logreg | gbt | mlp
 

@@ -37,7 +37,7 @@ except ImportError:
 # LLM / Providers (Ollama & Groq)
 # ─────────────────────────────────────────────────────────────────────────────
 
-LLM_PROVIDER: str = os.getenv("GATE_LLM_PROVIDER", "groq").lower()
+LLM_PROVIDER: str = os.getenv("GATE_LLM_PROVIDER", "ollama").lower()
 
 # Ollama / Local settings (Default)
 MODEL_NAME: str = os.getenv("GATE_MODEL_NAME", "qwen2.5:7b-instruct")
@@ -47,9 +47,9 @@ MODEL_API_BASE: str = os.getenv("GATE_API_BASE", "http://localhost:11434")  # Ol
 GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL_NAME: str = os.getenv("GROQ_MODEL_NAME", "openai/gpt-oss-20b")
 GROQ_API_BASE: str = os.getenv("GROQ_API_BASE", "https://api.groq.com/openai/v1")
-LLM_REQUEST_TIMEOUT_SECONDS: float = float(os.getenv("GATE_LLM_TIMEOUT", "120"))
+LLM_REQUEST_TIMEOUT_SECONDS: float = float(os.getenv("GATE_LLM_TIMEOUT", "300"))
 PROBE_TOKEN_BUDGET: int = 500  # Max tokens the probe may spend per task
-COT_SC_N_SAMPLES: int = 5  # Number of CoT-SC samples per probe run
+COT_SC_N_SAMPLES: int = 3  # Number of CoT-SC samples per probe run
 COT_SC_TEMPERATURE: float = 0.7  # Sampling temperature for CoT-SC
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -86,6 +86,9 @@ K_DEFAULT: int = 3
 
 K_VALUES: list[int] = [2, 3, 5]
 """Values of k to sweep during validation (Week 8–9)."""
+
+N_REPEATS: int = int(os.getenv("GATE_N_REPEATS", "3"))
+"""Number of independent train/validation repeats used for label aggregation."""
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Rule-Based Gate Thresholds (Week 2 / Day 10)

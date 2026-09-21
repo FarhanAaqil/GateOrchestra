@@ -158,3 +158,18 @@ class TestExactMatch:
 
     def test_different_answers(self):
         assert _exact_match("London", "Paris") is False
+
+    def test_answer_equivalent_leading_article(self):
+        assert _exact_match("The United States", "United States") is True
+
+    def test_answer_first_explanation(self):
+        assert _exact_match("10 cups of flour for 48 cookies", "10 cups") is True
+
+    def test_conclusion_answer_extraction(self):
+        assert _exact_match("Therefore, the median of the dataset is 12", "12") is True
+
+    def test_internal_ground_truth_substring_is_not_enough(self):
+        assert _exact_match("Canada is near the United States", "United States") is False
+
+    def test_answer_first_negation_is_not_correct(self):
+        assert _exact_match("United States is not correct; Canada is", "United States") is False

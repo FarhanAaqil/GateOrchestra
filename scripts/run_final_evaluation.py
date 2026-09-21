@@ -40,19 +40,23 @@ from gate.classifier import GateClassifier
 from gate.feature_extractor import extract_features
 from gate.random_gate import RandomGate
 from gate.rule_based_gate import RuleBasedGate
-from gate.train_gate import apply_label_rule, train_gate
+from gate.train_gate import calibrate_gate
 from integration.pipeline import run_pipeline
 from shared.config import (
     COT_SC_N_SAMPLES,
     COT_SC_TEMPERATURE,
     K_DEFAULT,
+    K_VALUES,
     LLM_PROVIDER,
     LLM_REQUEST_TIMEOUT_SECONDS,
     LOGS_DIR,
     MODEL_API_BASE,
     MODEL_NAME,
     MODELS_DIR,
+    N_REPEATS,
     PROBE_TOKEN_BUDGET,
+    TAU_ACC,
+    TAU_ACC_SWEEP,
 )
 from shared.data_loader import load_split
 from shared.schemas import EvalResult, GateDecision, ProbeResult, Task
@@ -63,7 +67,7 @@ RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 CHECKPOINTS_DIR = RESULTS_DIR / "checkpoints"
 CHECKPOINTS_DIR.mkdir(parents=True, exist_ok=True)
 
-CHECKPOINT_VERSION = 2
+CHECKPOINT_VERSION = 3
 MAX_TASK_ATTEMPTS = 3
 METHOD_ORDER = [
     "CoT-SC-only",
@@ -108,7 +112,10 @@ def _run_metadata(
             "cot_sc_temperature": COT_SC_TEMPERATURE,
             "k_default": K_DEFAULT,
             "classifier_names": ["logreg", "gbt", "mlp"],
-            "k_values": [2, 3, 5],
+            "k_values": K_VALUES,
+            "n_repeats": N_REPEATS,
+            "tau_acc": TAU_ACC,
+            "tau_acc_sweep": TAU_ACC_SWEEP,
         },
         "method_order": METHOD_ORDER,
     }
@@ -151,7 +158,17 @@ def _load_checkpoint(path: Path, metadata: dict[str, Any]) -> dict[str, Any]:
     except (OSError, json.JSONDecodeError) as exc:
         raise RuntimeError(f"Unable to read resume checkpoint {path}: {exc}") from exc
 
-    if state.get("metadata") != metadata:
+    checkpoint_identity = dict(state.get("metadata", {}))
+    checkpoint_config = dict(checkpoint_identity.get("config", {}))
+    checkpoint_config.pop("llm_timeout_seconds", None)
+    checkpoint_identity["config"] = checkpoint_config
+
+    current_identity = dict(metadata)
+    current_config = dict(current_identity.get("config", {}))
+    current_config.pop("llm_timeout_seconds", None)
+    current_identity["config"] = current_config
+
+    if checkpoint_identity != current_identity:
         raise RuntimeError(
             "Resume checkpoint identity does not match this run. "
             "Use the same --seed, --n, dataset ordering, configuration, and method order."
@@ -163,8 +180,8 @@ def _load_checkpoint(path: Path, metadata: dict[str, Any]) -> dict[str, Any]:
     return state
 
 
-def _result_key(phase: str, method: str, task_id: str) -> str:
-    return f"{phase}:{method}:{task_id}"
+def _result_key(phase: str, method: str, task_id: str, repeat_index: int = 0) -> str:
+    return f"{phase}:{method}:{task_id}:{repeat_index}"
 
 
 def _validate_probe(probe: ProbeResult, task: Task) -> ProbeResult:
@@ -239,23 +256,26 @@ class _FixedGate:
 
 def _checkpoint_probe(
     task: Task,
+    phase: str,
+    repeat_index: int,
     state: dict[str, Any],
     checkpoint_path: Path,
     probe_cache: dict[str, ProbeResult],
     probe_fn: Callable[[Task], ProbeResult],
 ) -> ProbeResult:
-    """Load one probe from memory/checkpoint or run and persist it once."""
-    if task.task_id in probe_cache:
-        return probe_cache[task.task_id]
-    saved_probe = state["probes"].get(task.task_id)
+    """Load one repeat-specific probe from memory/checkpoint or run it."""
+    key = _result_key(phase, "probe", task.task_id, repeat_index)
+    if key in probe_cache:
+        return probe_cache[key]
+    saved_probe = state["probes"].get(key)
     if saved_probe is not None:
         probe = _validate_probe(ProbeResult.model_validate(saved_probe), task)
-        probe_cache[task.task_id] = probe
+        probe_cache[key] = probe
         return probe
 
     probe = _validate_probe(probe_fn(task), task)
-    state["probes"][task.task_id] = probe.model_dump(mode="json")
-    probe_cache[task.task_id] = probe
+    state["probes"][key] = probe.model_dump(mode="json")
+    probe_cache[key] = probe
     _save_checkpoint(state, checkpoint_path)
     return probe
 
@@ -311,6 +331,76 @@ def _run_checkpointed_baseline(
     return results
 
 
+def _run_repeated_baseline(
+    *,
+    tasks: list[Task],
+    phase: str,
+    method: str,
+    n_repeats: int,
+    state: dict[str, Any],
+    checkpoint_path: Path,
+    accountant_factory: Callable[[], TokenAccountant],
+    runner: Callable[[Task, int, TokenAccountant], EvalResult],
+) -> dict[str, list[EvalResult]]:
+    """Run and checkpoint independent train/validation repeats per task."""
+    if n_repeats < 1:
+        raise ValueError(f"n_repeats must be at least 1, got {n_repeats}")
+    results_by_task: dict[str, list[EvalResult]] = {task.task_id: [] for task in tasks}
+    for index, task in enumerate(tasks, start=1):
+        for repeat_index in range(n_repeats):
+            key = _result_key(phase, method, task.task_id, repeat_index)
+            saved_result = state["results"].get(key)
+            if saved_result is not None:
+                if saved_result.get("repeat_index") != repeat_index:
+                    raise RuntimeError(f"Repeat index mismatch for checkpoint key={key!r}")
+                result = _validate_eval_result(
+                    EvalResult.model_validate(saved_result["result"]), task, method
+                )
+                results_by_task[task.task_id].append(result)
+                print(
+                    f"[{phase}/{method}] task {index}/{len(tasks)} repeat "
+                    f"{repeat_index + 1}/{n_repeats} resumed: {task.task_id}",
+                    flush=True,
+                )
+                continue
+
+            for attempt in range(1, MAX_TASK_ATTEMPTS + 1):
+                print(
+                    f"[{phase}/{method}] task {index}/{len(tasks)} repeat "
+                    f"{repeat_index + 1}/{n_repeats} starting: {task.task_id} "
+                    f"(attempt {attempt}/{MAX_TASK_ATTEMPTS})",
+                    flush=True,
+                )
+                accountant = accountant_factory()
+                try:
+                    result = _validate_eval_result(
+                        runner(task, repeat_index, accountant), task, method
+                    )
+                except Exception as exc:
+                    print(
+                        f"[{phase}/{method}] task {index}/{len(tasks)} repeat "
+                        f"{repeat_index + 1}/{n_repeats} failed: {task.task_id}: "
+                        f"{type(exc).__name__}: {exc}",
+                        flush=True,
+                    )
+                    if attempt == MAX_TASK_ATTEMPTS:
+                        raise
+                    continue
+                state["results"][key] = {
+                    "repeat_index": repeat_index,
+                    "result": result.model_dump(mode="json"),
+                }
+                _save_checkpoint(state, checkpoint_path)
+                results_by_task[task.task_id].append(result)
+                print(
+                    f"[{phase}/{method}] task {index}/{len(tasks)} repeat "
+                    f"{repeat_index + 1}/{n_repeats} completed: {task.task_id}",
+                    flush=True,
+                )
+                break
+    return results_by_task
+
+
 def _run_checkpointed_pipeline(
     *,
     tasks: list[Task],
@@ -321,6 +411,7 @@ def _run_checkpointed_pipeline(
     checkpoint_path: Path,
     get_probe: Callable[[Task], ProbeResult],
     accountant: TokenAccountant,
+    k: int = K_DEFAULT,
 ) -> list[EvalResult]:
     """Run one gated method task-by-task while preserving gate ordering/state."""
     results: list[EvalResult] = []
@@ -331,7 +422,7 @@ def _run_checkpointed_pipeline(
             if method == "RandomGate":
                 features = extract_features(task, get_probe(task))
                 replayed_decision = gate.predict(
-                    features, k=K_DEFAULT, probe_tokens=features.probe_tokens
+                    features, k=k, probe_tokens=features.probe_tokens
                 )
                 saved_decision = EvalResult.model_validate(saved_result).gate_decision
                 if (
@@ -361,7 +452,7 @@ def _run_checkpointed_pipeline(
                     pending_decision = state["pending_random_decisions"].get(key)
                     if pending_decision is None:
                         decision = gate.predict(
-                            features, k=K_DEFAULT, probe_tokens=features.probe_tokens
+                            features, k=k, probe_tokens=features.probe_tokens
                         )
                         state["pending_random_decisions"][key] = decision.model_dump(mode="json")
                         _save_checkpoint(state, checkpoint_path)
@@ -375,7 +466,7 @@ def _run_checkpointed_pipeline(
                         get_probe,
                         _checked_orchestrator,
                         accountant,
-                        k=K_DEFAULT,
+                        k=k,
                         method=method,
                     ),
                     task,
@@ -580,6 +671,23 @@ def run_evaluation(
         state = _load_checkpoint(checkpoint_path, metadata)
         print(f"[RESUME] Loaded checkpoint: {checkpoint_path}", flush=True)
     else:
+        if checkpoint_path.exists():
+            try:
+                existing_state = json.loads(checkpoint_path.read_text(encoding="utf-8"))
+            except (OSError, json.JSONDecodeError) as exc:
+                raise RuntimeError(
+                    f"Checkpoint already exists but cannot be inspected: {checkpoint_path}. "
+                    "Use --resume after repairing or removing it."
+                ) from exc
+            if (
+                existing_state.get("probes")
+                or existing_state.get("results")
+                or existing_state.get("gate_training")
+            ):
+                raise RuntimeError(
+                    f"Checkpoint already contains progress: {checkpoint_path}. "
+                    "Use --resume to continue without repeating completed work."
+                )
         state = _new_checkpoint(metadata)
 
     if state["preflight_complete"]:
@@ -608,10 +716,12 @@ def run_evaluation(
 
     probe_cache: dict[str, ProbeResult] = {}
 
-    def get_probe(task: Task) -> ProbeResult:
-        """Return a single ProbeResult per task_id for this evaluation run/seed."""
+    def get_probe(task: Task, phase: str = "test", repeat_index: int = 0) -> ProbeResult:
+        """Return one repeat-specific ProbeResult for this evaluation run/seed."""
         return _checkpoint_probe(
             task,
+            phase,
+            repeat_index,
             state,
             checkpoint_path,
             probe_cache,
@@ -619,96 +729,113 @@ def run_evaluation(
         )
 
     # Train a learned gate using the repository's existing validation logic.
-    train_cot_accountant = TokenAccountant()
-    train_cot_results = _run_checkpointed_baseline(
+    train_cot_results = _run_repeated_baseline(
         tasks=train_tasks,
         phase="train",
         method="CoT-SC-only",
+        n_repeats=N_REPEATS,
         state=state,
         checkpoint_path=checkpoint_path,
-        accountant=train_cot_accountant,
-        runner=lambda task: run_cot_sc_baseline(
-            task, probe_fn=get_probe, accountant=train_cot_accountant
+        accountant_factory=TokenAccountant,
+        runner=lambda task, repeat_index, accountant: run_cot_sc_baseline(
+            task,
+            probe_fn=lambda current_task: get_probe(current_task, "train", repeat_index),
+            accountant=accountant,
         ),
     )
-    train_mas_accountant = TokenAccountant()
-    train_mas_results = _run_checkpointed_baseline(
+    train_mas_results = _run_repeated_baseline(
         tasks=train_tasks,
         phase="train",
         method="Always-MAS",
+        n_repeats=N_REPEATS,
         state=state,
         checkpoint_path=checkpoint_path,
-        accountant=train_mas_accountant,
-        runner=lambda task: run_always_mas_baseline(
+        accountant_factory=TokenAccountant,
+        runner=lambda task, _repeat_index, accountant: run_always_mas_baseline(
             task,
             orchestrator_fn=_checked_orchestrator,
-            accountant=train_mas_accountant,
+            accountant=accountant,
             token_budget=K_DEFAULT * PROBE_TOKEN_BUDGET,
         ),
     )
-    train_labels = apply_label_rule(
-        {r.task_id: r for r in train_cot_results},
-        {r.task_id: r for r in train_mas_results},
-    )
-    train_probe_lookup = {task.task_id: get_probe(task) for task in train_tasks}
+    train_probe_lookup = {task.task_id: get_probe(task, "train", 0) for task in train_tasks}
     train_features = [
-        extract_features(task, train_probe_lookup[task.task_id])
-        for task in train_tasks
-        if task.task_id in train_labels
-    ]
-    train_label_list = [
-        train_labels[task.task_id] for task in train_tasks if task.task_id in train_labels
+        extract_features(task, train_probe_lookup[task.task_id]) for task in train_tasks
     ]
 
-    unique_train_labels = set(train_label_list)
-    if "STOP" not in unique_train_labels or "ESCALATE" not in unique_train_labels:
-        label_dist = {label: train_label_list.count(label) for label in sorted(unique_train_labels)}
-        raise ValueError(
-            f"Binary gate training requires both 'STOP' and 'ESCALATE' classes, "
-            f"but found label distribution: {label_dist}."
-        )
-
-    val_cot_accountant = TokenAccountant()
-    val_cot_results = _run_checkpointed_baseline(
+    val_cot_results = _run_repeated_baseline(
         tasks=val_tasks,
         phase="val",
         method="CoT-SC-only",
+        n_repeats=N_REPEATS,
         state=state,
         checkpoint_path=checkpoint_path,
-        accountant=val_cot_accountant,
-        runner=lambda task: run_cot_sc_baseline(
-            task, probe_fn=get_probe, accountant=val_cot_accountant
+        accountant_factory=TokenAccountant,
+        runner=lambda task, repeat_index, accountant: run_cot_sc_baseline(
+            task,
+            probe_fn=lambda current_task: get_probe(current_task, "val", repeat_index),
+            accountant=accountant,
         ),
     )
-    val_mas_accountant = TokenAccountant()
-    val_mas_results = _run_checkpointed_baseline(
+    val_mas_results = _run_repeated_baseline(
         tasks=val_tasks,
         phase="val",
         method="Always-MAS",
+        n_repeats=N_REPEATS,
         state=state,
         checkpoint_path=checkpoint_path,
-        accountant=val_mas_accountant,
-        runner=lambda task: run_always_mas_baseline(
+        accountant_factory=TokenAccountant,
+        runner=lambda task, _repeat_index, accountant: run_always_mas_baseline(
             task,
             orchestrator_fn=_checked_orchestrator,
-            accountant=val_mas_accountant,
+            accountant=accountant,
             token_budget=K_DEFAULT * PROBE_TOKEN_BUDGET,
         ),
     )
-    val_labels = apply_label_rule(
-        {r.task_id: r for r in val_cot_results},
-        {r.task_id: r for r in val_mas_results},
-    )
-    val_probe_lookup = {task.task_id: get_probe(task) for task in val_tasks}
-    val_features = [
-        extract_features(task, val_probe_lookup[task.task_id])
-        for task in val_tasks
-        if task.task_id in val_labels
-    ]
-    val_label_list = [val_labels[task.task_id] for task in val_tasks if task.task_id in val_labels]
+    val_probe_lookup = {task.task_id: get_probe(task, "val", 0) for task in val_tasks}
+    val_features = [extract_features(task, val_probe_lookup[task.task_id]) for task in val_tasks]
 
     if len(train_features) == 0 or len(val_features) == 0:
         raise ValueError("No labeled train/val examples were produced; check label generation.")
+    val_mas_results_by_k: dict[int, dict[str, EvalResult]] = {}
+
+    for candidate_k in K_VALUES:
+        # Reuse the already-computed validation MAS results when
+        # candidate_k matches the default k.
+        if candidate_k == K_DEFAULT:
+            val_mas_results_by_k[candidate_k] = {
+                task_id: runs[0]
+                for task_id, runs in val_mas_results.items()
+            }
+
+            print(
+                f"[val-k{candidate_k}] reused existing validation Always-MAS results",
+                flush=True,
+            )
+            continue
+
+        val_mas_accountant = TokenAccountant()
+
+        candidate_mas_results = _run_checkpointed_baseline(
+            tasks=val_tasks,
+            phase=f"val-k{candidate_k}",
+            method="Always-MAS",
+            state=state,
+            checkpoint_path=checkpoint_path,
+            accountant=val_mas_accountant,
+            runner=lambda task, k=candidate_k, accountant=val_mas_accountant: (
+                run_always_mas_baseline(
+                    task,
+                    orchestrator_fn=_checked_orchestrator,
+                    accountant=accountant,
+                    token_budget=k * get_probe(task, "val", 0).tokens_used,
+                )
+            ),
+        )
+
+        val_mas_results_by_k[candidate_k] = {
+            result.task_id: result for result in candidate_mas_results
+        }
 
     gate_model_path = MODELS_DIR / f"best_gate_seed_{seed}.pkl"
     saved_gate_training = state.get("gate_training")
@@ -718,21 +845,29 @@ def run_evaluation(
         print(f"[gate-training] resumed: {gate_model_path}", flush=True)
     else:
         print("[gate-training] starting", flush=True)
-        best_gate, best_metrics = train_gate(
-            train_features,
-            train_label_list,
-            val_features,
-            val_label_list,
-            classifier_names=["logreg", "gbt", "mlp"],
-            k_values=[2, 3, 5],
+        best_gate, best_metrics, calibration_candidates = calibrate_gate(
+            train_features=train_features,
+            train_repeated_cot=train_cot_results,
+            train_repeated_mas=train_mas_results,
+            val_features=val_features,
+            val_repeated_cot=val_cot_results,
+            val_repeated_mas=val_mas_results,
+            val_cot_results={task_id: runs[0] for task_id, runs in val_cot_results.items()},
+            val_mas_results_by_k=val_mas_results_by_k,
+            n_repeats=N_REPEATS,
+            tau_values=TAU_ACC_SWEEP,
+            k_values=K_VALUES,
             save_path=gate_model_path,
         )
         state["gate_training"] = {
             "model_path": str(gate_model_path),
             "best_metrics": best_metrics,
+            "candidates": calibration_candidates,
         }
         _save_checkpoint(state, checkpoint_path)
         print("[gate-training] completed", flush=True)
+
+    gate_k = int(best_metrics.get("k", K_DEFAULT))
 
     # Evaluate the test set across all requested methods.
     start_time = time.perf_counter()
@@ -807,6 +942,7 @@ def run_evaluation(
         checkpoint_path=checkpoint_path,
         get_probe=get_probe,
         accountant=test_accountant_gate,
+        k=gate_k,
     )
 
     for method_name, results in results_by_method.items():
