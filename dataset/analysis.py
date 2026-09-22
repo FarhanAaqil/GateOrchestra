@@ -163,7 +163,7 @@ class JointDistributionTable:
 
         matrix: dict[str, dict[str, int]] = {}
         row_totals: dict[str, int] = {}
-        col_totals: dict[str, int] = {c: 0 for c in col_labels}
+        col_totals: dict[str, int] = dict.fromkeys(col_labels, 0)
 
         for r in row_labels:
             matrix[r] = {}
@@ -258,7 +258,9 @@ class LexicalStatistics:
             "as",
             "if",
         }
-        filtered_counts = {w: c for w, c in token_counts.items() if w not in stopwords and len(w) > 1}
+        filtered_counts = {
+            w: c for w, c in token_counts.items() if w not in stopwords and len(w) > 1
+        }
         sorted_top = sorted(filtered_counts.items(), key=lambda x: (-x[1], x[0]))[:top_k]
         top_tokens = [{"word": w, "count": c} for w, c in sorted_top]
 
@@ -279,7 +281,9 @@ class ImbalanceAlert:
     """Structured notification regarding class or split distribution imbalance."""
 
     severity: str  # "INFO", "WARNING", "CRITICAL"
-    category: str  # "source_distribution", "depth_distribution", "parallel_distribution", "split_parity"
+    category: (
+        str  # "source_distribution", "depth_distribution", "parallel_distribution", "split_parity"
+    )
     message: str
     metric_name: str
     observed_value: float | None = None
@@ -723,16 +727,16 @@ class DatasetAnalyzer:
     def render_ascii_table(dist: DistributionTable) -> str:
         """Render 1D DistributionTable as a formatted ASCII table."""
         lines = [
-            f"+----------------------------------+-------+---------+",
+            "+----------------------------------+-------+---------+",
             f"| {dist.name:<32} | Count | Percent |",
-            f"+----------------------------------+-------+---------+",
+            "+----------------------------------+-------+---------+",
         ]
         for k, count in dist.counts.items():
             pct = dist.percentages.get(k, 0.0)
             lines.append(f"| {k:<32} | {count:>5} | {pct:>6.1f}% |")
-        lines.append(f"+----------------------------------+-------+---------+")
+        lines.append("+----------------------------------+-------+---------+")
         lines.append(f"| {'Total':<32} | {dist.total:>5} |  100.0% |")
-        lines.append(f"+----------------------------------+-------+---------+")
+        lines.append("+----------------------------------+-------+---------+")
         return "\n".join(lines)
 
     @staticmethod
@@ -852,7 +856,7 @@ class DatasetAnalyzer:
                 f"  * Total Tokens Inspected : {lex.total_tokens}",
                 f"  * Unique Vocabulary Size : {lex.unique_tokens}",
                 f"  * Type-Token Ratio (TTR) : {lex.type_token_ratio:.4f}",
-                f"  * Top Question Keywords  : "
+                "  * Top Question Keywords  : "
                 + ", ".join(f"{t['word']} ({t['count']})" for t in lex.top_tokens[:8]),
             ]
         )
@@ -870,7 +874,7 @@ class DatasetAnalyzer:
     def render_markdown_report(self, report: AnalysisReport) -> str:
         """Generate a GitHub Flavored Markdown report with structured tables."""
         lines = [
-            f"# GateOrchestra — Dataset Analysis Report",
+            "# GateOrchestra — Dataset Analysis Report",
             "",
             f"**Dataset Name:** `{report.dataset_name}`  ",
             f"**Total Tasks:** `{report.total_tasks}`  ",
@@ -947,7 +951,11 @@ class DatasetAnalyzer:
         )
 
         joint_dp = report.joint_depth_parallel
-        header = "| Depth \\ Parallel | " + " | ".join(f"**P={c}**" for c in joint_dp.col_labels) + " | **Total** |"
+        header = (
+            "| Depth \\ Parallel | "
+            + " | ".join(f"**P={c}**" for c in joint_dp.col_labels)
+            + " | **Total** |"
+        )
         sep = "|---" + "|---" * len(joint_dp.col_labels) + "|---|"
         lines.extend([header, sep])
         for r in joint_dp.row_labels:
@@ -957,9 +965,11 @@ class DatasetAnalyzer:
             row_cells.append(f"**{joint_dp.row_totals.get(r, 0)}**")
             lines.append("| " + " | ".join(row_cells) + " |")
 
-        col_tot_cells = ["**Total**"] + [
-            f"**{joint_dp.col_totals.get(c, 0)}**" for c in joint_dp.col_labels
-        ] + [f"**{joint_dp.total}**"]
+        col_tot_cells = (
+            ["**Total**"]
+            + [f"**{joint_dp.col_totals.get(c, 0)}**" for c in joint_dp.col_labels]
+            + [f"**{joint_dp.total}**"]
+        )
         lines.append("| " + " | ".join(col_tot_cells) + " |")
 
         # Split x Source Joint Table
@@ -981,9 +991,11 @@ class DatasetAnalyzer:
             row_cells.append(f"**{joint_ss.row_totals.get(r, 0)}**")
             lines.append("| " + " | ".join(row_cells) + " |")
 
-        col_tot_cells = ["**Total**"] + [
-            f"**{joint_ss.col_totals.get(c, 0)}**" for c in joint_ss.col_labels
-        ] + [f"**{joint_ss.total}**"]
+        col_tot_cells = (
+            ["**Total**"]
+            + [f"**{joint_ss.col_totals.get(c, 0)}**" for c in joint_ss.col_labels]
+            + [f"**{joint_ss.total}**"]
+        )
         lines.append("| " + " | ".join(col_tot_cells) + " |")
 
         # Length Statistics

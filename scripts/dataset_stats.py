@@ -101,6 +101,7 @@ def main() -> int:
         print(analyzer.render_markdown_report(report))
     elif args.format == "json":
         import json
+
         print(json.dumps(report.to_dict(), indent=2))
 
     # Save reports unless --no-save
@@ -108,14 +109,17 @@ def main() -> int:
         json_path = Path(args.output_json)
         md_path = Path(args.output_md)
         analyzer.export_report(report, json_path=json_path, md_path=md_path)
-        print(f"\n[OK] Reports saved successfully:")
+        print("\n[OK] Reports saved successfully:")
         print(f"  -> JSON     : {json_path}")
         print(f"  -> Markdown : {md_path}\n")
 
     # Check strict status
     critical_alerts = [a for a in report.imbalance_alerts if a.severity == "CRITICAL"]
     if args.strict and critical_alerts:
-        print(f"[FAIL] Strict mode failed with {len(critical_alerts)} CRITICAL alerts.", file=sys.stderr)
+        print(
+            f"[FAIL] Strict mode failed with {len(critical_alerts)} CRITICAL alerts.",
+            file=sys.stderr,
+        )
         return 1
 
     return 0
