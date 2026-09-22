@@ -21,6 +21,7 @@ DATASET_DIR: Path = ROOT_DIR / "dataset" / "masbench_mini"
 LOGS_DIR: Path = ROOT_DIR / "logs"
 CONFIGS_DIR: Path = ROOT_DIR / "configs"
 MODELS_DIR: Path = CONFIGS_DIR / "models"
+WEEK8_BANDIT_STATE_PATH: Path = LOGS_DIR / "week8_bandit_state.json"
 
 # Auto-create runtime dirs (non-code artifacts)
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
