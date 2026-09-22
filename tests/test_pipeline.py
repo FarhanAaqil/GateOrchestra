@@ -351,3 +351,252 @@ class TestBanditOnlineUpdate:
         assert len(updates) == 1
         assert updates[0]["is_correct"] is False  # fallback when ground_truth is None
 
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Week 8 Priority 2 — mas_strategy recorded in EvalResult
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestMasStrategyInResult:
+    """run_pipeline must populate EvalResult.mas_strategy correctly."""
+
+    def test_stop_gives_none_mas_strategy(self, bandit_task):
+        """When the gate decides STOP, mas_strategy must be None regardless of orchestrator."""
+        orch = _make_mas_orch()
+        gate = RuleBasedGate(consistency_stop=0.0)  # always STOP
+
+        result = run_pipeline(
+            task=bandit_task,
+            gate=gate,
+            probe_agent=mock_probe_agent,
+            orchestrator=orch.run,
+            accountant=TokenAccountant(),
+            mas_orchestrator=orch,
+        )
+
+        assert result.gate_decision is not None
+        assert result.gate_decision.decision == "STOP"
+        assert result.mas_strategy is None
+
+    def test_escalate_with_mas_orchestrator_records_strategy(self, bandit_task):
+        """ESCALATE + mas_orchestrator → EvalResult.mas_strategy is a valid arm name."""
+        orch = _make_mas_orch(answer="Tokyo")
+        gate = RandomGate(escalation_rate=1.0, seed=0)  # always ESCALATE
+
+        result = run_pipeline(
+            task=bandit_task,
+            gate=gate,
+            probe_agent=mock_probe_agent,
+            orchestrator=orch.run,
+            accountant=TokenAccountant(),
+            mas_orchestrator=orch,
+        )
+
+        assert result.gate_decision is not None
+        assert result.gate_decision.decision == "ESCALATE"
+        assert result.mas_strategy in ("react", "debate", "reflexion")
+
+    def test_escalate_strategy_matches_last_strategy(self, bandit_task):
+        """EvalResult.mas_strategy must equal orch._last_strategy after the run."""
+        orch = _make_mas_orch(answer="Tokyo")
+        gate = RandomGate(escalation_rate=1.0, seed=0)
+
+        result = run_pipeline(
+            task=bandit_task,
+            gate=gate,
+            probe_agent=mock_probe_agent,
+            orchestrator=orch.run,
+            accountant=TokenAccountant(),
+            mas_orchestrator=orch,
+        )
+
+        assert result.mas_strategy == orch._last_strategy
+
+    def test_escalate_via_bound_method_records_strategy(self, bandit_task):
+        """When mas_orchestrator is omitted but orchestrator=orch.run is a bound method,
+        the pipeline resolves strategy via __self__._last_strategy."""
+        orch = _make_mas_orch(answer="Tokyo")
+        gate = RandomGate(escalation_rate=1.0, seed=0)
+
+        result = run_pipeline(
+            task=bandit_task,
+            gate=gate,
+            probe_agent=mock_probe_agent,
+            orchestrator=orch.run,   # bound method — no mas_orchestrator
+            accountant=TokenAccountant(),
+            # mas_orchestrator intentionally omitted
+        )
+
+        assert result.gate_decision is not None
+        assert result.gate_decision.decision == "ESCALATE"
+        # Pipeline should still find _last_strategy via orchestrator.__self__
+        assert result.mas_strategy in ("react", "debate", "reflexion")
+        assert result.mas_strategy == orch._last_strategy
+
+    def test_backward_compat_plain_callable_leaves_strategy_none(self, bandit_task):
+        """When orchestrator is a plain function (not a bound method), mas_strategy=None."""
+        gate = RandomGate(escalation_rate=1.0, seed=0)
+
+        result = run_pipeline(
+            task=bandit_task,
+            gate=gate,
+            probe_agent=mock_probe_agent,
+            orchestrator=mock_orchestrator,  # plain function, no _last_strategy
+            accountant=TokenAccountant(),
+            # mas_orchestrator intentionally omitted
+        )
+
+        assert result.gate_decision is not None
+        assert result.gate_decision.decision == "ESCALATE"
+        # Plain callable has no _last_strategy → should stay None
+        assert result.mas_strategy is None
+
+    def test_heuristic_routing_produces_expected_strategy(self):
+        """Deep-task (depth=4) should be routed to 'react' by the heuristic."""
+        from shared.schemas import Task
+
+        deep_task = Task(
+            task_id="deep_react_test",
+            question="Multi-hop: Who founded the company that acquired DeepMind?",
+            ground_truth="Larry Page",
+            depth_score=4,
+            parallel_score=1,
+        )
+        orch = _make_mas_orch(answer="Larry Page")
+        gate = RandomGate(escalation_rate=1.0, seed=0)
+
+        result = run_pipeline(
+            task=deep_task,
+            gate=gate,
+            probe_agent=mock_probe_agent,
+            orchestrator=orch.run,
+            accountant=TokenAccountant(),
+            mas_orchestrator=orch,
+        )
+
+        assert result.mas_strategy == "react", (
+            f"Expected 'react' for depth_score=4, got {result.mas_strategy!r}"
+        )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Week 8 Final — End-to-End Real Component Integration (Mock LLM)
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestEndToEndRealIntegration:
+    """Tests full pipeline flow using real ProbeAgent, extract_features, Gate,
+    MASOrchestrator, and TokenAccountant with a mock LLM caller (no network API calls).
+
+    Flow: Task → ProbeAgent → extract_features → Gate → (STOP | ESCALATE)
+                → MASOrchestrator → mas_strategy → EvalResult & LinUCB update
+    """
+
+    @pytest.fixture
+    def mock_llm(self):
+        def _caller(prompt: str, temp: float, max_tokens: int) -> tuple[str, int]:
+            return "Thinking step by step... Final Answer: 42", 40
+
+        return _caller
+
+    def test_e2e_escalate_flow(self, mock_llm):
+        """Verify full ESCALATE flow with real components and mock LLM."""
+        from agents.orchestrator import MASOrchestrator
+        from agents.probe_agent import ProbeAgent
+        from shared.schemas import Task
+
+        task = Task(
+            task_id="e2e_esc_001",
+            question="Calculate 6 times 7.",
+            ground_truth="42",
+            depth_score=3,
+            parallel_score=1,
+        )
+
+        probe = ProbeAgent(llm_caller=mock_llm, n_samples=3)
+        orch = MASOrchestrator(default_strategy="bandit", llm_caller=mock_llm)
+        gate = RandomGate(escalation_rate=1.0, seed=42)  # Force ESCALATE
+        accountant = TokenAccountant()
+
+        # Capture initial LinUCB reward vector state
+        initial_b_sum = {arm: float(orch.bandit_router.b[arm].sum()) for arm in orch.bandit_router.arms}
+
+        result = run_pipeline(
+            task=task,
+            gate=gate,
+            probe_agent=probe.run,
+            orchestrator=orch.run,
+            accountant=accountant,
+            k=3,
+            method="GateOrchestra",
+            mas_orchestrator=orch,
+        )
+
+        # 1. Probe ran
+        assert result.probe_tokens is not None and result.probe_tokens > 0
+
+        # 2. Gate escalated
+        assert result.gate_decision is not None
+        assert result.gate_decision.decision == "ESCALATE"
+
+        # 3. MAS ran
+        assert result.mas_tokens is not None and result.mas_tokens > 0
+
+        # 4. Strategy recorded in EvalResult
+        assert result.mas_strategy in ("react", "debate", "reflexion")
+        assert result.mas_strategy == orch._last_strategy
+
+        # 5. EvalResult correctness & token spend
+        assert result.predicted_answer == "42"
+        assert result.is_correct is True
+        assert result.tokens_spent == result.probe_tokens + result.mas_tokens
+
+        # 6. LinUCB reward update verified
+        updated_arm = result.mas_strategy
+        new_b_sum = float(orch.bandit_router.b[updated_arm].sum())
+        assert new_b_sum != initial_b_sum[updated_arm], "LinUCB state vector b must update after ESCALATE"
+
+    def test_e2e_stop_flow(self, mock_llm):
+        """Verify full STOP flow with real components and mock LLM."""
+        from agents.orchestrator import MASOrchestrator
+        from agents.probe_agent import ProbeAgent
+        from shared.schemas import Task
+
+        task = Task(
+            task_id="e2e_stop_001",
+            question="What is the capital of France?",
+            ground_truth="Paris",
+        )
+
+        probe = ProbeAgent(llm_caller=mock_llm, n_samples=3)
+        orch = MASOrchestrator(default_strategy="bandit", llm_caller=mock_llm)
+        gate = RandomGate(escalation_rate=0.0, seed=42)  # Force STOP
+        accountant = TokenAccountant()
+
+        result = run_pipeline(
+            task=task,
+            gate=gate,
+            probe_agent=probe.run,
+            orchestrator=orch.run,
+            accountant=accountant,
+            k=3,
+            method="GateOrchestra",
+            mas_orchestrator=orch,
+        )
+
+        # 1. Probe ran
+        assert result.probe_tokens is not None and result.probe_tokens > 0
+
+        # 2. Gate stopped
+        assert result.gate_decision is not None
+        assert result.gate_decision.decision == "STOP"
+
+        # 3. MAS NOT called
+        assert result.mas_tokens == 0
+        assert result.mas_strategy is None
+        assert orch._last_strategy is None
+
+        # 4. EvalResult uses probe answer and spends zero MAS tokens
+        assert result.predicted_answer == "42"
+        assert result.tokens_spent == result.probe_tokens
+

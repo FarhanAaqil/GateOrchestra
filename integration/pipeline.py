@@ -151,6 +151,21 @@ def run_pipeline(
             budget=token_budget,
         )
 
+    # ── Stage 5c: Resolve the MAS strategy name for the result record ─────
+    # STOP always → None.
+    # ESCALATE → read _last_strategy from:
+    #   1. mas_orchestrator (explicit object, highest priority), or
+    #   2. the bound-method's __self__ (handles orchestrator=orch.run style).
+    # Falls back to None if neither source is available.
+    mas_strategy: str | None = None
+    if decision.decision == "ESCALATE":
+        if mas_orchestrator is not None and hasattr(mas_orchestrator, "_last_strategy"):
+            mas_strategy = mas_orchestrator._last_strategy  # type: ignore[union-attr]
+        elif hasattr(orchestrator, "__self__") and hasattr(
+            orchestrator.__self__, "_last_strategy"  # type: ignore[union-attr]
+        ):
+            mas_strategy = orchestrator.__self__._last_strategy  # type: ignore[union-attr]
+
     return EvalResult(
         task_id=task.task_id,
         method=method,
@@ -160,6 +175,7 @@ def run_pipeline(
         probe_tokens=probe.tokens_used,
         mas_tokens=mas_tokens,
         gate_decision=decision,
+        mas_strategy=mas_strategy,
     )
 
 

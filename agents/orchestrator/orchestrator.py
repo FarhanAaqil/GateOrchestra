@@ -52,6 +52,7 @@ class MASOrchestrator:
         api_key: str | None = None,
         llm_caller: LLMCallerFn | None = None,
         router: LinUCBRouter | None = None,
+        bandit_state_path: str | Path | None = None,
     ) -> None:
         self.model_name = model_name or MODEL_NAME
         self.default_strategy = default_strategy
@@ -84,6 +85,16 @@ class MASOrchestrator:
 
         # Contextual Bandit Router
         self.bandit_router = router or LinUCBRouter()
+        if bandit_state_path is not None:
+            self.load_bandit_state(bandit_state_path)
+
+    def save_bandit_state(self, path: str | Path) -> None:
+        """Persist LinUCB router state to disk."""
+        self.bandit_router.save(path)
+
+    def load_bandit_state(self, path: str | Path) -> None:
+        """Load LinUCB router state from disk."""
+        self.bandit_router.load(path)
 
     def select_strategy(self, task: Task) -> str:
         """Select appropriate sub-agent strategy based on task signals or LinUCB."""

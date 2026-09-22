@@ -224,3 +224,107 @@ class TestEvalResult:
     def test_json_roundtrip(self):
         er = EvalResult(**self._base(), is_correct=False)
         assert EvalResult(**er.model_dump()) == er
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# EvalResult.mas_strategy — Week 8 Priority 2
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestEvalResultMasStrategy:
+    def _base(self) -> dict:
+        return {
+            "task_id": "t001",
+            "method": "GateOrchestra",
+            "predicted_answer": "Paris",
+            "tokens_spent": 120,
+        }
+
+    def test_mas_strategy_defaults_to_none(self):
+        """Existing callers that omit mas_strategy continue to work unchanged."""
+        er = EvalResult(**self._base())
+        assert er.mas_strategy is None
+
+    def test_mas_strategy_none_for_stop(self):
+        """STOP results must have mas_strategy=None explicitly."""
+        decision = GateDecision(task_id="t001", decision="STOP", confidence=0.95)
+        er = EvalResult(
+            **self._base(),
+            probe_tokens=120,
+            mas_tokens=0,
+            gate_decision=decision,
+            mas_strategy=None,
+        )
+        assert er.mas_strategy is None
+
+    def test_mas_strategy_react_accepted(self):
+        decision = GateDecision(
+            task_id="t001", decision="ESCALATE", confidence=0.8, token_budget_cap=400
+        )
+        er = EvalResult(
+            **self._base(),
+            probe_tokens=80,
+            mas_tokens=40,
+            gate_decision=decision,
+            mas_strategy="react",
+        )
+        assert er.mas_strategy == "react"
+
+    def test_mas_strategy_debate_accepted(self):
+        decision = GateDecision(
+            task_id="t001", decision="ESCALATE", confidence=0.7, token_budget_cap=400
+        )
+        er = EvalResult(
+            task_id="t001",
+            method="GateOrchestra",
+            predicted_answer="Tokyo",
+            tokens_spent=200,
+            probe_tokens=100,
+            mas_tokens=100,
+            gate_decision=decision,
+            mas_strategy="debate",
+        )
+        assert er.mas_strategy == "debate"
+
+    def test_mas_strategy_reflexion_accepted(self):
+        decision = GateDecision(
+            task_id="t001", decision="ESCALATE", confidence=0.6, token_budget_cap=400
+        )
+        er = EvalResult(
+            task_id="t001",
+            method="GateOrchestra",
+            predicted_answer="Rome",
+            tokens_spent=300,
+            probe_tokens=150,
+            mas_tokens=150,
+            gate_decision=decision,
+            mas_strategy="reflexion",
+        )
+        assert er.mas_strategy == "reflexion"
+
+    def test_invalid_mas_strategy_rejected(self):
+        """An unknown strategy name must fail Pydantic validation."""
+        from pydantic import ValidationError
+
+        with pytest.raises(ValidationError):
+            EvalResult(**self._base(), mas_strategy="unknown_strategy")
+
+    def test_json_roundtrip_with_strategy(self):
+        """model_dump / model reconstruct must preserve mas_strategy."""
+        decision = GateDecision(
+            task_id="t001", decision="ESCALATE", confidence=0.75, token_budget_cap=300
+        )
+        er = EvalResult(
+            task_id="t001",
+            method="GateOrchestra",
+            predicted_answer="Berlin",
+            tokens_spent=250,
+            probe_tokens=100,
+            mas_tokens=150,
+            gate_decision=decision,
+            mas_strategy="react",
+        )
+        restored = EvalResult(**er.model_dump())
+        assert restored.mas_strategy == "react"
+        assert restored == er
+

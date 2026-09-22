@@ -134,6 +134,48 @@ class TestLinUCBRouter:
         assert loaded_router.alpha == 0.3
         assert np.allclose(loaded_router.b["debate"], router.b["debate"])
 
+    def test_save_load_roundtrip(self, tmp_path, sample_task):
+        """Save and load roundtrip restores exact weights and matrices."""
+        state_file = tmp_path / "bandit_state.json"
+        router = LinUCBRouter(alpha=0.25)
+        router.update(sample_task, "react", reward=0.8)
+
+        router.save(state_file)
+        assert state_file.exists()
+
+        loaded_router = LinUCBRouter()
+        loaded_router.load(state_file)
+
+        assert loaded_router.alpha == 0.25
+        assert np.allclose(loaded_router.A["react"], router.A["react"])
+        assert np.allclose(loaded_router.b["react"], router.b["react"])
+
+    def test_persisted_state_changes_after_update(self, tmp_path, sample_task):
+        """Persisted JSON state before update != state after update."""
+        state_file = tmp_path / "bandit_state.json"
+        router = LinUCBRouter(alpha=0.5)
+
+        # Save initial state
+        router.save(state_file)
+        initial_json = state_file.read_text(encoding="utf-8")
+
+        # Perform update with positive reward
+        router.update(sample_task, "debate", reward=1.0)
+        router.save(state_file)
+        updated_json = state_file.read_text(encoding="utf-8")
+
+        assert initial_json != updated_json, "Persisted file content must change after an update"
+
+    def test_missing_state_file_handled_safely(self, tmp_path):
+        """Loading a non-existent state file must log a warning and not raise an exception."""
+        non_existent_file = tmp_path / "subfolder" / "missing_bandit.json"
+        router = LinUCBRouter(alpha=0.5)
+
+        # Should not raise FileNotFoundError
+        router.load(non_existent_file)
+        assert router.alpha == 0.5
+        assert np.allclose(router.b["react"], np.zeros((6, 1)))
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 4. Test Orchestrator with Bandit Routing
@@ -158,3 +200,16 @@ class TestOrchestratorBanditMode:
             tokens_spent=tokens,
             budget=100,
         )
+
+    def test_orchestrator_save_load_methods(self, tmp_path, sample_task):
+        """MASOrchestrator save_bandit_state and load_bandit_state delegate properly."""
+        state_file = tmp_path / "orch_bandit.json"
+        orch = MASOrchestrator(default_strategy="bandit")
+        orch.update_bandit_reward(sample_task, "reflexion", is_correct=True, tokens_spent=50, budget=200)
+
+        orch.save_bandit_state(state_file)
+        assert state_file.exists()
+
+        new_orch = MASOrchestrator(default_strategy="bandit", bandit_state_path=state_file)
+        assert np.allclose(new_orch.bandit_router.b["reflexion"], orch.bandit_router.b["reflexion"])
+
