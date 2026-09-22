@@ -81,7 +81,7 @@ def main() -> None:
         input_path = resolve_default_input_path()
 
     print("\n" + "=" * 65)
-    print("  GateOrchestra — Dataset Validation (Week 3)")
+    print("  GateOrchestra - Dataset Validation (Week 3)")
     print("=" * 65 + "\n")
 
     logger.info(f"Target dataset file : {input_path}")
@@ -98,10 +98,10 @@ def main() -> None:
     logger.info(f"Report saved to: {report_path}")
 
     if report.is_valid:
-        print("  [PASSED] VALIDATION PASSED — Dataset is structurally sound.\n")
+        print("  [PASSED] VALIDATION PASSED - Dataset is structurally sound.\n")
         sys.exit(0)
     else:
-        print("  [FAILED] VALIDATION FAILED — Errors detected in dataset.\n")
+        print("  [FAILED] VALIDATION FAILED - Errors detected in dataset.\n")
         sys.exit(1)
 
 

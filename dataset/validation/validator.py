@@ -52,7 +52,7 @@ class ValidationReport:
         status_symbol = "[PASS]" if self.is_valid else "[FAIL]"
         lines = [
             "=" * 60,
-            f"  DATASET VALIDATION REPORT — {status_symbol}",
+            f"  DATASET VALIDATION REPORT - {status_symbol}",
             "=" * 60,
             f"  Total tasks inspected  : {self.total_tasks}",
             f"  Passed tasks           : {self.passed_count}",
