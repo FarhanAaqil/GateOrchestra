@@ -421,9 +421,7 @@ def _run_checkpointed_pipeline(
         if saved_result is not None:
             if method == "RandomGate":
                 features = extract_features(task, get_probe(task))
-                replayed_decision = gate.predict(
-                    features, k=k, probe_tokens=features.probe_tokens
-                )
+                replayed_decision = gate.predict(features, k=k, probe_tokens=features.probe_tokens)
                 saved_decision = EvalResult.model_validate(saved_result).gate_decision
                 if (
                     saved_decision is None
@@ -451,9 +449,7 @@ def _run_checkpointed_pipeline(
                     features = extract_features(task, get_probe(task))
                     pending_decision = state["pending_random_decisions"].get(key)
                     if pending_decision is None:
-                        decision = gate.predict(
-                            features, k=k, probe_tokens=features.probe_tokens
-                        )
+                        decision = gate.predict(features, k=k, probe_tokens=features.probe_tokens)
                         state["pending_random_decisions"][key] = decision.model_dump(mode="json")
                         _save_checkpoint(state, checkpoint_path)
                     else:
@@ -804,8 +800,7 @@ def run_evaluation(
         # candidate_k matches the default k.
         if candidate_k == K_DEFAULT:
             val_mas_results_by_k[candidate_k] = {
-                task_id: runs[0]
-                for task_id, runs in val_mas_results.items()
+                task_id: runs[0] for task_id, runs in val_mas_results.items()
             }
 
             print(

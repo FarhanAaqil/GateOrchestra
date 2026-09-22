@@ -247,6 +247,7 @@ def select_calibration_candidate(
         ),
     )
 
+
 def calibrate_gate(
     *,
     train_features: list[GateFeatures],
@@ -291,14 +292,11 @@ def calibrate_gate(
         for classifier_name in classifier_names:
             gate = make_classifier(classifier_name)
             ordered_train_features = [
-                feature
-                for feature in train_features
-                if feature.task_id in train_labels
+                feature for feature in train_features if feature.task_id in train_labels
             ]
 
             ordered_train_labels = [
-                train_labels[feature.task_id]
-                for feature in ordered_train_features
+                train_labels[feature.task_id] for feature in ordered_train_features
             ]
 
             gate.train(ordered_train_features, ordered_train_labels)
