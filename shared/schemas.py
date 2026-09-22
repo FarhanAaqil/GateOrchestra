@@ -279,6 +279,12 @@ class EvalResult(BaseModel):
         ge=0.0,
         description="Total wall-clock time in milliseconds",
     )
+    mas_strategy: Literal["react", "debate", "reflexion"] | None = Field(
+        default=None,
+        description="Sub-agent strategy selected by MASOrchestrator for ESCALATE cases "
+        "('react', 'debate', or 'reflexion'). "
+        "None when gate decided STOP, or for baselines that do not use MASOrchestrator.",
+    )
 
     @model_validator(mode="after")
     def tokens_consistency(self) -> EvalResult:

@@ -201,6 +201,10 @@ def call_groq(
             logger.warning(f"[GroqProvider] Network call to {url} failed: {e}")
             raise
 
+    raise RuntimeError(
+        f"[GroqProvider] Call to {url} failed: Max retries ({max_retries}) exceeded."
+    )
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 3. Unified Dispatcher & Factory

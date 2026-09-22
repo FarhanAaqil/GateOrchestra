@@ -32,7 +32,7 @@ from agents.probe_agent import ProbeAgent
 from gate.classifier import GBTGate
 from gate.rule_based_gate import RuleBasedGate
 from integration.pipeline import run_pipeline
-from shared.config import K_DEFAULT, LOGS_DIR
+from shared.config import K_DEFAULT, LOGS_DIR, WEEK8_BANDIT_STATE_PATH
 from shared.data_loader import load_split
 from shared.schemas import EvalResult
 from shared.token_logger import TokenAccountant
@@ -56,6 +56,12 @@ def main():
         default=0.005,
         help="Probability threshold for ESCALATE (default: 0.005 for imbalanced checkpoint)",
     )
+    parser.add_argument(
+        "--bandit-state",
+        type=str,
+        default=str(WEEK8_BANDIT_STATE_PATH),
+        help="Path to save/load LinUCB bandit state (default: logs/week8_bandit_state.json)",
+    )
     args = parser.parse_args()
 
     print("=" * 74)
@@ -74,6 +80,12 @@ def main():
     print("[2] Initializing Live Groq LLM Agents...")
     probe = ProbeAgent(n_samples=3)  # Fast 3-sample CoT-SC with early exit
     orchestrator = MASOrchestrator()
+    bandit_state_path = Path(args.bandit_state)
+    if bandit_state_path.exists():
+        orchestrator.load_bandit_state(bandit_state_path)
+        print(f"[2] Loaded LinUCB bandit state from {bandit_state_path.name}")
+    else:
+        print(f"[2] No existing bandit state found at {bandit_state_path.name}; starting fresh.")
 
     # 3. Load or initialize Gate
     gate_model_path = LOGS_DIR / "week2_best_gate.pkl"
@@ -106,6 +118,7 @@ def main():
             k=args.k,
             method="GateOrchestra",
             threshold=args.threshold,
+            mas_orchestrator=orchestrator,
         )
         decision = res.gate_decision.decision if res.gate_decision else "N/A"
         ans_snippet = (res.predicted_answer[:80]).encode("ascii", "replace").decode("ascii")
@@ -139,9 +152,10 @@ def main():
     print(f"  Live Accuracy:          {accuracy:.1f}% ({correct_count}/{n})")
     print(f"  Total Time Elapsed:     {elapsed:.1f}s ({elapsed/n:.2f}s per task)")
 
-    # Save Real Results
+    # Save Real Results & Bandit State
     summary_path = LOGS_DIR / "week7_real_benchmark_summary.json"
     accountant.save_to_json(LOGS_DIR / "week7_real_tokens.json")
+    orchestrator.save_bandit_state(bandit_state_path)
     with open(summary_path, "w", encoding="utf-8") as f:
         json.dump(
             {
@@ -156,8 +170,9 @@ def main():
             f,
             indent=2,
         )
-    print(f"\n  [OK] Token Log saved -> {LOGS_DIR / 'week7_real_tokens.json'}")
-    print(f"  [OK] Summary saved   -> {summary_path}")
+    print(f"\n  [OK] Token Log saved    -> {LOGS_DIR / 'week7_real_tokens.json'}")
+    print(f"  [OK] Summary saved      -> {summary_path}")
+    print(f"  [OK] Bandit state saved -> {bandit_state_path}")
     print("=" * 74)
 
 

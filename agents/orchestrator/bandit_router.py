@@ -111,6 +111,8 @@ class LinUCBRouter:
 
     def save(self, path: str | Path) -> None:
         """Persist router weights to disk."""
+        p = Path(path)
+        p.parent.mkdir(parents=True, exist_ok=True)
         data = {
             "arms": self.arms,
             "alpha": self.alpha,
@@ -118,11 +120,17 @@ class LinUCBRouter:
             "A": {arm: self.A[arm].tolist() for arm in self.arms},
             "b": {arm: self.b[arm].tolist() for arm in self.arms},
         }
-        Path(path).write_text(json.dumps(data, indent=2), encoding="utf-8")
+        p.write_text(json.dumps(data, indent=2), encoding="utf-8")
 
     def load(self, path: str | Path) -> None:
-        """Load router weights from disk."""
-        data = json.loads(Path(path).read_text(encoding="utf-8"))
+        """Load router weights from disk if file exists; safe fallback if missing."""
+        p = Path(path)
+        if not p.exists():
+            logger.warning(
+                f"[LinUCBRouter] State file not found at {p}. Continuing with initialized state."
+            )
+            return
+        data = json.loads(p.read_text(encoding="utf-8"))
         self.arms = data["arms"]
         self.alpha = data["alpha"]
         self.d = data["d"]
