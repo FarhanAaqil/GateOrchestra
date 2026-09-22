@@ -17,7 +17,9 @@ Run as script:
 from __future__ import annotations
 
 import json
+import re
 import sys
+import unicodedata
 from pathlib import Path
 from typing import Literal
 
@@ -97,15 +99,63 @@ def split_stats(tasks: list[Task]) -> dict:
 
 
 def exact_match(predicted: str, ground_truth: str) -> bool:
-    """Normalized exact match (lowercase, strip punctuation)."""
-    import re
+    """Match benchmark answers after conservative answer extraction.
 
-    def normalize(s: str) -> str:
-        s = s.lower().strip()
-        s = re.sub(r"[^\w\s]", "", s)
-        return " ".join(s.split())
+    Explicit answer markers and conclusion phrases are extracted first. A
+    response may also begin with the exact gold answer followed by an
+    explanation, but an answer appearing only in the middle of a response is
+    not accepted.
+    """
+    predicted_answer = _extract_evaluation_answer(predicted)
+    normalized_predicted = _normalize_evaluation_answer(predicted_answer)
+    normalized_ground_truth = _normalize_evaluation_answer(ground_truth)
 
-    return normalize(predicted) == normalize(ground_truth)
+    if normalized_predicted == normalized_ground_truth:
+        return True
+
+    if not normalized_predicted.startswith(normalized_ground_truth + " "):
+        return False
+
+    remainder = normalized_predicted[len(normalized_ground_truth) :].strip()
+    return not re.match(
+        r"^(?:is|was|are|were|means|equals)?\s*(?:not|wrong|incorrect|false)\b",
+        remainder,
+    )
+
+
+def _normalize_evaluation_answer(text: str) -> str:
+    """Normalize formatting while preserving answer token boundaries."""
+    normalized = unicodedata.normalize("NFKC", text).lower().strip()
+    normalized = re.sub(r"[^\w\s]", "", normalized)
+    normalized = " ".join(normalized.split())
+    return re.sub(r"^(?:the|a|an)\s+", "", normalized)
+
+
+def _extract_evaluation_answer(text: str) -> str:
+    """Extract an explicitly stated final answer without generic substring matching."""
+    if not text or not text.strip():
+        return ""
+
+    cleaned = text.strip()
+    marker_patterns = (
+        r"(?:final\s+answer|the\s+answer\s+is|answer)\s*[:=]?\s*([^\n\r]+)",
+        r"####\s*([^\n\r]+)",
+        r"\\boxed\{([^}]+)\}",
+    )
+    for pattern in marker_patterns:
+        matches = list(re.finditer(pattern, cleaned, flags=re.IGNORECASE))
+        if matches:
+            return matches[-1].group(1).strip().strip("`*_\"'")
+
+    conclusion = re.search(
+        r"(?:therefore|thus|so),?\s+.*?\b(?:is|are|equals)\s+([^.!?\n]+)",
+        cleaned,
+        flags=re.IGNORECASE,
+    )
+    if conclusion:
+        return conclusion.group(1).strip()
+
+    return cleaned
 
 
 # ─────────────────────────────────────────────────────────────────────────────
