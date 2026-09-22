@@ -1,0 +1,822 @@
+{
+  "metadata": {
+    "timestamp": "2026-09-22T19:48:38Z",
+    "seed": 42,
+    "split": "test",
+    "test_tasks_count": 32,
+    "gate_model": "GBTGate",
+    "k_values": [
+      2,
+      3,
+      5
+    ],
+    "mode": "mock"
+  },
+  "baseline_comparison": [
+    {
+      "method": "CoT-SC-only",
+      "accuracy": 84.38,
+      "correct_count": 27,
+      "n_tasks": 32,
+      "total_tokens": 7069,
+      "avg_tokens": 220.91,
+      "token_savings_pct": 78.28,
+      "accuracy_delta": -15.62,
+      "avg_latency_ms": 0.21,
+      "total_latency_ms": 6.64,
+      "stop_count": 0,
+      "stop_rate": 0.0,
+      "escalate_count": 0,
+      "escalate_rate": 0.0,
+      "strategy_allocation": {
+        "react_count": 0,
+        "debate_count": 0,
+        "reflexion_count": 0,
+        "total_escalated": 0,
+        "react_pct": 0.0,
+        "debate_pct": 0.0,
+        "reflexion_pct": 0.0
+      }
+    },
+    {
+      "method": "Always-MAS",
+      "accuracy": 100.0,
+      "correct_count": 32,
+      "n_tasks": 32,
+      "total_tokens": 32550,
+      "avg_tokens": 1017.19,
+      "token_savings_pct": 0.0,
+      "accuracy_delta": 0.0,
+      "avg_latency_ms": 0.29,
+      "total_latency_ms": 9.27,
+      "stop_count": 0,
+      "stop_rate": 0.0,
+      "escalate_count": 0,
+      "escalate_rate": 0.0,
+      "strategy_allocation": {
+        "react_count": 0,
+        "debate_count": 0,
+        "reflexion_count": 0,
+        "total_escalated": 0,
+        "react_pct": 0.0,
+        "debate_pct": 0.0,
+        "reflexion_pct": 0.0
+      }
+    },
+    {
+      "method": "RandomGate",
+      "accuracy": 96.88,
+      "correct_count": 31,
+      "n_tasks": 32,
+      "total_tokens": 14883,
+      "avg_tokens": 465.09,
+      "token_savings_pct": 54.28,
+      "accuracy_delta": -3.12,
+      "avg_latency_ms": 0.72,
+      "total_latency_ms": 23.03,
+      "stop_count": 16,
+      "stop_rate": 0.5,
+      "escalate_count": 16,
+      "escalate_rate": 0.5,
+      "strategy_allocation": {
+        "react_count": 16,
+        "debate_count": 0,
+        "reflexion_count": 0,
+        "total_escalated": 16,
+        "react_pct": 100.0,
+        "debate_pct": 0.0,
+        "reflexion_pct": 0.0
+      },
+      "gate_accuracy": 53.12,
+      "gate_precision": 18.75,
+      "gate_recall": 60.0,
+      "gate_f1": 28.57,
+      "tp": 3,
+      "fp": 13,
+      "fn": 2,
+      "tn": 14
+    },
+    {
+      "method": "RuleBasedGate",
+      "accuracy": 84.38,
+      "correct_count": 27,
+      "n_tasks": 32,
+      "total_tokens": 10307,
+      "avg_tokens": 322.09,
+      "token_savings_pct": 68.33,
+      "accuracy_delta": -15.62,
+      "avg_latency_ms": 0.54,
+      "total_latency_ms": 17.35,
+      "stop_count": 26,
+      "stop_rate": 0.8125,
+      "escalate_count": 6,
+      "escalate_rate": 0.1875,
+      "strategy_allocation": {
+        "react_count": 6,
+        "debate_count": 0,
+        "reflexion_count": 0,
+        "total_escalated": 6,
+        "react_pct": 100.0,
+        "debate_pct": 0.0,
+        "reflexion_pct": 0.0
+      },
+      "gate_accuracy": 65.62,
+      "gate_precision": 0.0,
+      "gate_recall": 0.0,
+      "gate_f1": 0.0,
+      "tp": 0,
+      "fp": 6,
+      "fn": 5,
+      "tn": 21
+    },
+    {
+      "method": "GateOrchestra",
+      "accuracy": 93.75,
+      "correct_count": 30,
+      "n_tasks": 32,
+      "total_tokens": 6917,
+      "avg_tokens": 216.16,
+      "token_savings_pct": 78.75,
+      "accuracy_delta": -6.25,
+      "avg_latency_ms": 1.8,
+      "total_latency_ms": 57.76,
+      "stop_count": 32,
+      "stop_rate": 1.0,
+      "escalate_count": 0,
+      "escalate_rate": 0.0,
+      "strategy_allocation": {
+        "react_count": 0,
+        "debate_count": 0,
+        "reflexion_count": 0,
+        "total_escalated": 0,
+        "react_pct": 0.0,
+        "debate_pct": 0.0,
+        "reflexion_pct": 0.0
+      },
+      "gate_accuracy": 84.38,
+      "gate_precision": 0.0,
+      "gate_recall": 0.0,
+      "gate_f1": 0.0,
+      "tp": 0,
+      "fp": 0,
+      "fn": 5,
+      "tn": 27
+    }
+  ],
+  "pareto_sweep": {
+    "CoT-SC-only": [
+      {
+        "k": null,
+        "accuracy": 84.38,
+        "avg_tokens": 220.91,
+        "token_savings_pct": 78.28
+      }
+    ],
+    "Always-MAS": [
+      {
+        "k": 2,
+        "accuracy": 100.0,
+        "avg_tokens": 677.62,
+        "token_savings_pct": 0.0,
+        "strategy_allocation": {
+          "react_count": 0,
+          "debate_count": 0,
+          "reflexion_count": 0,
+          "total_escalated": 0,
+          "react_pct": 0.0,
+          "debate_pct": 0.0,
+          "reflexion_pct": 0.0
+        }
+      },
+      {
+        "k": 3,
+        "accuracy": 100.0,
+        "avg_tokens": 1019.84,
+        "token_savings_pct": 0.0,
+        "strategy_allocation": {
+          "react_count": 0,
+          "debate_count": 0,
+          "reflexion_count": 0,
+          "total_escalated": 0,
+          "react_pct": 0.0,
+          "debate_pct": 0.0,
+          "reflexion_pct": 0.0
+        }
+      },
+      {
+        "k": 5,
+        "accuracy": 100.0,
+        "avg_tokens": 1699.84,
+        "token_savings_pct": 0.0,
+        "strategy_allocation": {
+          "react_count": 0,
+          "debate_count": 0,
+          "reflexion_count": 0,
+          "total_escalated": 0,
+          "react_pct": 0.0,
+          "debate_pct": 0.0,
+          "reflexion_pct": 0.0
+        }
+      }
+    ],
+    "RandomGate": [
+      {
+        "k": 2,
+        "accuracy": 96.88,
+        "avg_tokens": 331.69,
+        "token_savings_pct": 51.05,
+        "strategy_allocation": {
+          "react_count": 15,
+          "debate_count": 0,
+          "reflexion_count": 0,
+          "total_escalated": 15,
+          "react_pct": 100.0,
+          "debate_pct": 0.0,
+          "reflexion_pct": 0.0
+        }
+      },
+      {
+        "k": 3,
+        "accuracy": 90.62,
+        "avg_tokens": 546.31,
+        "token_savings_pct": 46.43,
+        "strategy_allocation": {
+          "react_count": 19,
+          "debate_count": 0,
+          "reflexion_count": 0,
+          "total_escalated": 19,
+          "react_pct": 100.0,
+          "debate_pct": 0.0,
+          "reflexion_pct": 0.0
+        }
+      },
+      {
+        "k": 5,
+        "accuracy": 78.12,
+        "avg_tokens": 472.16,
+        "token_savings_pct": 72.22,
+        "strategy_allocation": {
+          "react_count": 12,
+          "debate_count": 0,
+          "reflexion_count": 0,
+          "total_escalated": 12,
+          "react_pct": 100.0,
+          "debate_pct": 0.0,
+          "reflexion_pct": 0.0
+        }
+      }
+    ],
+    "RuleBasedGate": [
+      {
+        "k": 2,
+        "accuracy": 96.88,
+        "avg_tokens": 307.69,
+        "token_savings_pct": 54.59,
+        "strategy_allocation": {
+          "react_count": 10,
+          "debate_count": 0,
+          "reflexion_count": 0,
+          "total_escalated": 10,
+          "react_pct": 100.0,
+          "debate_pct": 0.0,
+          "reflexion_pct": 0.0
+        }
+      },
+      {
+        "k": 3,
+        "accuracy": 84.38,
+        "avg_tokens": 368.19,
+        "token_savings_pct": 63.9,
+        "strategy_allocation": {
+          "react_count": 8,
+          "debate_count": 0,
+          "reflexion_count": 0,
+          "total_escalated": 8,
+          "react_pct": 100.0,
+          "debate_pct": 0.0,
+          "reflexion_pct": 0.0
+        }
+      },
+      {
+        "k": 5,
+        "accuracy": 90.62,
+        "avg_tokens": 471.28,
+        "token_savings_pct": 72.28,
+        "strategy_allocation": {
+          "react_count": 9,
+          "debate_count": 0,
+          "reflexion_count": 0,
+          "total_escalated": 9,
+          "react_pct": 100.0,
+          "debate_pct": 0.0,
+          "reflexion_pct": 0.0
+        }
+      }
+    ],
+    "GateOrchestra": [
+      {
+        "k": 2,
+        "accuracy": 71.88,
+        "avg_tokens": 229.75,
+        "token_savings_pct": 66.09,
+        "strategy_allocation": {
+          "react_count": 0,
+          "debate_count": 0,
+          "reflexion_count": 0,
+          "total_escalated": 0,
+          "react_pct": 0.0,
+          "debate_pct": 0.0,
+          "reflexion_pct": 0.0
+        }
+      },
+      {
+        "k": 3,
+        "accuracy": 87.5,
+        "avg_tokens": 221.06,
+        "token_savings_pct": 78.32,
+        "strategy_allocation": {
+          "react_count": 0,
+          "debate_count": 0,
+          "reflexion_count": 0,
+          "total_escalated": 0,
+          "react_pct": 0.0,
+          "debate_pct": 0.0,
+          "reflexion_pct": 0.0
+        }
+      },
+      {
+        "k": 5,
+        "accuracy": 84.38,
+        "avg_tokens": 220.69,
+        "token_savings_pct": 87.02,
+        "strategy_allocation": {
+          "react_count": 0,
+          "debate_count": 0,
+          "reflexion_count": 0,
+          "total_escalated": 0,
+          "react_pct": 0.0,
+          "debate_pct": 0.0,
+          "reflexion_pct": 0.0
+        }
+      }
+    ]
+  },
+  "feature_ablations": [
+    {
+      "ablated_feature": "consistency_score",
+      "feature_index": 0,
+      "accuracy": 81.25,
+      "avg_tokens": 229.62,
+      "token_savings_pct": 77.43,
+      "delta_accuracy_vs_full": 9.37,
+      "delta_savings_vs_full": 0.31
+    },
+    {
+      "ablated_feature": "probe_tokens",
+      "feature_index": 1,
+      "accuracy": 90.62,
+      "avg_tokens": 207.22,
+      "token_savings_pct": 79.63,
+      "delta_accuracy_vs_full": 18.74,
+      "delta_savings_vs_full": 2.51
+    },
+    {
+      "ablated_feature": "question_word_count",
+      "feature_index": 2,
+      "accuracy": 90.62,
+      "avg_tokens": 234.84,
+      "token_savings_pct": 76.91,
+      "delta_accuracy_vs_full": 18.74,
+      "delta_savings_vs_full": -0.21
+    },
+    {
+      "ablated_feature": "entity_count",
+      "feature_index": 3,
+      "accuracy": 78.12,
+      "avg_tokens": 221.5,
+      "token_savings_pct": 78.22,
+      "delta_accuracy_vs_full": 6.24,
+      "delta_savings_vs_full": 1.1
+    },
+    {
+      "ablated_feature": "clause_count",
+      "feature_index": 4,
+      "accuracy": 84.38,
+      "avg_tokens": 223.53,
+      "token_savings_pct": 78.02,
+      "delta_accuracy_vs_full": 12.5,
+      "delta_savings_vs_full": 0.9
+    },
+    {
+      "ablated_feature": "has_context",
+      "feature_index": 5,
+      "accuracy": 90.62,
+      "avg_tokens": 216.22,
+      "token_savings_pct": 78.74,
+      "delta_accuracy_vs_full": 18.74,
+      "delta_savings_vs_full": 1.62
+    },
+    {
+      "ablated_feature": "estimated_depth",
+      "feature_index": 6,
+      "accuracy": 84.38,
+      "avg_tokens": 224.47,
+      "token_savings_pct": 77.93,
+      "delta_accuracy_vs_full": 12.5,
+      "delta_savings_vs_full": 0.81
+    },
+    {
+      "ablated_feature": "estimated_parallel",
+      "feature_index": 7,
+      "accuracy": 93.75,
+      "avg_tokens": 214.5,
+      "token_savings_pct": 78.91,
+      "delta_accuracy_vs_full": 21.87,
+      "delta_savings_vs_full": 1.79
+    }
+  ],
+  "agent_profiling": {
+    "ProbeAgent (CoT-SC)": {
+      "name": "ProbeAgent (CoT-SC)",
+      "execution_count": 32,
+      "correct_count": 0,
+      "accuracy": 0.0,
+      "total_tokens": 2694,
+      "avg_tokens": 84.19,
+      "min_tokens": 84,
+      "max_tokens": 90,
+      "total_latency_ms": 5.428300006315112,
+      "avg_latency_ms": 0.17,
+      "min_latency_ms": 0.11,
+      "max_latency_ms": 1.22,
+      "strategy_counts": {},
+      "strategy_frequencies": {}
+    },
+    "MASOrchestrator (Auto)": {
+      "name": "MASOrchestrator (Auto)",
+      "execution_count": 32,
+      "correct_count": 0,
+      "accuracy": 0.0,
+      "total_tokens": 1066,
+      "avg_tokens": 33.31,
+      "min_tokens": 28,
+      "max_tokens": 84,
+      "total_latency_ms": 7.380200004263315,
+      "avg_latency_ms": 0.23,
+      "min_latency_ms": 0.14,
+      "max_latency_ms": 1.57,
+      "strategy_counts": {
+        "react": 29,
+        "reflexion": 3
+      },
+      "strategy_frequencies": {
+        "react": 90.62,
+        "reflexion": 9.38
+      }
+    },
+    "MASOrchestrator (Bandit)": {
+      "name": "MASOrchestrator (Bandit)",
+      "execution_count": 32,
+      "correct_count": 0,
+      "accuracy": 0.0,
+      "total_tokens": 898,
+      "avg_tokens": 28.06,
+      "min_tokens": 28,
+      "max_tokens": 30,
+      "total_latency_ms": 22.691599995596334,
+      "avg_latency_ms": 0.71,
+      "min_latency_ms": 0.31,
+      "max_latency_ms": 11.12,
+      "strategy_counts": {
+        "react": 32
+      },
+      "strategy_frequencies": {
+        "react": 100.0
+      }
+    },
+    "ReActAgent": {
+      "name": "ReActAgent",
+      "execution_count": 32,
+      "correct_count": 0,
+      "accuracy": 0.0,
+      "total_tokens": 898,
+      "avg_tokens": 28.06,
+      "min_tokens": 28,
+      "max_tokens": 30,
+      "total_latency_ms": 1.3148000070941634,
+      "avg_latency_ms": 0.04,
+      "min_latency_ms": 0.03,
+      "max_latency_ms": 0.09,
+      "strategy_counts": {},
+      "strategy_frequencies": {}
+    },
+    "DebateAgent": {
+      "name": "DebateAgent",
+      "execution_count": 32,
+      "correct_count": 0,
+      "accuracy": 0.0,
+      "total_tokens": 4490,
+      "avg_tokens": 140.31,
+      "min_tokens": 140,
+      "max_tokens": 150,
+      "total_latency_ms": 1.6620999958831817,
+      "avg_latency_ms": 0.05,
+      "min_latency_ms": 0.04,
+      "max_latency_ms": 0.08,
+      "strategy_counts": {},
+      "strategy_frequencies": {}
+    },
+    "ReflexionAgent": {
+      "name": "ReflexionAgent",
+      "execution_count": 32,
+      "correct_count": 0,
+      "accuracy": 0.0,
+      "total_tokens": 2694,
+      "avg_tokens": 84.19,
+      "min_tokens": 84,
+      "max_tokens": 90,
+      "total_latency_ms": 1.6258999894489534,
+      "avg_latency_ms": 0.05,
+      "min_latency_ms": 0.02,
+      "max_latency_ms": 0.6,
+      "strategy_counts": {},
+      "strategy_frequencies": {}
+    }
+  },
+  "error_diagnostics": {
+    "source_info": "final_experiments_test_runs",
+    "total_tasks_evaluated": 160,
+    "total_errors": 13,
+    "overall_error_rate": 8.12,
+    "gate_errors": {
+      "total_decisions": 96,
+      "total_stop": 74,
+      "total_escalate": 22,
+      "correct_stop": 66,
+      "false_stop": 8,
+      "correct_escalate": 22,
+      "failed_escalate": 0,
+      "false_stop_rate": 10.81,
+      "failed_escalate_rate": 0.0
+    },
+    "agent_breakdowns": {
+      "CoT-SC-only": {
+        "agent_or_method": "CoT-SC-only",
+        "total_evaluations": 32,
+        "error_count": 5,
+        "error_rate": 15.62,
+        "category_counts": {
+          "empty_or_unparsed": 2,
+          "other_incorrect": 3
+        },
+        "avg_tokens_on_error": 215.6
+      },
+      "Always-MAS": {
+        "agent_or_method": "Always-MAS",
+        "total_evaluations": 32,
+        "error_count": 0,
+        "error_rate": 0.0,
+        "category_counts": {},
+        "avg_tokens_on_error": 0.0
+      },
+      "RandomGate": {
+        "agent_or_method": "RandomGate",
+        "total_evaluations": 32,
+        "error_count": 1,
+        "error_rate": 3.12,
+        "category_counts": {
+          "false_stop": 1
+        },
+        "avg_tokens_on_error": 342.0
+      },
+      "RuleBasedGate": {
+        "agent_or_method": "RuleBasedGate",
+        "total_evaluations": 32,
+        "error_count": 5,
+        "error_rate": 15.62,
+        "category_counts": {
+          "false_stop": 5
+        },
+        "avg_tokens_on_error": 218.4
+      },
+      "GateOrchestra": {
+        "agent_or_method": "GateOrchestra",
+        "total_evaluations": 32,
+        "error_count": 2,
+        "error_rate": 6.25,
+        "category_counts": {
+          "false_stop": 2
+        },
+        "avg_tokens_on_error": 194.5
+      }
+    },
+    "category_counts": {
+      "empty_or_unparsed": 2,
+      "other_incorrect": 3,
+      "false_stop": 8
+    },
+    "category_percentages": {
+      "empty_or_unparsed": 15.38,
+      "other_incorrect": 23.08,
+      "false_stop": 61.54
+    },
+    "error_samples_count": 13,
+    "error_records": [
+      {
+        "task_id": "bridge_002",
+        "method": "CoT-SC-only",
+        "predicted_answer": "Unable to determine",
+        "ground_truth": null,
+        "category": "empty_or_unparsed",
+        "gate_decision": null,
+        "confidence": null,
+        "strategy": null,
+        "tokens_spent": 252,
+        "probe_tokens": 252,
+        "mas_tokens": null,
+        "latency_ms": 0.06749999738531187,
+        "explanation": "Answer was empty or defeatist: 'Unable to determine'."
+      },
+      {
+        "task_id": "bridge_009",
+        "method": "CoT-SC-only",
+        "predicted_answer": "Euro (incorrect)",
+        "ground_truth": null,
+        "category": "other_incorrect",
+        "gate_decision": null,
+        "confidence": null,
+        "strategy": null,
+        "tokens_spent": 344,
+        "probe_tokens": 344,
+        "mas_tokens": null,
+        "latency_ms": 0.06639999628532678,
+        "explanation": "Mismatched prediction for method CoT-SC-only."
+      },
+      {
+        "task_id": "cmp_026",
+        "method": "CoT-SC-only",
+        "predicted_answer": "X-rays have shorter wavelengths than visible light (incorrect)",
+        "ground_truth": null,
+        "category": "other_incorrect",
+        "gate_decision": null,
+        "confidence": null,
+        "strategy": null,
+        "tokens_spent": 180,
+        "probe_tokens": 180,
+        "mas_tokens": null,
+        "latency_ms": 0.0667000058456324,
+        "explanation": "Mismatched prediction for method CoT-SC-only."
+      },
+      {
+        "task_id": "comp_025",
+        "method": "CoT-SC-only",
+        "predicted_answer": "University of Cambridge (Trinity College) (incorrect)",
+        "ground_truth": null,
+        "category": "other_incorrect",
+        "gate_decision": null,
+        "confidence": null,
+        "strategy": null,
+        "tokens_spent": 193,
+        "probe_tokens": 193,
+        "mas_tokens": null,
+        "latency_ms": 0.06679999933112413,
+        "explanation": "Mismatched prediction for method CoT-SC-only."
+      },
+      {
+        "task_id": "comp_036",
+        "method": "CoT-SC-only",
+        "predicted_answer": "I don't know",
+        "ground_truth": null,
+        "category": "empty_or_unparsed",
+        "gate_decision": null,
+        "confidence": null,
+        "strategy": null,
+        "tokens_spent": 109,
+        "probe_tokens": 109,
+        "mas_tokens": null,
+        "latency_ms": 0.06880000000819564,
+        "explanation": "Answer was empty or defeatist: 'I don't know'."
+      },
+      {
+        "task_id": "comp_012",
+        "method": "RandomGate",
+        "predicted_answer": "The United States Capitol (incorrect)",
+        "ground_truth": null,
+        "category": "false_stop",
+        "gate_decision": "STOP",
+        "confidence": 0.5,
+        "strategy": null,
+        "tokens_spent": 342,
+        "probe_tokens": 342,
+        "mas_tokens": 0,
+        "latency_ms": null,
+        "explanation": "Gate issued STOP (confidence: 0.50), but probe produced an incorrect answer."
+      },
+      {
+        "task_id": "arith_013",
+        "method": "RuleBasedGate",
+        "predicted_answer": "Unable to determine",
+        "ground_truth": null,
+        "category": "false_stop",
+        "gate_decision": "STOP",
+        "confidence": 1.0,
+        "strategy": null,
+        "tokens_spent": 187,
+        "probe_tokens": 187,
+        "mas_tokens": 0,
+        "latency_ms": null,
+        "explanation": "Gate issued STOP (confidence: 1.00), but probe produced an incorrect answer."
+      },
+      {
+        "task_id": "arith_016",
+        "method": "RuleBasedGate",
+        "predicted_answer": "35%",
+        "ground_truth": null,
+        "category": "false_stop",
+        "gate_decision": "STOP",
+        "confidence": 1.0,
+        "strategy": null,
+        "tokens_spent": 148,
+        "probe_tokens": 148,
+        "mas_tokens": 0,
+        "latency_ms": null,
+        "explanation": "Gate issued STOP (confidence: 1.00), but probe produced an incorrect answer."
+      },
+      {
+        "task_id": "bridge_012",
+        "method": "RuleBasedGate",
+        "predicted_answer": "Unable to determine",
+        "ground_truth": null,
+        "category": "false_stop",
+        "gate_decision": "STOP",
+        "confidence": 1.0,
+        "strategy": null,
+        "tokens_spent": 262,
+        "probe_tokens": 262,
+        "mas_tokens": 0,
+        "latency_ms": null,
+        "explanation": "Gate issued STOP (confidence: 1.00), but probe produced an incorrect answer."
+      },
+      {
+        "task_id": "comp_031",
+        "method": "RuleBasedGate",
+        "predicted_answer": "Unable to determine",
+        "ground_truth": null,
+        "category": "false_stop",
+        "gate_decision": "STOP",
+        "confidence": 1.0,
+        "strategy": null,
+        "tokens_spent": 316,
+        "probe_tokens": 316,
+        "mas_tokens": 0,
+        "latency_ms": null,
+        "explanation": "Gate issued STOP (confidence: 1.00), but probe produced an incorrect answer."
+      },
+      {
+        "task_id": "comp_036",
+        "method": "RuleBasedGate",
+        "predicted_answer": "Lake \u015aniardwy (incorrect)",
+        "ground_truth": null,
+        "category": "false_stop",
+        "gate_decision": "STOP",
+        "confidence": 1.0,
+        "strategy": null,
+        "tokens_spent": 179,
+        "probe_tokens": 179,
+        "mas_tokens": 0,
+        "latency_ms": null,
+        "explanation": "Gate issued STOP (confidence: 1.00), but probe produced an incorrect answer."
+      },
+      {
+        "task_id": "bridge_019",
+        "method": "GateOrchestra",
+        "predicted_answer": "Piano (incorrect)",
+        "ground_truth": null,
+        "category": "false_stop",
+        "gate_decision": "STOP",
+        "confidence": 0.9986,
+        "strategy": null,
+        "tokens_spent": 258,
+        "probe_tokens": 258,
+        "mas_tokens": 0,
+        "latency_ms": null,
+        "explanation": "Gate issued STOP (confidence: 1.00), but probe produced an incorrect answer."
+      },
+      {
+        "task_id": "comp_012",
+        "method": "GateOrchestra",
+        "predicted_answer": "I don't know",
+        "ground_truth": null,
+        "category": "false_stop",
+        "gate_decision": "STOP",
+        "confidence": 0.9986,
+        "strategy": null,
+        "tokens_spent": 131,
+        "probe_tokens": 131,
+        "mas_tokens": 0,
+        "latency_ms": null,
+        "explanation": "Gate issued STOP (confidence: 1.00), but probe produced an incorrect answer."
+      }
+    ]
+  }
+}

@@ -168,6 +168,7 @@ def run_demo(
     gate_name: str = "gbt",
     k: int = K_DEFAULT,
     mode: str = "mock",
+    show_trace: bool = False,
 ) -> tuple[list[DemoTaskRecord], dict[str, Any]]:
     """Execute end-to-end demonstration across the provided tasks."""
     gate = get_demo_gate(gate_name)
@@ -176,7 +177,7 @@ def run_demo(
         probe = SimulatedProbe(seed=42)
         probe_fn = probe.run
         mock_mas = MockMASOrchestrator(seed=42)
-        mas_fn = mock_mas
+        mas_fn: Any = mock_mas
         mas_obj: Any = mock_mas
     else:
         from agents.orchestrator.orchestrator import orchestrator
@@ -236,7 +237,7 @@ def run_demo(
             source_dataset=task.source_dataset or "general",
             depth=int(task.depth_score or 2),
             parallel=int(task.parallel_score or 1),
-            probe_tokens=result.probe_tokens,
+            probe_tokens=result.probe_tokens or 0,
             probe_consistency=probe_res.consistency_score,
             gate_decision=result.gate_decision.decision if result.gate_decision else "N/A",
             gate_confidence=result.gate_decision.confidence if result.gate_decision else 1.0,
@@ -269,7 +270,65 @@ def run_demo(
         "net_token_savings_pct": round(net_savings, 2),
     }
 
+    if show_trace:
+        for task, rec in zip(tasks, records, strict=False):
+            print_task_lifecycle_trace(task, rec)
+
     return records, summary
+
+
+def print_task_lifecycle_trace(task: Task, rec: DemoTaskRecord) -> None:
+    """Visibly render task -> probe -> features -> gate -> strategy -> answer -> metrics."""
+    print("\n" + "-" * 84)
+    print(f">> [LIFECYCLE TRACE] Task ID: {rec.task_id} (Category: {rec.source_dataset})")
+    print("-" * 84)
+    print(" [1] USER TASK:")
+    print(f"     Prompt:       {task.question}")
+    if task.context:
+        ctx_snippet = task.context[:90] + "..." if len(task.context) > 90 else task.context
+        print(f"     Context:      {ctx_snippet}")
+    print(f"     Ground Truth: {rec.ground_truth}")
+
+    print("\n [2] PROBE AGENT (CoT-SC, N=3):")
+    print(f"     Probe Tokens: {rec.probe_tokens} tokens")
+    print(
+        f"     Consistency:  {rec.probe_consistency:.2f} ({int(rec.probe_consistency * 100)}% agreement)"
+    )
+
+    print("\n [3] EXTRACTED PRE-EXECUTION SIGNALS (8 Features):")
+    print(
+        f"     Depth: {rec.depth} | Parallel: {rec.parallel} | Consistency: {rec.probe_consistency:.2f} | Tokens: {rec.probe_tokens}"
+    )
+
+    print("\n [4] GATE DECISION:")
+    print(f"     Routing:      {rec.gate_decision} (Confidence: {int(rec.gate_confidence * 100)}%)")
+    cap_str = f"{rec.budget_cap} tokens" if rec.budget_cap else "None (STOP fast exit)"
+    print(f"     Budget Cap:   {cap_str}")
+
+    print("\n [5] MULTI-AGENT EXECUTION & STRATEGY:")
+    if rec.gate_decision == "STOP":
+        print(
+            "     Action:       STOP -> Return probe answer immediately (0 additional MAS tokens)"
+        )
+        print("     Strategy:     None (Single-agent consensus accepted)")
+    else:
+        print("     Action:       ESCALATE -> Dispatched to Multi-Agent Orchestrator")
+        print(
+            f"     LinUCB Arm:   {rec.mas_strategy or 'react'} (Strategy selected based on task features)"
+        )
+
+    print("\n [6] FINAL ANSWER & VALIDATION:")
+    print(f"     Output:       {rec.final_answer}")
+    acc_str = "[CORRECT]" if rec.is_correct else "[INCORRECT]"
+    print(f"     Evaluation:   {acc_str}")
+
+    print("\n [7] TELEMETRY & TOKEN ACCOUNTING:")
+    print(f"     Tokens Spent: {rec.total_tokens} (Always-MAS baseline: {rec.always_mas_tokens})")
+    sav_str = (
+        f"+{rec.token_savings_pct}%" if rec.token_savings_pct >= 0 else f"{rec.token_savings_pct}%"
+    )
+    print(f"     Savings:      {sav_str} tokens saved vs un-gated MAS")
+    print("-" * 84)
 
 
 def print_demo_presentation(records: list[DemoTaskRecord], summary: dict[str, Any]) -> None:
@@ -341,6 +400,12 @@ def main() -> int:
         help="Run a specific task ID (overrides --n)",
     )
     parser.add_argument(
+        "--trace",
+        action="store_true",
+        default=False,
+        help="Visibly print full stage-by-stage lifecycle trace for each task",
+    )
+    parser.add_argument(
         "--gate",
         choices=["gbt", "rule", "random"],
         default="gbt",
@@ -371,6 +436,8 @@ def main() -> int:
     else:
         demo_tasks = all_tasks[: args.n]
 
+    show_trace = args.trace or (args.task_id is not None) or (args.n == 1)
+
     print(
         f"[DEMO START] Running GateOrchestra on {len(demo_tasks)} task(s) | "
         f"Mode: {args.mode.upper()} | Gate: {args.gate.upper()} | k: {args.k}"
@@ -381,6 +448,7 @@ def main() -> int:
         gate_name=args.gate,
         k=args.k,
         mode=args.mode,
+        show_trace=show_trace,
     )
 
     print_demo_presentation(records, summary)
