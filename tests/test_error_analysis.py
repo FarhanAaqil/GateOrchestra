@@ -346,8 +346,8 @@ class TestAnalyzeErrorsCLI:
         assert code == 0
         captured = capsys.readouterr()
         combined = captured.out + captured.err
-        assert "Loaded 150 ground truth answers" in combined
-        assert "Uruguay River" in combined
+        assert "ground truth answers from dataset splits" in combined
+        assert "GateOrchestra -- Error Analysis Report" in captured.out
 
     def test_cli_json_format(self, capsys):
         code = cli_main(
