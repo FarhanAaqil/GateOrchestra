@@ -28,7 +28,7 @@ from agents.error_analysis import (
     analyze_errors_from_records,
     classify_error,
 )
-from scripts.analyze_errors import main as cli_main
+from scripts.analyze_agent_errors import main as cli_main
 from shared.schemas import EvalResult, GateDecision
 
 # ─────────────────────────────────────────────────────────────────────────────
