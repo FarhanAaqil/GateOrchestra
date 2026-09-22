@@ -136,16 +136,16 @@ def run_pipeline(
         decision.decision == "ESCALATE"
         and mas_orchestrator is not None
         and hasattr(mas_orchestrator, "update_bandit_reward")
-        and hasattr(mas_orchestrator, "_last_strategy")
-        and mas_orchestrator._last_strategy is not None  # type: ignore[union-attr]
+        and getattr(mas_orchestrator, "_last_strategy", None) is not None
     ):
+        last_strat = getattr(mas_orchestrator, "_last_strategy", None)
         logger.debug(
-            f"  Bandit update: arm={mas_orchestrator._last_strategy!r} "
+            f"  Bandit update: arm={last_strat!r} "
             f"correct={is_correct} tokens={mas_tokens} budget={token_budget}"
         )
-        mas_orchestrator.update_bandit_reward(  # type: ignore[union-attr]
+        mas_orchestrator.update_bandit_reward(
             task,
-            mas_orchestrator._last_strategy,  # type: ignore[union-attr]
+            last_strat,
             is_correct if is_correct is not None else False,
             tokens_spent=mas_tokens,
             budget=token_budget,
@@ -160,11 +160,11 @@ def run_pipeline(
     mas_strategy: str | None = None
     if decision.decision == "ESCALATE":
         if mas_orchestrator is not None and hasattr(mas_orchestrator, "_last_strategy"):
-            mas_strategy = mas_orchestrator._last_strategy  # type: ignore[union-attr]
+            mas_strategy = getattr(mas_orchestrator, "_last_strategy", None)
         elif hasattr(orchestrator, "__self__") and hasattr(
-            orchestrator.__self__, "_last_strategy"  # type: ignore[union-attr]
+            getattr(orchestrator, "__self__", None), "_last_strategy"
         ):
-            mas_strategy = orchestrator.__self__._last_strategy  # type: ignore[union-attr]
+            mas_strategy = getattr(getattr(orchestrator, "__self__", None), "_last_strategy", None)
 
     return EvalResult(
         task_id=task.task_id,

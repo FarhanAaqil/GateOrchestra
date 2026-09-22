@@ -205,11 +205,12 @@ class TestOrchestratorBanditMode:
         """MASOrchestrator save_bandit_state and load_bandit_state delegate properly."""
         state_file = tmp_path / "orch_bandit.json"
         orch = MASOrchestrator(default_strategy="bandit")
-        orch.update_bandit_reward(sample_task, "reflexion", is_correct=True, tokens_spent=50, budget=200)
+        orch.update_bandit_reward(
+            sample_task, "reflexion", is_correct=True, tokens_spent=50, budget=200
+        )
 
         orch.save_bandit_state(state_file)
         assert state_file.exists()
 
         new_orch = MASOrchestrator(default_strategy="bandit", bandit_state_path=state_file)
         assert np.allclose(new_orch.bandit_router.b["reflexion"], orch.bandit_router.b["reflexion"])
-

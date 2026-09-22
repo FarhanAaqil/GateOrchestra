@@ -327,4 +327,3 @@ class TestEvalResultMasStrategy:
         restored = EvalResult(**er.model_dump())
         assert restored.mas_strategy == "react"
         assert restored == er
-

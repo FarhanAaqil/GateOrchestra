@@ -136,4 +136,3 @@ class LinUCBRouter:
         self.d = data["d"]
         self.A = {arm: np.array(mat, dtype=np.float64) for arm, mat in data["A"].items()}
         self.b = {arm: np.array(vec, dtype=np.float64) for arm, vec in data["b"].items()}
-

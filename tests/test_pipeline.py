@@ -179,8 +179,6 @@ class TestExactMatch:
 # Week 8 — LinUCB bandit online update via run_pipeline
 # ─────────────────────────────────────────────────────────────────────────────
 
-import copy  # noqa: E402  (standard-lib, placed here to keep existing imports tidy)
-
 import numpy as np  # noqa: E402
 
 from agents.orchestrator import MASOrchestrator  # noqa: E402
@@ -189,6 +187,7 @@ from agents.orchestrator import MASOrchestrator  # noqa: E402
 @pytest.fixture
 def bandit_task():
     from shared.schemas import Task
+
     return Task(
         task_id="bandit_task_01",
         question="What is the capital of Japan?",
@@ -200,6 +199,7 @@ def bandit_task():
 
 def _make_mas_orch(answer: str = "Tokyo", tokens: int = 80) -> MASOrchestrator:
     """Return a MASOrchestrator whose sub-agents use an injected mock LLM caller."""
+
     def mock_caller(prompt: str, temp: float, budget: int) -> tuple[str, int]:
         return f"Final Answer: {answer}", min(tokens, budget)
 
@@ -238,16 +238,16 @@ class TestBanditOnlineUpdate:
         assert chosen is not None
 
         # The chosen arm's b-vector must have changed
-        assert not np.allclose(before[chosen], after[chosen]), (
-            f"b-vector for arm={chosen!r} should have been updated but was unchanged."
-        )
+        assert not np.allclose(
+            before[chosen], after[chosen]
+        ), f"b-vector for arm={chosen!r} should have been updated but was unchanged."
 
         # Un-chosen arms must be untouched
         for arm in orch.bandit_router.arms:
             if arm != chosen:
-                assert np.allclose(before[arm], after[arm]), (
-                    f"b-vector for un-chosen arm={arm!r} should be unchanged."
-                )
+                assert np.allclose(
+                    before[arm], after[arm]
+                ), f"b-vector for un-chosen arm={arm!r} should be unchanged."
 
     def test_bandit_not_updated_on_stop(self, bandit_task):
         """When the gate says STOP the bandit b-vectors must remain identical."""
@@ -266,9 +266,9 @@ class TestBanditOnlineUpdate:
 
         after = self._snapshot_b(orch)
         for arm in orch.bandit_router.arms:
-            assert np.allclose(before[arm], after[arm]), (
-                f"b-vector for arm={arm!r} changed on STOP — should not have."
-            )
+            assert np.allclose(
+                before[arm], after[arm]
+            ), f"b-vector for arm={arm!r} changed on STOP — should not have."
 
     def test_backward_compat_no_mas_orchestrator(self, bandit_task):
         """Omitting mas_orchestrator must not raise and must return a valid EvalResult."""
@@ -294,14 +294,17 @@ class TestBanditOnlineUpdate:
         original_update = orch.update_bandit_reward
 
         def spy_update(task, chosen_strategy, is_correct, *, tokens_spent, budget):
-            updates.append({
-                "strategy": chosen_strategy,
-                "is_correct": is_correct,
-                "tokens_spent": tokens_spent,
-                "budget": budget,
-            })
-            return original_update(task, chosen_strategy, is_correct,
-                                   tokens_spent=tokens_spent, budget=budget)
+            updates.append(
+                {
+                    "strategy": chosen_strategy,
+                    "is_correct": is_correct,
+                    "tokens_spent": tokens_spent,
+                    "budget": budget,
+                }
+            )
+            return original_update(
+                task, chosen_strategy, is_correct, tokens_spent=tokens_spent, budget=budget
+            )
 
         orch.update_bandit_reward = spy_update  # type: ignore[method-assign]
 
@@ -333,8 +336,9 @@ class TestBanditOnlineUpdate:
 
         def spy_update(task, chosen_strategy, is_correct, *, tokens_spent, budget):
             updates.append({"is_correct": is_correct})
-            return original_update(task, chosen_strategy, is_correct,
-                                   tokens_spent=tokens_spent, budget=budget)
+            return original_update(
+                task, chosen_strategy, is_correct, tokens_spent=tokens_spent, budget=budget
+            )
 
         orch.update_bandit_reward = spy_update  # type: ignore[method-assign]
 
@@ -422,7 +426,7 @@ class TestMasStrategyInResult:
             task=bandit_task,
             gate=gate,
             probe_agent=mock_probe_agent,
-            orchestrator=orch.run,   # bound method — no mas_orchestrator
+            orchestrator=orch.run,  # bound method — no mas_orchestrator
             accountant=TokenAccountant(),
             # mas_orchestrator intentionally omitted
         )
@@ -474,9 +478,9 @@ class TestMasStrategyInResult:
             mas_orchestrator=orch,
         )
 
-        assert result.mas_strategy == "react", (
-            f"Expected 'react' for depth_score=4, got {result.mas_strategy!r}"
-        )
+        assert (
+            result.mas_strategy == "react"
+        ), f"Expected 'react' for depth_score=4, got {result.mas_strategy!r}"
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -519,7 +523,9 @@ class TestEndToEndRealIntegration:
         accountant = TokenAccountant()
 
         # Capture initial LinUCB reward vector state
-        initial_b_sum = {arm: float(orch.bandit_router.b[arm].sum()) for arm in orch.bandit_router.arms}
+        initial_b_sum = {
+            arm: float(orch.bandit_router.b[arm].sum()) for arm in orch.bandit_router.arms
+        }
 
         result = run_pipeline(
             task=task,
@@ -554,7 +560,9 @@ class TestEndToEndRealIntegration:
         # 6. LinUCB reward update verified
         updated_arm = result.mas_strategy
         new_b_sum = float(orch.bandit_router.b[updated_arm].sum())
-        assert new_b_sum != initial_b_sum[updated_arm], "LinUCB state vector b must update after ESCALATE"
+        assert (
+            new_b_sum != initial_b_sum[updated_arm]
+        ), "LinUCB state vector b must update after ESCALATE"
 
     def test_e2e_stop_flow(self, mock_llm):
         """Verify full STOP flow with real components and mock LLM."""
@@ -599,4 +607,3 @@ class TestEndToEndRealIntegration:
         # 4. EvalResult uses probe answer and spends zero MAS tokens
         assert result.predicted_answer == "42"
         assert result.tokens_spent == result.probe_tokens
-

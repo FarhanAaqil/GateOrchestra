@@ -117,6 +117,7 @@ class TestLastStrategyCache:
 
     def test_last_strategy_set_after_run(self, reflexion_task):
         """After run(), _last_strategy must be one of the three valid arm names."""
+
         def mock_caller(prompt: str, temp: float, budget: int) -> tuple[str, int]:
             return "Final Answer: 120", 30
 
@@ -128,6 +129,7 @@ class TestLastStrategyCache:
 
     def test_last_strategy_reflects_forced_strategy(self, react_task, debate_task, reflexion_task):
         """_last_strategy must match the strategy the heuristic router picks."""
+
         def mock_caller(prompt: str, temp: float, budget: int) -> tuple[str, int]:
             return "Final Answer: X", 20
 
@@ -144,6 +146,7 @@ class TestLastStrategyCache:
 
     def test_last_strategy_updated_on_each_run(self, react_task, reflexion_task):
         """Running twice must overwrite _last_strategy with the new arm."""
+
         def mock_caller(prompt: str, temp: float, budget: int) -> tuple[str, int]:
             return "Final Answer: Y", 25
 
@@ -160,4 +163,3 @@ class TestLastStrategyCache:
         assert second in ("react", "debate", "reflexion")
         # react_task routes to "react", reflexion_task routes to "reflexion"
         assert first != second
-
