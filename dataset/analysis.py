@@ -780,7 +780,7 @@ class DatasetAnalyzer:
         """Generate a complete plain-text / ASCII analysis summary for CLI printing."""
         lines = [
             "=" * 70,
-            f"  GATEORCHESTRA DATASET ANALYSIS REPORT — {report.dataset_name.upper()}",
+            f"  GATEORCHESTRA DATASET ANALYSIS REPORT - {report.dataset_name.upper()}",
             "=" * 70,
             f"  Total Tasks Inspected : {report.total_tasks}",
             f"  Generated At (UTC)    : {report.generated_at}",

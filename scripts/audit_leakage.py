@@ -79,7 +79,7 @@ def main() -> None:
     save_leakage_report(report, args.output)
 
     print("\n" + "=" * 60)
-    print("  GateOrchestra — Data Leakage Audit (Week 4)")
+    print("  GateOrchestra - Data Leakage Audit (Week 4)")
     print("=" * 60)
     print(
         f"  Status          : {'[PASS] No Leakage Detected' if report.is_clean else '[FAIL] Leakage Detected'}"
