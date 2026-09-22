@@ -54,6 +54,7 @@ class MASOrchestrator:
         llm_caller: LLMCallerFn | None = None,
         router: LinUCBRouter | None = None,
         bandit_state_path: str | Path | None = None,
+        warmstart_traces: list[dict] | list[tuple[Task, str, float]] | str | Path | None = None,
     ) -> None:
         self.model_name = model_name or MODEL_NAME
         self.default_strategy = default_strategy
@@ -88,6 +89,8 @@ class MASOrchestrator:
         self.bandit_router = router or LinUCBRouter()
         if bandit_state_path is not None:
             self.load_bandit_state(bandit_state_path)
+        if warmstart_traces is not None:
+            self.warmstart_bandit(warmstart_traces)
 
     def save_bandit_state(self, path: str | Path) -> None:
         """Persist LinUCB router state to disk."""
@@ -96,6 +99,13 @@ class MASOrchestrator:
     def load_bandit_state(self, path: str | Path) -> None:
         """Load LinUCB router state from disk."""
         self.bandit_router.load(path)
+
+    def warmstart_bandit(
+        self,
+        traces: list[dict] | list[tuple[Task, str, float]] | str | Path,
+    ) -> int:
+        """Warm-start the internal LinUCB bandit router from historical traces."""
+        return self.bandit_router.warmstart_from_traces(traces)
 
     def select_strategy(self, task: Task) -> str:
         """Select appropriate sub-agent strategy based on task signals or LinUCB."""
@@ -166,9 +176,14 @@ class MASOrchestrator:
 _default_orchestrator: MASOrchestrator | None = None
 
 
-def orchestrator(task: Task, token_budget: int) -> tuple[str, int]:
-    """Functional interface matching OrchestratorFn: (Task, int) -> (str, int)."""
+def get_default_mas_orchestrator() -> MASOrchestrator:
+    """Return the module-level default MASOrchestrator instance."""
     global _default_orchestrator
     if _default_orchestrator is None:
         _default_orchestrator = MASOrchestrator()
-    return _default_orchestrator(task, token_budget)
+    return _default_orchestrator
+
+
+def orchestrator(task: Task, token_budget: int) -> tuple[str, int]:
+    """Functional interface matching OrchestratorFn: (Task, int) -> (str, int)."""
+    return get_default_mas_orchestrator()(task, token_budget)

@@ -187,8 +187,22 @@ def run_batch(
     accountant: TokenAccountant,
     k: int = K_DEFAULT,
     method: str = "GateOrchestra",
+    threshold: float | None = None,
+    mas_orchestrator: object | None = None,
 ) -> list[EvalResult]:
     """Run the pipeline on a batch of tasks.
+
+    Args:
+        tasks:            List of Task instances to evaluate.
+        gate:             A trained GateClassifier (or RuleBasedGate/RandomGate).
+        probe_agent:      Callable matching ProbeAgentFn signature.
+        orchestrator:     Callable matching OrchestratorFn signature.
+        accountant:       TokenAccountant instance to log spend.
+        k:                Token budget multiplier for MAS.
+        method:           Label for logging (e.g. "GateOrchestra", "RuleBasedGate").
+        threshold:        Optional probability threshold for ESCALATE decision.
+        mas_orchestrator: Optional MASOrchestrator instance for LinUCB updates and
+                          strategy tracking.
 
     Returns:
         List of EvalResult, one per task (same order as input).
@@ -196,7 +210,17 @@ def run_batch(
     results = []
     for i, task in enumerate(tasks):
         logger.info(f"[Batch] {i+1}/{len(tasks)} task={task.task_id}")
-        result = run_pipeline(task, gate, probe_agent, orchestrator, accountant, k, method)
+        result = run_pipeline(
+            task=task,
+            gate=gate,
+            probe_agent=probe_agent,
+            orchestrator=orchestrator,
+            accountant=accountant,
+            k=k,
+            method=method,
+            threshold=threshold,
+            mas_orchestrator=mas_orchestrator,
+        )
         results.append(result)
     return results
 

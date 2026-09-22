@@ -137,6 +137,35 @@ class TestRunBatch:
         assert "RuleBasedGate" in total
         assert total["RuleBasedGate"] > 0
 
+    def test_run_batch_with_mas_orchestrator_and_threshold(self, tasks, accountant):
+        """run_batch must pass threshold and mas_orchestrator, recording strategy and updating LinUCB."""
+        orch = _make_mas_orch(answer="42")
+        gate = RandomGate(escalation_rate=1.0, seed=42)  # Force ESCALATE
+        initial_b_sum = sum(
+            float(orch.bandit_router.b[arm].sum()) for arm in orch.bandit_router.arms
+        )
+
+        results = run_batch(
+            tasks,
+            gate,
+            mock_probe_agent,
+            orch.run,
+            accountant,
+            k=3,
+            method="GateOrchestra",
+            threshold=0.01,
+            mas_orchestrator=orch,
+        )
+
+        assert len(results) == len(tasks)
+        for r in results:
+            assert r.gate_decision is not None
+            assert r.gate_decision.decision == "ESCALATE"
+            assert r.mas_strategy in ("react", "debate", "reflexion")
+
+        final_b_sum = sum(float(orch.bandit_router.b[arm].sum()) for arm in orch.bandit_router.arms)
+        assert final_b_sum != initial_b_sum
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Exact match helper
