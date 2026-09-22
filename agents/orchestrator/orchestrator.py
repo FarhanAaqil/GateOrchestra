@@ -36,6 +36,12 @@ class MASOrchestrator:
         default_strategy: Routing strategy ('auto', 'bandit', 'react', 'debate', 'reflexion').
         llm_caller: Pluggable LLM caller for mock testing or custom backends.
         router: Optional custom LinUCBRouter instance.
+
+    Attributes:
+        _last_strategy: The sub-agent strategy chosen during the most recent
+            ``run()`` call (``None`` before any call).  The pipeline uses this
+            to feed the observed reward back to the LinUCB bandit without
+            changing the public ``OrchestratorFn`` return type.
     """
 
     def __init__(
@@ -52,6 +58,9 @@ class MASOrchestrator:
         self.provider = provider
         self.api_key = api_key
         self.llm_caller = llm_caller
+
+        # Strategy chosen by the most recent run() call; used for bandit updates.
+        self._last_strategy: str | None = None
 
         # Sub-agent pool
         self.react_agent = ReActAgent(
@@ -97,10 +106,16 @@ class MASOrchestrator:
     def run(self, task: Task, token_budget: int) -> tuple[str, int]:
         """Execute MAS reasoning within token_budget cap.
 
+        Side-effect: sets ``self._last_strategy`` to the arm chosen for this
+        task so that callers can pass it to ``update_bandit_reward()`` after
+        the result is evaluated.
+
         Returns:
             tuple of (answer_string, actual_tokens_used).
         """
         strategy = self.select_strategy(task)
+        # Cache the chosen arm so the pipeline can retrieve it for the bandit update.
+        self._last_strategy = strategy
         logger.info(
             f"[MASOrchestrator] Running task={task.task_id} with strategy={strategy} budget={token_budget}"
         )

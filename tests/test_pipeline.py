@@ -173,3 +173,181 @@ class TestExactMatch:
 
     def test_answer_first_negation_is_not_correct(self):
         assert _exact_match("United States is not correct; Canada is", "United States") is False
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Week 8 — LinUCB bandit online update via run_pipeline
+# ─────────────────────────────────────────────────────────────────────────────
+
+import copy  # noqa: E402  (standard-lib, placed here to keep existing imports tidy)
+
+import numpy as np  # noqa: E402
+
+from agents.orchestrator import MASOrchestrator  # noqa: E402
+
+
+@pytest.fixture
+def bandit_task():
+    from shared.schemas import Task
+    return Task(
+        task_id="bandit_task_01",
+        question="What is the capital of Japan?",
+        ground_truth="Tokyo",
+        depth_score=1,
+        parallel_score=1,
+    )
+
+
+def _make_mas_orch(answer: str = "Tokyo", tokens: int = 80) -> MASOrchestrator:
+    """Return a MASOrchestrator whose sub-agents use an injected mock LLM caller."""
+    def mock_caller(prompt: str, temp: float, budget: int) -> tuple[str, int]:
+        return f"Final Answer: {answer}", min(tokens, budget)
+
+    return MASOrchestrator(llm_caller=mock_caller)
+
+
+class TestBanditOnlineUpdate:
+    """Pipeline integration tests: LinUCB bandit weights update only on ESCALATE."""
+
+    # ── helpers ───────────────────────────────────────────────────────────────
+
+    @staticmethod
+    def _snapshot_b(orch: MASOrchestrator) -> dict:
+        """Deep-copy the b-vectors of all bandit arms (tracks reward signal)."""
+        return {arm: orch.bandit_router.b[arm].copy() for arm in orch.bandit_router.arms}
+
+    # ── core ESCALATE update test ──────────────────────────────────────────────
+
+    def test_bandit_b_vector_changes_after_escalate(self, bandit_task):
+        """After a pipeline ESCALATE the b-vector of the chosen arm must change."""
+        orch = _make_mas_orch(answer="Tokyo")
+        before = self._snapshot_b(orch)
+
+        gate = RandomGate(escalation_rate=1.0, seed=0)  # always ESCALATE
+        run_pipeline(
+            task=bandit_task,
+            gate=gate,
+            probe_agent=mock_probe_agent,
+            orchestrator=orch.run,
+            accountant=TokenAccountant(),
+            mas_orchestrator=orch,
+        )
+
+        after = self._snapshot_b(orch)
+        chosen = orch._last_strategy
+        assert chosen is not None
+
+        # The chosen arm's b-vector must have changed
+        assert not np.allclose(before[chosen], after[chosen]), (
+            f"b-vector for arm={chosen!r} should have been updated but was unchanged."
+        )
+
+        # Un-chosen arms must be untouched
+        for arm in orch.bandit_router.arms:
+            if arm != chosen:
+                assert np.allclose(before[arm], after[arm]), (
+                    f"b-vector for un-chosen arm={arm!r} should be unchanged."
+                )
+
+    def test_bandit_not_updated_on_stop(self, bandit_task):
+        """When the gate says STOP the bandit b-vectors must remain identical."""
+        orch = _make_mas_orch()
+        before = self._snapshot_b(orch)
+
+        gate = RuleBasedGate(consistency_stop=0.0)  # always STOP
+        run_pipeline(
+            task=bandit_task,
+            gate=gate,
+            probe_agent=mock_probe_agent,
+            orchestrator=orch.run,
+            accountant=TokenAccountant(),
+            mas_orchestrator=orch,
+        )
+
+        after = self._snapshot_b(orch)
+        for arm in orch.bandit_router.arms:
+            assert np.allclose(before[arm], after[arm]), (
+                f"b-vector for arm={arm!r} changed on STOP — should not have."
+            )
+
+    def test_backward_compat_no_mas_orchestrator(self, bandit_task):
+        """Omitting mas_orchestrator must not raise and must return a valid EvalResult."""
+        gate = RandomGate(escalation_rate=1.0, seed=0)
+        result = run_pipeline(
+            task=bandit_task,
+            gate=gate,
+            probe_agent=mock_probe_agent,
+            orchestrator=mock_orchestrator,
+            accountant=TokenAccountant(),
+            # mas_orchestrator intentionally omitted
+        )
+        assert isinstance(result, EvalResult)
+        assert result.gate_decision is not None
+        assert result.gate_decision.decision == "ESCALATE"
+
+    def test_bandit_update_uses_correct_is_correct_signal(self, bandit_task):
+        """Reward should use is_correct=True when answer matches ground_truth."""
+        orch = _make_mas_orch(answer="Tokyo")  # matches ground_truth
+
+        # We capture the update call via a spy
+        updates: list[dict] = []
+        original_update = orch.update_bandit_reward
+
+        def spy_update(task, chosen_strategy, is_correct, *, tokens_spent, budget):
+            updates.append({
+                "strategy": chosen_strategy,
+                "is_correct": is_correct,
+                "tokens_spent": tokens_spent,
+                "budget": budget,
+            })
+            return original_update(task, chosen_strategy, is_correct,
+                                   tokens_spent=tokens_spent, budget=budget)
+
+        orch.update_bandit_reward = spy_update  # type: ignore[method-assign]
+
+        gate = RandomGate(escalation_rate=1.0, seed=0)
+        run_pipeline(
+            task=bandit_task,
+            gate=gate,
+            probe_agent=mock_probe_agent,
+            orchestrator=orch.run,
+            accountant=TokenAccountant(),
+            mas_orchestrator=orch,
+        )
+
+        assert len(updates) == 1, "update_bandit_reward should be called exactly once"
+        assert updates[0]["is_correct"] is True
+        assert updates[0]["strategy"] in ("react", "debate", "reflexion")
+        assert updates[0]["tokens_spent"] > 0
+        assert updates[0]["budget"] > 0
+
+    def test_bandit_is_correct_false_when_no_ground_truth(self):
+        """When task has no ground_truth, is_correct defaults to False for the reward."""
+        from shared.schemas import Task
+
+        task = Task(task_id="no_gt_bandit", question="Q?")  # no ground_truth
+        orch = _make_mas_orch(answer="anything")
+
+        updates: list[dict] = []
+        original_update = orch.update_bandit_reward
+
+        def spy_update(task, chosen_strategy, is_correct, *, tokens_spent, budget):
+            updates.append({"is_correct": is_correct})
+            return original_update(task, chosen_strategy, is_correct,
+                                   tokens_spent=tokens_spent, budget=budget)
+
+        orch.update_bandit_reward = spy_update  # type: ignore[method-assign]
+
+        gate = RandomGate(escalation_rate=1.0, seed=0)
+        run_pipeline(
+            task=task,
+            gate=gate,
+            probe_agent=mock_probe_agent,
+            orchestrator=orch.run,
+            accountant=TokenAccountant(),
+            mas_orchestrator=orch,
+        )
+
+        assert len(updates) == 1
+        assert updates[0]["is_correct"] is False  # fallback when ground_truth is None
+

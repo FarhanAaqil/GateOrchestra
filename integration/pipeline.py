@@ -56,6 +56,7 @@ def run_pipeline(
     k: int = K_DEFAULT,
     method: str = "GateOrchestra",
     threshold: float | None = None,
+    mas_orchestrator: object | None = None,
 ) -> EvalResult:
     """Run the full GateOrchestra pipeline for a single task.
 
@@ -64,18 +65,25 @@ def run_pipeline(
       2. Extract — extract GateFeatures from (task, probe)
       3. Gate   — route to STOP or ESCALATE
       4. Route  — if STOP: return probe answer; if ESCALATE: call orchestrator
-      5. Log    — record all token spend to accountant
-      6. Return — build and return EvalResult
+      5. Bandit — if ESCALATE and mas_orchestrator provided, update LinUCB reward
+      6. Log    — record all token spend to accountant
+      7. Return — build and return EvalResult
 
     Args:
-        task:         The task to evaluate.
-        gate:         A trained GateClassifier (or RuleBasedGate/RandomGate).
-        probe_agent:  Callable matching ProbeAgentFn signature.
-        orchestrator: Callable matching OrchestratorFn signature.
-        accountant:   TokenAccountant instance to log spend.
-        k:            Token budget multiplier for MAS.
-        method:       Label for logging (e.g. "GateOrchestra", "RuleBasedGate").
-        threshold:    Optional probability threshold for ESCALATE decision.
+        task:             The task to evaluate.
+        gate:             A trained GateClassifier (or RuleBasedGate/RandomGate).
+        probe_agent:      Callable matching ProbeAgentFn signature.
+        orchestrator:     Callable matching OrchestratorFn signature.
+        accountant:       TokenAccountant instance to log spend.
+        k:                Token budget multiplier for MAS.
+        method:           Label for logging (e.g. "GateOrchestra", "RuleBasedGate").
+        threshold:        Optional probability threshold for ESCALATE decision.
+        mas_orchestrator: Optional MASOrchestrator instance.  When provided and
+                          the gate decides ESCALATE, the LinUCB bandit is updated
+                          with the observed reward after ``is_correct`` is known.
+                          Duck-typed: must expose ``_last_strategy`` (str | None)
+                          and ``update_bandit_reward(task, strategy, is_correct,
+                          tokens_spent, budget)``.
 
     Returns:
         EvalResult for this task.
@@ -100,6 +108,9 @@ def run_pipeline(
     logger.debug(f"  Gate: decision={decision.decision} confidence={decision.confidence:.2f}")
 
     # ── Stage 4: Route ────────────────────────────────────────────────────
+    # token_budget is initialised here so it is always in-scope for the
+    # bandit update that follows the if/else block.
+    token_budget = 0
     if decision.decision == "STOP":
         answer = probe.answer
         mas_tokens = 0
@@ -117,6 +128,28 @@ def run_pipeline(
     is_correct: bool | None = None
     if task.ground_truth is not None:
         is_correct = _exact_match(answer, task.ground_truth)
+
+    # ── Stage 5b: LinUCB bandit online update ─────────────────────────────
+    # Only fires on ESCALATE when the caller passes a MASOrchestrator object.
+    # Duck-typed so pipeline.py stays import-free of agents code.
+    if (
+        decision.decision == "ESCALATE"
+        and mas_orchestrator is not None
+        and hasattr(mas_orchestrator, "update_bandit_reward")
+        and hasattr(mas_orchestrator, "_last_strategy")
+        and mas_orchestrator._last_strategy is not None  # type: ignore[union-attr]
+    ):
+        logger.debug(
+            f"  Bandit update: arm={mas_orchestrator._last_strategy!r} "
+            f"correct={is_correct} tokens={mas_tokens} budget={token_budget}"
+        )
+        mas_orchestrator.update_bandit_reward(  # type: ignore[union-attr]
+            task,
+            mas_orchestrator._last_strategy,  # type: ignore[union-attr]
+            is_correct if is_correct is not None else False,
+            tokens_spent=mas_tokens,
+            budget=token_budget,
+        )
 
     return EvalResult(
         task_id=task.task_id,
