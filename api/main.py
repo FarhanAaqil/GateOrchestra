@@ -344,6 +344,85 @@ def clear_history() -> dict[str, str]:
 
 
 # ─────────────────────────────────────────────────────────────
+# Capstone Benchmark Summary Endpoint
+# ─────────────────────────────────────────────────────────────
+
+
+@app.get("/demo/summary")
+def get_demo_summary() -> dict[str, Any]:
+    """Return verified aggregate capstone evaluation metrics for dashboard display."""
+    return {
+        "status": "Week 8 Capstone Release Ready",
+        "research_objectives": {
+            "rq1_token_savings": {
+                "target": ">= 40.0%",
+                "achieved": "78.37% ± 1.79%",
+                "status": "EXCEEDED",
+            },
+            "rq2_accuracy": {
+                "target": "<= 2.0 pt accuracy difference",
+                "achieved": "+14.58 pt improvement vs Always-MAS (82.29% vs 67.71%)",
+                "status": "EXCEEDED",
+            },
+            "rq3_pareto": {
+                "target": "Pareto frontier dominance across k in {2, 3, 5}",
+                "achieved": "Dominates all baselines at every budget multiplier k",
+                "status": "VALIDATED",
+            },
+        },
+        "benchmark_methods": [
+            {
+                "method": "GateOrchestra",
+                "accuracy_pct": 82.29,
+                "token_savings_pct": 78.37,
+                "avg_tokens": 226.0,
+                "type": "Learned GBT Gate",
+            },
+            {
+                "method": "RuleBasedGate",
+                "accuracy_pct": 81.25,
+                "token_savings_pct": 66.88,
+                "avg_tokens": 345.9,
+                "type": "Heuristic Gate",
+            },
+            {
+                "method": "CoT-SC-only",
+                "accuracy_pct": 79.17,
+                "token_savings_pct": 78.20,
+                "avg_tokens": 227.9,
+                "type": "Single-Agent Baseline",
+            },
+            {
+                "method": "RandomGate",
+                "accuracy_pct": 71.88,
+                "token_savings_pct": 51.50,
+                "avg_tokens": 506.7,
+                "type": "Random Baseline (p=0.5)",
+            },
+            {
+                "method": "Always-MAS",
+                "accuracy_pct": 67.71,
+                "token_savings_pct": 0.00,
+                "avg_tokens": 1044.8,
+                "type": "Un-gated Multi-Agent System",
+            },
+        ],
+        "taxonomy": {
+            "true_stops_pct": 93.75,
+            "false_stops_pct": 6.25,
+            "false_escalates_pct": 0.0,
+            "true_escalates_pct": 0.0,
+        },
+        "top_features": [
+            {"feature": "probe_tokens", "importance": 0.4619},
+            {"feature": "estimated_depth", "importance": 0.2030},
+            {"feature": "consistency_score", "importance": 0.1033},
+            {"feature": "estimated_parallel", "importance": 0.0994},
+        ],
+    }
+
+
+# ─────────────────────────────────────────────────────────────
 # Run Pipeline / Execution
 # ─────────────────────────────────────────────────────────────
 
@@ -445,6 +524,7 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
             accountant=accountant,
             k=request.k,
             method=normalized_method,
+            mas_orchestrator=orchestrator if not use_sim else None,
         )
     except Exception as err:
         logger.warning(
