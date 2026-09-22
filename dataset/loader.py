@@ -25,7 +25,9 @@ from __future__ import annotations
 
 import json
 import logging
+from collections.abc import Callable, Iterator
 from pathlib import Path
+from typing import Any
 
 from shared.config import DATASET_DIR
 from shared.schemas import Task
@@ -39,11 +41,16 @@ _VALID_SPLITS = {"train", "val", "test"}
 # ─────────────────────────────────────────────────────────────────────────────
 
 
-def load_dataset(split: str) -> list[Task]:
-    """Load tasks for a given split.
+def load_dataset(
+    split: str,
+    *,
+    filter_func: Callable[[Task], bool] | None = None,
+) -> list[Task]:
+    """Load tasks for a given split, with optional filtering.
 
     Args:
         split: One of 'train', 'val', 'test'
+        filter_func: Optional predicate function taking a Task and returning bool
 
     Returns:
         List of Task objects for the requested split.
@@ -55,17 +62,28 @@ def load_dataset(split: str) -> list[Task]:
     if split not in _VALID_SPLITS:
         raise ValueError(f"split must be one of {_VALID_SPLITS}, got {split!r}")
 
+    # Check both flat (dataset/masbench_mini/train.jsonl) and nested (dataset/masbench_mini/train/train.jsonl)
     split_file = DATASET_DIR / f"{split}.jsonl"
+    if not split_file.exists():
+        split_file = DATASET_DIR / split / f"{split}.jsonl"
 
     if not split_file.exists():
         raise FileNotFoundError(
-            f"Split file not found: {split_file}\n"
-            f"Run `python scripts/build_dataset.py` first to generate the dataset."
+            f"Split file not found for split '{split}' in {DATASET_DIR}\n"
+            f"Run `python scripts/create_splits.py` or `python scripts/build_dataset.py` first."
         )
 
     tasks = _load_jsonl_tasks(split_file)
+    if filter_func is not None:
+        tasks = [t for t in tasks if filter_func(t)]
+
     logger.info(f"[Loader] Loaded {len(tasks)} tasks from split={split!r}")
     return tasks
+
+
+def load_all_splits() -> dict[str, list[Task]]:
+    """Load all three splits as a dictionary mapping split name to list of Tasks."""
+    return {split: load_dataset(split) for split in ["train", "val", "test"]}
 
 
 def load_all_tasks() -> list[Task]:
@@ -82,6 +100,50 @@ def load_all_tasks() -> list[Task]:
             logger.warning(f"[Loader] Split '{split}' not found, skipping")
     logger.info(f"[Loader] Total tasks loaded: {len(all_tasks)}")
     return all_tasks
+
+
+def load_batches(split: str, batch_size: int = 32) -> Iterator[list[Task]]:
+    """Load dataset in batches of specified size.
+
+    Args:
+        split: One of 'train', 'val', 'test'
+        batch_size: Number of tasks per batch
+
+    Yields:
+        Lists of Task objects.
+    """
+    if batch_size <= 0:
+        raise ValueError("batch_size must be positive")
+    tasks = load_dataset(split)
+    for i in range(0, len(tasks), batch_size):
+        yield tasks[i : i + batch_size]
+
+
+def get_dataset_metadata() -> dict[str, Any]:
+    """Extract metadata for all splits, including task counts and categories."""
+    metadata = {}
+    for split in _VALID_SPLITS:
+        try:
+            tasks = load_dataset(split)
+            categories = {}
+            for t in tasks:
+                cat = getattr(t, "category", "unknown")
+                categories[cat] = categories.get(cat, 0) + 1
+            metadata[split] = {
+                "count": len(tasks),
+                "categories": categories,
+            }
+        except FileNotFoundError:
+            metadata[split] = {"count": 0, "categories": {}}
+    return metadata
+
+
+def load_task_by_id(task_id: str) -> Task | None:
+    """Retrieve a specific task by its ID across all splits (repository-backed operation)."""
+    for task in load_all_tasks():
+        if getattr(task, "task_id", None) == task_id or getattr(task, "id", None) == task_id:
+            return task
+    return None
 
 
 def load_features_df():

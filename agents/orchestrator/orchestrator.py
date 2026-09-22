@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import logging
 from collections.abc import Callable
+from pathlib import Path
 
 from agents.orchestrator.bandit_router import LinUCBRouter
 from agents.orchestrator.sub_agents import (
@@ -36,6 +37,12 @@ class MASOrchestrator:
         default_strategy: Routing strategy ('auto', 'bandit', 'react', 'debate', 'reflexion').
         llm_caller: Pluggable LLM caller for mock testing or custom backends.
         router: Optional custom LinUCBRouter instance.
+
+    Attributes:
+        _last_strategy: The sub-agent strategy chosen during the most recent
+            ``run()`` call (``None`` before any call).  The pipeline uses this
+            to feed the observed reward back to the LinUCB bandit without
+            changing the public ``OrchestratorFn`` return type.
     """
 
     def __init__(
@@ -46,12 +53,17 @@ class MASOrchestrator:
         api_key: str | None = None,
         llm_caller: LLMCallerFn | None = None,
         router: LinUCBRouter | None = None,
+        bandit_state_path: str | Path | None = None,
+        warmstart_traces: list[dict] | list[tuple[Task, str, float]] | str | Path | None = None,
     ) -> None:
         self.model_name = model_name or MODEL_NAME
         self.default_strategy = default_strategy
         self.provider = provider
         self.api_key = api_key
         self.llm_caller = llm_caller
+
+        # Strategy chosen by the most recent run() call; used for bandit updates.
+        self._last_strategy: str | None = None
 
         # Sub-agent pool
         self.react_agent = ReActAgent(
@@ -75,6 +87,25 @@ class MASOrchestrator:
 
         # Contextual Bandit Router
         self.bandit_router = router or LinUCBRouter()
+        if bandit_state_path is not None:
+            self.load_bandit_state(bandit_state_path)
+        if warmstart_traces is not None:
+            self.warmstart_bandit(warmstart_traces)
+
+    def save_bandit_state(self, path: str | Path) -> None:
+        """Persist LinUCB router state to disk."""
+        self.bandit_router.save(path)
+
+    def load_bandit_state(self, path: str | Path) -> None:
+        """Load LinUCB router state from disk."""
+        self.bandit_router.load(path)
+
+    def warmstart_bandit(
+        self,
+        traces: list[dict] | list[tuple[Task, str, float]] | str | Path,
+    ) -> int:
+        """Warm-start the internal LinUCB bandit router from historical traces."""
+        return self.bandit_router.warmstart_from_traces(traces)
 
     def select_strategy(self, task: Task) -> str:
         """Select appropriate sub-agent strategy based on task signals or LinUCB."""
@@ -97,10 +128,16 @@ class MASOrchestrator:
     def run(self, task: Task, token_budget: int) -> tuple[str, int]:
         """Execute MAS reasoning within token_budget cap.
 
+        Side-effect: sets ``self._last_strategy`` to the arm chosen for this
+        task so that callers can pass it to ``update_bandit_reward()`` after
+        the result is evaluated.
+
         Returns:
             tuple of (answer_string, actual_tokens_used).
         """
         strategy = self.select_strategy(task)
+        # Cache the chosen arm so the pipeline can retrieve it for the bandit update.
+        self._last_strategy = strategy
         logger.info(
             f"[MASOrchestrator] Running task={task.task_id} with strategy={strategy} budget={token_budget}"
         )
@@ -139,9 +176,14 @@ class MASOrchestrator:
 _default_orchestrator: MASOrchestrator | None = None
 
 
-def orchestrator(task: Task, token_budget: int) -> tuple[str, int]:
-    """Functional interface matching OrchestratorFn: (Task, int) -> (str, int)."""
+def get_default_mas_orchestrator() -> MASOrchestrator:
+    """Return the module-level default MASOrchestrator instance."""
     global _default_orchestrator
     if _default_orchestrator is None:
         _default_orchestrator = MASOrchestrator()
-    return _default_orchestrator(task, token_budget)
+    return _default_orchestrator
+
+
+def orchestrator(task: Task, token_budget: int) -> tuple[str, int]:
+    """Functional interface matching OrchestratorFn: (Task, int) -> (str, int)."""
+    return get_default_mas_orchestrator()(task, token_budget)

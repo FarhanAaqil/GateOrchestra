@@ -15,24 +15,13 @@ import time
 from collections.abc import Callable
 
 from agents.probe_agent import probe_agent as default_probe_agent
+from shared.data_loader import exact_match as _exact_match
 from shared.schemas import EvalResult, ProbeResult, Task
 from shared.token_logger import TokenAccountant
 
 logger = logging.getLogger(__name__)
 
 ProbeAgentFn = Callable[[Task], ProbeResult]
-
-
-def _exact_match(predicted: str, ground_truth: str) -> bool:
-    """Normalized exact match evaluation helper."""
-    import re
-
-    def normalize(s: str) -> str:
-        s = s.lower().strip()
-        s = re.sub(r"[^\w\s]", "", s)
-        return " ".join(s.split())
-
-    return normalize(predicted) == normalize(ground_truth)
 
 
 def run_cot_sc_baseline(

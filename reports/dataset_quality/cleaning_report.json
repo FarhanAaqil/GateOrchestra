@@ -1,0 +1,205 @@
+{
+  "input_file": "F:\\PROJECT\\GATEORCHESTRA\\GateOrchestra-main\\dataset\\raw\\tasks_raw.jsonl",
+  "output_file": "F:\\PROJECT\\GATEORCHESTRA\\GateOrchestra-main\\dataset\\processed\\tasks_cleaned.jsonl",
+  "total_input_tasks": 161,
+  "total_cleaned_tasks": 161,
+  "total_removed": 0,
+  "sanitization_summary": {
+    "tasks_modified": 13,
+    "breakdown": {
+      "ground_truth_canonicalized": 12,
+      "question_normalized": 1
+    }
+  },
+  "deduplication_summary": {
+    "exact_duplicates_count": 0,
+    "fuzzy_duplicates_count": 0,
+    "similarity_threshold": 0.85,
+    "exact_duplicates": [],
+    "fuzzy_duplicates": []
+  },
+  "task_audit_log": [
+    {
+      "task_id": "comp_001",
+      "modifications": [
+        "ground_truth_canonicalized"
+      ],
+      "before": {
+        "question": "The scientist who discovered radioactivity was born in the same country as the mathematician who proved Fermat's Last Theorem. What is that country?",
+        "ground_truth": "Poland and United Kingdom respectively — they are not from the same country. Marie Curie was Polish, Andrew Wiles is British."
+      },
+      "after": {
+        "question": "The scientist who discovered radioactivity was born in the same country as the mathematician who proved Fermat's Last Theorem. What is that country?",
+        "ground_truth": "Poland and United Kingdom respectively - they are not from the same country. Marie Curie was Polish, Andrew Wiles is British."
+      }
+    },
+    {
+      "task_id": "comp_002",
+      "modifications": [
+        "ground_truth_canonicalized"
+      ],
+      "before": {
+        "question": "The person who wrote 'The Communist Manifesto' was born in the same city as a famous German philosopher known for the 'Categorical Imperative'. What city is that?",
+        "ground_truth": "Neither is from the same city — Marx was from Trier, Kant from Königsberg."
+      },
+      "after": {
+        "question": "The person who wrote 'The Communist Manifesto' was born in the same city as a famous German philosopher known for the 'Categorical Imperative'. What city is that?",
+        "ground_truth": "Neither is from the same city - Marx was from Trier, Kant from Königsberg."
+      }
+    },
+    {
+      "task_id": "comp_013",
+      "modifications": [
+        "ground_truth_canonicalized"
+      ],
+      "before": {
+        "question": "The founder of the country that launched the first human to space later served as which type of political leader?",
+        "ground_truth": "This is ambiguous — the Soviet Union launched Yuri Gagarin; its founder Lenin served as Premier."
+      },
+      "after": {
+        "question": "The founder of the country that launched the first human to space later served as which type of political leader?",
+        "ground_truth": "This is ambiguous - the Soviet Union launched Yuri Gagarin; its founder Lenin served as Premier."
+      }
+    },
+    {
+      "task_id": "comp_023",
+      "modifications": [
+        "ground_truth_canonicalized"
+      ],
+      "before": {
+        "question": "What programming language was developed by the company that also created the Java language?",
+        "ground_truth": "Kotlin (JVM), Scala (JVM), Oak (precursor to Java) — or Kotlin developed by JetBrains but runs on JVM; Java was created by Sun Microsystems which also created Solaris OS"
+      },
+      "after": {
+        "question": "What programming language was developed by the company that also created the Java language?",
+        "ground_truth": "Kotlin (JVM), Scala (JVM), Oak (precursor to Java) - or Kotlin developed by JetBrains but runs on JVM; Java was created by Sun Microsystems which also created Solaris OS"
+      }
+    },
+    {
+      "task_id": "comp_034",
+      "modifications": [
+        "ground_truth_canonicalized"
+      ],
+      "before": {
+        "question": "Which musician was born in the same decade that the country where jazz music originated gained independence?",
+        "ground_truth": "This is a complex question — jazz originated in the United States which gained independence in 1776 (the 1770s decade). Musicians born in the 1770s include Ludwig van Beethoven (1770)."
+      },
+      "after": {
+        "question": "Which musician was born in the same decade that the country where jazz music originated gained independence?",
+        "ground_truth": "This is a complex question - jazz originated in the United States which gained independence in 1776 (the 1770s decade). Musicians born in the 1770s include Ludwig van Beethoven (1770)."
+      }
+    },
+    {
+      "task_id": "arith_026",
+      "modifications": [
+        "question_normalized"
+      ],
+      "before": {
+        "question": "If a square has a diagonal of 10 cm, what is its side length? (Give the exact answer)",
+        "ground_truth": "5√2 cm (approximately 7.07 cm)"
+      },
+      "after": {
+        "question": "If a square has a diagonal of 10 cm, what is its side length? (Give the exact answer)?",
+        "ground_truth": "5√2 cm (approximately 7.07 cm)"
+      }
+    },
+    {
+      "task_id": "cmp_001",
+      "modifications": [
+        "ground_truth_canonicalized"
+      ],
+      "before": {
+        "question": "Which is larger: the area of China or the area of the United States?",
+        "ground_truth": "China (9.597 million km²) and the United States (9.834 million km²) — the United States is slightly larger"
+      },
+      "after": {
+        "question": "Which is larger: the area of China or the area of the United States?",
+        "ground_truth": "China (9.597 million km2) and the United States (9.834 million km2) - the United States is slightly larger"
+      }
+    },
+    {
+      "task_id": "cmp_008",
+      "modifications": [
+        "ground_truth_canonicalized"
+      ],
+      "before": {
+        "question": "Which is denser: iron or aluminum?",
+        "ground_truth": "Iron (7.87 g/cm³) is denser than aluminum (2.70 g/cm³)"
+      },
+      "after": {
+        "question": "Which is denser: iron or aluminum?",
+        "ground_truth": "Iron (7.87 g/cm3) is denser than aluminum (2.70 g/cm3)"
+      }
+    },
+    {
+      "task_id": "cmp_011",
+      "modifications": [
+        "ground_truth_canonicalized"
+      ],
+      "before": {
+        "question": "Which company has a higher market capitalization: Apple or Microsoft?",
+        "ground_truth": "Their rankings fluctuate; both have exceeded $3 trillion — Apple and Microsoft are neck-and-neck for the top position as of 2024"
+      },
+      "after": {
+        "question": "Which company has a higher market capitalization: Apple or Microsoft?",
+        "ground_truth": "Their rankings fluctuate; both have exceeded $3 trillion - Apple and Microsoft are neck-and-neck for the top position as of 2024"
+      }
+    },
+    {
+      "task_id": "cmp_019",
+      "modifications": [
+        "ground_truth_canonicalized"
+      ],
+      "before": {
+        "question": "Which is larger: the Great Barrier Reef or the Amazon Rainforest in total area?",
+        "ground_truth": "The Amazon Rainforest (~5.5 million km²) is much larger than the Great Barrier Reef (~344,000 km²)"
+      },
+      "after": {
+        "question": "Which is larger: the Great Barrier Reef or the Amazon Rainforest in total area?",
+        "ground_truth": "The Amazon Rainforest (~5.5 million km2) is much larger than the Great Barrier Reef (~344,000 km2)"
+      }
+    },
+    {
+      "task_id": "cmp_021",
+      "modifications": [
+        "ground_truth_canonicalized"
+      ],
+      "before": {
+        "question": "Who ruled longer: Queen Victoria of Britain or King Louis XIV of France?",
+        "ground_truth": "King Louis XIV ruled for 72 years (1643–1715); Queen Victoria ruled for 63 years (1837–1901). Louis XIV ruled longer."
+      },
+      "after": {
+        "question": "Who ruled longer: Queen Victoria of Britain or King Louis XIV of France?",
+        "ground_truth": "King Louis XIV ruled for 72 years (1643-1715); Queen Victoria ruled for 63 years (1837-1901). Louis XIV ruled longer."
+      }
+    },
+    {
+      "task_id": "cmp_029",
+      "modifications": [
+        "ground_truth_canonicalized"
+      ],
+      "before": {
+        "question": "Which is heavier: 1 kg of steel or 1 kg of feathers?",
+        "ground_truth": "They weigh the same — both are 1 kg"
+      },
+      "after": {
+        "question": "Which is heavier: 1 kg of steel or 1 kg of feathers?",
+        "ground_truth": "They weigh the same - both are 1 kg"
+      }
+    },
+    {
+      "task_id": "cmp_030",
+      "modifications": [
+        "ground_truth_canonicalized"
+      ],
+      "before": {
+        "question": "Which empire lasted longer: the Roman Empire or the Byzantine Empire?",
+        "ground_truth": "The Byzantine Empire (Eastern Roman Empire, ~330–1453 CE, ~1123 years) lasted longer than the Western Roman Empire (~27 BCE–476 CE, ~503 years)"
+      },
+      "after": {
+        "question": "Which empire lasted longer: the Roman Empire or the Byzantine Empire?",
+        "ground_truth": "The Byzantine Empire (Eastern Roman Empire, ~330-1453 CE, ~1123 years) lasted longer than the Western Roman Empire (~27 BCE-476 CE, ~503 years)"
+      }
+    }
+  ]
+}

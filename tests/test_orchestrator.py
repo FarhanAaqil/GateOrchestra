@@ -100,3 +100,66 @@ class TestMASOrchestrator:
         ans, tokens = orchestrator(reflexion_task, token_budget=100)
         assert isinstance(ans, str)
         assert isinstance(tokens, int)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Week 8 — _last_strategy caching
+# ─────────────────────────────────────────────────────────────────────────────
+
+
+class TestLastStrategyCache:
+    """Verify that MASOrchestrator.run() caches the chosen arm in _last_strategy."""
+
+    def test_last_strategy_is_none_before_first_run(self):
+        """_last_strategy must be None immediately after construction."""
+        orch = MASOrchestrator()
+        assert orch._last_strategy is None
+
+    def test_last_strategy_set_after_run(self, reflexion_task):
+        """After run(), _last_strategy must be one of the three valid arm names."""
+
+        def mock_caller(prompt: str, temp: float, budget: int) -> tuple[str, int]:
+            return "Final Answer: 120", 30
+
+        orch = MASOrchestrator(llm_caller=mock_caller)
+        orch.run(reflexion_task, token_budget=150)
+
+        assert orch._last_strategy is not None
+        assert orch._last_strategy in ("react", "debate", "reflexion")
+
+    def test_last_strategy_reflects_forced_strategy(self, react_task, debate_task, reflexion_task):
+        """_last_strategy must match the strategy the heuristic router picks."""
+
+        def mock_caller(prompt: str, temp: float, budget: int) -> tuple[str, int]:
+            return "Final Answer: X", 20
+
+        orch = MASOrchestrator(llm_caller=mock_caller)
+
+        orch.run(react_task, token_budget=100)
+        assert orch._last_strategy == "react"
+
+        orch.run(debate_task, token_budget=100)
+        assert orch._last_strategy == "debate"
+
+        orch.run(reflexion_task, token_budget=100)
+        assert orch._last_strategy == "reflexion"
+
+    def test_last_strategy_updated_on_each_run(self, react_task, reflexion_task):
+        """Running twice must overwrite _last_strategy with the new arm."""
+
+        def mock_caller(prompt: str, temp: float, budget: int) -> tuple[str, int]:
+            return "Final Answer: Y", 25
+
+        orch = MASOrchestrator(llm_caller=mock_caller)
+
+        orch.run(react_task, token_budget=100)
+        first = orch._last_strategy
+
+        orch.run(reflexion_task, token_budget=100)
+        second = orch._last_strategy
+
+        # Both must be valid; the second run must not preserve the first value
+        assert first in ("react", "debate", "reflexion")
+        assert second in ("react", "debate", "reflexion")
+        # react_task routes to "react", reflexion_task routes to "reflexion"
+        assert first != second

@@ -1,0 +1,980 @@
+{
+  "dataset_name": "masbench_mini",
+  "total_tasks": 161,
+  "overall": {
+    "split_name": "overall",
+    "total_tasks": 161,
+    "source_distribution": {
+      "name": "source_distribution",
+      "counts": {
+        "hotpotqa_style": 51,
+        "musique_style": 39,
+        "template_arithmetic": 40,
+        "template_comparison": 31
+      },
+      "percentages": {
+        "hotpotqa_style": 31.68,
+        "musique_style": 24.22,
+        "template_arithmetic": 24.84,
+        "template_comparison": 19.25
+      },
+      "total": 161
+    },
+    "depth_distribution": {
+      "name": "depth_distribution",
+      "counts": {
+        "1": 2,
+        "2": 9,
+        "3": 98,
+        "4": 42,
+        "5": 10
+      },
+      "percentages": {
+        "1": 1.24,
+        "2": 5.59,
+        "3": 60.87,
+        "4": 26.09,
+        "5": 6.21
+      },
+      "total": 161
+    },
+    "parallel_distribution": {
+      "name": "parallel_distribution",
+      "counts": {
+        "1": 122,
+        "2": 31,
+        "3": 8
+      },
+      "percentages": {
+        "1": 75.78,
+        "2": 19.25,
+        "3": 4.97
+      },
+      "total": 161
+    },
+    "question_char_stats": {
+      "count": 161,
+      "mean": 86.22,
+      "std": 27.39,
+      "min": 19.0,
+      "p25": 66.0,
+      "median": 81.0,
+      "p75": 105.0,
+      "max": 162.0
+    },
+    "question_word_stats": {
+      "count": 161,
+      "mean": 15.76,
+      "std": 5.33,
+      "min": 5.0,
+      "p25": 12.0,
+      "median": 15.0,
+      "p75": 20.0,
+      "max": 30.0
+    },
+    "answer_char_stats": {
+      "count": 161,
+      "mean": 31.93,
+      "std": 37.65,
+      "min": 2.0,
+      "p25": 7.0,
+      "median": 14.0,
+      "p75": 44.0,
+      "max": 184.0
+    },
+    "answer_word_stats": {
+      "count": 161,
+      "mean": 5.25,
+      "std": 6.15,
+      "min": 1.0,
+      "p25": 1.0,
+      "median": 2.0,
+      "p75": 8.0,
+      "max": 30.0
+    },
+    "context_char_stats": {
+      "count": 90,
+      "mean": 127.8,
+      "std": 41.51,
+      "min": 62.0,
+      "p25": 101.25,
+      "median": 118.0,
+      "p75": 153.75,
+      "max": 281.0
+    },
+    "lexical_stats": {
+      "total_tokens": 2556,
+      "unique_tokens": 756,
+      "type_token_ratio": 0.2958,
+      "avg_token_length": 4.36,
+      "top_tokens": [
+        {
+          "word": "country",
+          "count": 64
+        },
+        {
+          "word": "where",
+          "count": 25
+        },
+        {
+          "word": "first",
+          "count": 18
+        },
+        {
+          "word": "has",
+          "count": 18
+        },
+        {
+          "word": "located",
+          "count": 13
+        },
+        {
+          "word": "city",
+          "count": 12
+        },
+        {
+          "word": "language",
+          "count": 11
+        },
+        {
+          "word": "capital",
+          "count": 10
+        },
+        {
+          "word": "after",
+          "count": 9
+        },
+        {
+          "word": "km",
+          "count": 9
+        },
+        {
+          "word": "name",
+          "count": 9
+        },
+        {
+          "word": "per",
+          "count": 9
+        },
+        {
+          "word": "born",
+          "count": 8
+        },
+        {
+          "word": "cm",
+          "count": 8
+        },
+        {
+          "word": "element",
+          "count": 8
+        }
+      ]
+    }
+  },
+  "splits": {
+    "train": {
+      "split_name": "train",
+      "total_tasks": 97,
+      "source_distribution": {
+        "name": "source_distribution",
+        "counts": {
+          "hotpotqa_style": 31,
+          "musique_style": 22,
+          "template_arithmetic": 25,
+          "template_comparison": 19
+        },
+        "percentages": {
+          "hotpotqa_style": 31.96,
+          "musique_style": 22.68,
+          "template_arithmetic": 25.77,
+          "template_comparison": 19.59
+        },
+        "total": 97
+      },
+      "depth_distribution": {
+        "name": "depth_distribution",
+        "counts": {
+          "2": 5,
+          "3": 60,
+          "4": 25,
+          "5": 7
+        },
+        "percentages": {
+          "2": 5.15,
+          "3": 61.86,
+          "4": 25.77,
+          "5": 7.22
+        },
+        "total": 97
+      },
+      "parallel_distribution": {
+        "name": "parallel_distribution",
+        "counts": {
+          "1": 73,
+          "2": 18,
+          "3": 6
+        },
+        "percentages": {
+          "1": 75.26,
+          "2": 18.56,
+          "3": 6.19
+        },
+        "total": 97
+      },
+      "question_char_stats": {
+        "count": 97,
+        "mean": 86.18,
+        "std": 28.08,
+        "min": 34.0,
+        "p25": 66.0,
+        "median": 79.0,
+        "p75": 103.0,
+        "max": 162.0
+      },
+      "question_word_stats": {
+        "count": 97,
+        "mean": 15.92,
+        "std": 5.37,
+        "min": 6.0,
+        "p25": 12.0,
+        "median": 15.0,
+        "p75": 20.0,
+        "max": 30.0
+      },
+      "answer_char_stats": {
+        "count": 97,
+        "mean": 33.9,
+        "std": 37.35,
+        "min": 2.0,
+        "p25": 9.0,
+        "median": 18.0,
+        "p75": 47.0,
+        "max": 184.0
+      },
+      "answer_word_stats": {
+        "count": 97,
+        "mean": 5.61,
+        "std": 6.15,
+        "min": 1.0,
+        "p25": 2.0,
+        "median": 2.0,
+        "p75": 9.0,
+        "max": 30.0
+      },
+      "context_char_stats": {
+        "count": 53,
+        "mean": 131.81,
+        "std": 41.65,
+        "min": 62.0,
+        "p25": 103.0,
+        "median": 123.0,
+        "p75": 154.0,
+        "max": 281.0
+      },
+      "lexical_stats": {
+        "total_tokens": 1553,
+        "unique_tokens": 537,
+        "type_token_ratio": 0.3458,
+        "avg_token_length": 4.31,
+        "top_tokens": [
+          {
+            "word": "country",
+            "count": 38
+          },
+          {
+            "word": "where",
+            "count": 18
+          },
+          {
+            "word": "first",
+            "count": 13
+          },
+          {
+            "word": "has",
+            "count": 12
+          },
+          {
+            "word": "city",
+            "count": 9
+          },
+          {
+            "word": "located",
+            "count": 9
+          },
+          {
+            "word": "km",
+            "count": 8
+          },
+          {
+            "word": "capital",
+            "count": 7
+          },
+          {
+            "word": "element",
+            "count": 7
+          },
+          {
+            "word": "cm",
+            "count": 6
+          },
+          {
+            "word": "language",
+            "count": 6
+          },
+          {
+            "word": "after",
+            "count": 5
+          },
+          {
+            "word": "born",
+            "count": 5
+          },
+          {
+            "word": "company",
+            "count": 5
+          },
+          {
+            "word": "interest",
+            "count": 5
+          }
+        ]
+      }
+    },
+    "val": {
+      "split_name": "val",
+      "total_tasks": 32,
+      "source_distribution": {
+        "name": "source_distribution",
+        "counts": {
+          "hotpotqa_style": 11,
+          "musique_style": 7,
+          "template_arithmetic": 7,
+          "template_comparison": 7
+        },
+        "percentages": {
+          "hotpotqa_style": 34.38,
+          "musique_style": 21.88,
+          "template_arithmetic": 21.88,
+          "template_comparison": 21.88
+        },
+        "total": 32
+      },
+      "depth_distribution": {
+        "name": "depth_distribution",
+        "counts": {
+          "1": 1,
+          "2": 2,
+          "3": 19,
+          "4": 9,
+          "5": 1
+        },
+        "percentages": {
+          "1": 3.12,
+          "2": 6.25,
+          "3": 59.38,
+          "4": 28.12,
+          "5": 3.12
+        },
+        "total": 32
+      },
+      "parallel_distribution": {
+        "name": "parallel_distribution",
+        "counts": {
+          "1": 24,
+          "2": 6,
+          "3": 2
+        },
+        "percentages": {
+          "1": 75.0,
+          "2": 18.75,
+          "3": 6.25
+        },
+        "total": 32
+      },
+      "question_char_stats": {
+        "count": 32,
+        "mean": 82.66,
+        "std": 25.32,
+        "min": 19.0,
+        "p25": 63.5,
+        "median": 81.5,
+        "p75": 102.25,
+        "max": 128.0
+      },
+      "question_word_stats": {
+        "count": 32,
+        "mean": 15.03,
+        "std": 5.16,
+        "min": 5.0,
+        "p25": 12.0,
+        "median": 14.0,
+        "p75": 19.0,
+        "max": 27.0
+      },
+      "answer_char_stats": {
+        "count": 32,
+        "mean": 33.81,
+        "std": 45.15,
+        "min": 3.0,
+        "p25": 6.75,
+        "median": 9.5,
+        "p75": 56.25,
+        "max": 169.0
+      },
+      "answer_word_stats": {
+        "count": 32,
+        "mean": 5.5,
+        "std": 7.31,
+        "min": 1.0,
+        "p25": 1.0,
+        "median": 2.0,
+        "p75": 8.0,
+        "max": 29.0
+      },
+      "context_char_stats": {
+        "count": 18,
+        "mean": 123.22,
+        "std": 46.75,
+        "min": 68.0,
+        "p25": 91.5,
+        "median": 107.0,
+        "p75": 153.5,
+        "max": 231.0
+      },
+      "lexical_stats": {
+        "total_tokens": 483,
+        "unique_tokens": 225,
+        "type_token_ratio": 0.4658,
+        "avg_token_length": 4.42,
+        "top_tokens": [
+          {
+            "word": "country",
+            "count": 11
+          },
+          {
+            "word": "first",
+            "count": 4
+          },
+          {
+            "word": "per",
+            "count": 4
+          },
+          {
+            "word": "where",
+            "count": 4
+          },
+          {
+            "word": "balls",
+            "count": 3
+          },
+          {
+            "word": "capital",
+            "count": 3
+          },
+          {
+            "word": "language",
+            "count": 3
+          },
+          {
+            "word": "space",
+            "count": 3
+          },
+          {
+            "word": "telescope",
+            "count": 3
+          },
+          {
+            "word": "10",
+            "count": 2
+          },
+          {
+            "word": "after",
+            "count": 2
+          },
+          {
+            "word": "amazon",
+            "count": 2
+          },
+          {
+            "word": "area",
+            "count": 2
+          },
+          {
+            "word": "author",
+            "count": 2
+          },
+          {
+            "word": "birth",
+            "count": 2
+          }
+        ]
+      }
+    },
+    "test": {
+      "split_name": "test",
+      "total_tasks": 32,
+      "source_distribution": {
+        "name": "source_distribution",
+        "counts": {
+          "hotpotqa_style": 9,
+          "musique_style": 10,
+          "template_arithmetic": 8,
+          "template_comparison": 5
+        },
+        "percentages": {
+          "hotpotqa_style": 28.12,
+          "musique_style": 31.25,
+          "template_arithmetic": 25.0,
+          "template_comparison": 15.62
+        },
+        "total": 32
+      },
+      "depth_distribution": {
+        "name": "depth_distribution",
+        "counts": {
+          "1": 1,
+          "2": 2,
+          "3": 19,
+          "4": 8,
+          "5": 2
+        },
+        "percentages": {
+          "1": 3.12,
+          "2": 6.25,
+          "3": 59.38,
+          "4": 25.0,
+          "5": 6.25
+        },
+        "total": 32
+      },
+      "parallel_distribution": {
+        "name": "parallel_distribution",
+        "counts": {
+          "1": 25,
+          "2": 7
+        },
+        "percentages": {
+          "1": 78.12,
+          "2": 21.88
+        },
+        "total": 32
+      },
+      "question_char_stats": {
+        "count": 32,
+        "mean": 89.94,
+        "std": 26.79,
+        "min": 39.0,
+        "p25": 69.75,
+        "median": 93.5,
+        "p75": 111.25,
+        "max": 139.0
+      },
+      "question_word_stats": {
+        "count": 32,
+        "mean": 16.03,
+        "std": 5.3,
+        "min": 5.0,
+        "p25": 11.75,
+        "median": 16.5,
+        "p75": 21.0,
+        "max": 27.0
+      },
+      "answer_char_stats": {
+        "count": 32,
+        "mean": 24.06,
+        "std": 28.09,
+        "min": 3.0,
+        "p25": 6.0,
+        "median": 11.0,
+        "p75": 35.0,
+        "max": 128.0
+      },
+      "answer_word_stats": {
+        "count": 32,
+        "mean": 3.91,
+        "std": 4.47,
+        "min": 1.0,
+        "p25": 1.0,
+        "median": 2.0,
+        "p75": 4.25,
+        "max": 21.0
+      },
+      "context_char_stats": {
+        "count": 19,
+        "mean": 120.95,
+        "std": 33.78,
+        "min": 67.0,
+        "p25": 98.5,
+        "median": 116.0,
+        "p75": 140.5,
+        "max": 192.0
+      },
+      "lexical_stats": {
+        "total_tokens": 520,
+        "unique_tokens": 250,
+        "type_token_ratio": 0.4808,
+        "avg_token_length": 4.47,
+        "top_tokens": [
+          {
+            "word": "country",
+            "count": 15
+          },
+          {
+            "word": "has",
+            "count": 4
+          },
+          {
+            "word": "name",
+            "count": 4
+          },
+          {
+            "word": "contains",
+            "count": 3
+          },
+          {
+            "word": "invented",
+            "count": 3
+          },
+          {
+            "word": "its",
+            "count": 3
+          },
+          {
+            "word": "mountain",
+            "count": 3
+          },
+          {
+            "word": "official",
+            "count": 3
+          },
+          {
+            "word": "united",
+            "count": 3
+          },
+          {
+            "word": "where",
+            "count": 3
+          },
+          {
+            "word": "year",
+            "count": 3
+          },
+          {
+            "word": "20",
+            "count": 2
+          },
+          {
+            "word": "30",
+            "count": 2
+          },
+          {
+            "word": "after",
+            "count": 2
+          },
+          {
+            "word": "alcohol",
+            "count": 2
+          }
+        ]
+      }
+    }
+  },
+  "joint_depth_parallel": {
+    "row_feature": "depth_score",
+    "col_feature": "parallel_score",
+    "row_labels": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "col_labels": [
+      "1",
+      "2",
+      "3"
+    ],
+    "matrix": {
+      "1": {
+        "1": 2,
+        "2": 0,
+        "3": 0
+      },
+      "2": {
+        "1": 8,
+        "2": 1,
+        "3": 0
+      },
+      "3": {
+        "1": 73,
+        "2": 20,
+        "3": 5
+      },
+      "4": {
+        "1": 32,
+        "2": 7,
+        "3": 3
+      },
+      "5": {
+        "1": 7,
+        "2": 3,
+        "3": 0
+      }
+    },
+    "row_totals": {
+      "1": 2,
+      "2": 9,
+      "3": 98,
+      "4": 42,
+      "5": 10
+    },
+    "col_totals": {
+      "1": 122,
+      "2": 31,
+      "3": 8
+    },
+    "total": 161
+  },
+  "joint_source_depth": {
+    "row_feature": "source_dataset",
+    "col_feature": "depth_score",
+    "row_labels": [
+      "hotpotqa_style",
+      "musique_style",
+      "template_arithmetic",
+      "template_comparison"
+    ],
+    "col_labels": [
+      "1",
+      "2",
+      "3",
+      "4",
+      "5"
+    ],
+    "matrix": {
+      "hotpotqa_style": {
+        "1": 0,
+        "2": 1,
+        "3": 41,
+        "4": 8,
+        "5": 1
+      },
+      "musique_style": {
+        "1": 0,
+        "2": 0,
+        "3": 7,
+        "4": 24,
+        "5": 8
+      },
+      "template_arithmetic": {
+        "1": 2,
+        "2": 7,
+        "3": 28,
+        "4": 3,
+        "5": 0
+      },
+      "template_comparison": {
+        "1": 0,
+        "2": 1,
+        "3": 22,
+        "4": 7,
+        "5": 1
+      }
+    },
+    "row_totals": {
+      "hotpotqa_style": 51,
+      "musique_style": 39,
+      "template_arithmetic": 40,
+      "template_comparison": 31
+    },
+    "col_totals": {
+      "1": 2,
+      "2": 9,
+      "3": 98,
+      "4": 42,
+      "5": 10
+    },
+    "total": 161
+  },
+  "joint_source_parallel": {
+    "row_feature": "source_dataset",
+    "col_feature": "parallel_score",
+    "row_labels": [
+      "hotpotqa_style",
+      "musique_style",
+      "template_arithmetic",
+      "template_comparison"
+    ],
+    "col_labels": [
+      "1",
+      "2",
+      "3"
+    ],
+    "matrix": {
+      "hotpotqa_style": {
+        "1": 51,
+        "2": 0,
+        "3": 0
+      },
+      "musique_style": {
+        "1": 35,
+        "2": 4,
+        "3": 0
+      },
+      "template_arithmetic": {
+        "1": 36,
+        "2": 2,
+        "3": 2
+      },
+      "template_comparison": {
+        "1": 0,
+        "2": 25,
+        "3": 6
+      }
+    },
+    "row_totals": {
+      "hotpotqa_style": 51,
+      "musique_style": 39,
+      "template_arithmetic": 40,
+      "template_comparison": 31
+    },
+    "col_totals": {
+      "1": 122,
+      "2": 31,
+      "3": 8
+    },
+    "total": 161
+  },
+  "joint_split_source": {
+    "row_feature": "split",
+    "col_feature": "source_dataset",
+    "row_labels": [
+      "test",
+      "train",
+      "val"
+    ],
+    "col_labels": [
+      "hotpotqa_style",
+      "musique_style",
+      "template_arithmetic",
+      "template_comparison"
+    ],
+    "matrix": {
+      "test": {
+        "hotpotqa_style": 9,
+        "musique_style": 10,
+        "template_arithmetic": 8,
+        "template_comparison": 5
+      },
+      "train": {
+        "hotpotqa_style": 31,
+        "musique_style": 22,
+        "template_arithmetic": 25,
+        "template_comparison": 19
+      },
+      "val": {
+        "hotpotqa_style": 11,
+        "musique_style": 7,
+        "template_arithmetic": 7,
+        "template_comparison": 7
+      }
+    },
+    "row_totals": {
+      "test": 32,
+      "train": 97,
+      "val": 32
+    },
+    "col_totals": {
+      "hotpotqa_style": 51,
+      "musique_style": 39,
+      "template_arithmetic": 40,
+      "template_comparison": 31
+    },
+    "total": 161
+  },
+  "correlations": {
+    "features": [
+      "depth_score",
+      "parallel_score",
+      "question_char_len",
+      "question_word_len",
+      "answer_char_len"
+    ],
+    "correlations": {
+      "depth_score": {
+        "depth_score": 1.0,
+        "parallel_score": 0.057,
+        "question_char_len": 0.547,
+        "question_word_len": 0.411,
+        "answer_char_len": 0.215
+      },
+      "parallel_score": {
+        "depth_score": 0.057,
+        "parallel_score": 1.0,
+        "question_char_len": -0.228,
+        "question_word_len": -0.242,
+        "answer_char_len": 0.48
+      },
+      "question_char_len": {
+        "depth_score": 0.547,
+        "parallel_score": -0.228,
+        "question_char_len": 1.0,
+        "question_word_len": 0.935,
+        "answer_char_len": -0.046
+      },
+      "question_word_len": {
+        "depth_score": 0.411,
+        "parallel_score": -0.242,
+        "question_char_len": 0.935,
+        "question_word_len": 1.0,
+        "answer_char_len": -0.136
+      },
+      "answer_char_len": {
+        "depth_score": 0.215,
+        "parallel_score": 0.48,
+        "question_char_len": -0.046,
+        "question_word_len": -0.136,
+        "answer_char_len": 1.0
+      }
+    }
+  },
+  "imbalance_alerts": [
+    {
+      "severity": "INFO",
+      "category": "source_distribution",
+      "message": "Source categories are well-balanced (Gini: 0.095, Diversity: 0.989, Ratio: 1.6x).",
+      "metric_name": "source_gini",
+      "observed_value": 0.095,
+      "threshold": 0.4,
+      "recommendation": "No action needed."
+    },
+    {
+      "severity": "WARNING",
+      "category": "depth_distribution",
+      "message": "Depth score distribution is skewed (Gini: 0.559).",
+      "metric_name": "depth_gini",
+      "observed_value": 0.559,
+      "threshold": 0.45,
+      "recommendation": "Inspect complexity feature extractor calibrations."
+    },
+    {
+      "severity": "INFO",
+      "category": "split_parity",
+      "message": "Split 'val' is well-aligned with train distribution (Max delta: 3.9%).",
+      "metric_name": "train_val_source_drift",
+      "observed_value": 0.039,
+      "threshold": 0.15,
+      "recommendation": "No action needed."
+    },
+    {
+      "severity": "INFO",
+      "category": "split_parity",
+      "message": "Split 'test' is well-aligned with train distribution (Max delta: 8.6%).",
+      "metric_name": "train_test_source_drift",
+      "observed_value": 0.086,
+      "threshold": 0.15,
+      "recommendation": "No action needed."
+    }
+  ],
+  "generated_at": "2026-09-22T09:55:25.227078+00:00"
+}

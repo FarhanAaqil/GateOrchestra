@@ -729,7 +729,7 @@ RAW_TASKS: list[dict] = [
     },
     {
         "question": "Which musician was born in the same decade that the country where jazz music originated gained independence?",
-        "answer": "This is a complex question — jazz originated in the United States which gained independence in 1776 (the 1770s decade). Musicians born in the 1770s include Ludwig van Beethoven (1770).",
+        "answer": "Ludwig van Beethoven",
         "context": "Jazz music originated in the United States. The United States gained independence in 1776. Ludwig van Beethoven was born in 1770, in that same decade.",
         "source": "musique_style",
         "task_type": "multihop_compositional",

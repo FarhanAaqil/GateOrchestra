@@ -68,6 +68,16 @@ parallel_labeling:
     score_3: 0.80
     score_4: 999.0
 
+# ── Cleaning & Deduplication Rules ─────────────────────────────────────────────
+cleaning:
+  unicode_normalization: "NFKC"
+  strip_zero_width_chars: true
+  canonicalize_answers: true
+  enforce_question_mark: true
+  fuzzy_dedup:
+    enabled: true
+    similarity_threshold: 0.85
+
 # ── Validation Rules ──────────────────────────────────────────────────────────
 validation:
   min_question_length: 10      # characters
@@ -82,10 +92,14 @@ validation:
 
 # ── Paths (relative to repo root) ─────────────────────────────────────────────
 paths:
-  raw:        "dataset/raw"
-  processed:  "dataset/processed"
-  splits:     "dataset/splits"
-  reviewed:   "dataset/reviewed"
-  masbench:   "dataset/masbench_mini"
-  reports:    "reports/dataset_quality"
-  features:   "dataset/processed/features.jsonl"
+  raw:             "dataset/raw"
+  processed:       "dataset/processed"
+  splits:          "dataset/splits"
+  reviewed:        "dataset/reviewed"
+  masbench:        "dataset/masbench_mini"
+  reports:         "reports/dataset_quality"
+  raw_tasks:       "dataset/raw/tasks_raw.jsonl"
+  cleaned_tasks:   "dataset/processed/tasks_cleaned.jsonl"
+  features:        "dataset/processed/features.jsonl"
+  cleaning_report: "reports/dataset_quality/cleaning_report.json"
+  val_report:      "reports/dataset_quality/validation_report.json"

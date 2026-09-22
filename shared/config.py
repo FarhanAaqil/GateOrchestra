@@ -21,10 +21,18 @@ DATASET_DIR: Path = ROOT_DIR / "dataset" / "masbench_mini"
 LOGS_DIR: Path = ROOT_DIR / "logs"
 CONFIGS_DIR: Path = ROOT_DIR / "configs"
 MODELS_DIR: Path = CONFIGS_DIR / "models"
+WEEK8_BANDIT_STATE_PATH: Path = LOGS_DIR / "week8_bandit_state.json"
 
 # Auto-create runtime dirs (non-code artifacts)
 LOGS_DIR.mkdir(parents=True, exist_ok=True)
 MODELS_DIR.mkdir(parents=True, exist_ok=True)
+
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv(ROOT_DIR / ".env")
+except ImportError:
+    pass
 
 # ─────────────────────────────────────────────────────────────────────────────
 # LLM / Providers (Ollama & Groq)
@@ -33,15 +41,16 @@ MODELS_DIR.mkdir(parents=True, exist_ok=True)
 LLM_PROVIDER: str = os.getenv("GATE_LLM_PROVIDER", "ollama").lower()
 
 # Ollama / Local settings (Default)
-MODEL_NAME: str = os.getenv("GATE_MODEL_NAME", "Qwen2.5-7B-Instruct")
+MODEL_NAME: str = os.getenv("GATE_MODEL_NAME", "qwen2.5:7b-instruct")
 MODEL_API_BASE: str = os.getenv("GATE_API_BASE", "http://localhost:11434")  # Ollama default
 
 # Groq Cloud settings (Optional)
 GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
-GROQ_MODEL_NAME: str = os.getenv("GROQ_MODEL_NAME", "qwen/qwen3.6-27b")
+GROQ_MODEL_NAME: str = os.getenv("GROQ_MODEL_NAME", "openai/gpt-oss-20b")
 GROQ_API_BASE: str = os.getenv("GROQ_API_BASE", "https://api.groq.com/openai/v1")
+LLM_REQUEST_TIMEOUT_SECONDS: float = float(os.getenv("GATE_LLM_TIMEOUT", "300"))
 PROBE_TOKEN_BUDGET: int = 500  # Max tokens the probe may spend per task
-COT_SC_N_SAMPLES: int = 5  # Number of CoT-SC samples per probe run
+COT_SC_N_SAMPLES: int = 3  # Number of CoT-SC samples per probe run
 COT_SC_TEMPERATURE: float = 0.7  # Sampling temperature for CoT-SC
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -56,6 +65,9 @@ RANDOM_SEED: int = 42
 # ─────────────────────────────────────────────────────────────────────────────
 # Gate Hyperparameters
 # ─────────────────────────────────────────────────────────────────────────────
+
+GATE_ESCALATE_THRESHOLD: float = float(os.getenv("GATE_ESCALATE_THRESHOLD", "0.15"))
+"""Probability threshold for ESCALATE decision to handle class imbalance."""
 
 TAU_ACC: float = 0.05
 """Accuracy threshold for gate labeling.
@@ -75,6 +87,9 @@ K_DEFAULT: int = 3
 
 K_VALUES: list[int] = [2, 3, 5]
 """Values of k to sweep during validation (Week 8–9)."""
+
+N_REPEATS: int = int(os.getenv("GATE_N_REPEATS", "3"))
+"""Number of independent train/validation repeats used for label aggregation."""
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Rule-Based Gate Thresholds (Week 2 / Day 10)
