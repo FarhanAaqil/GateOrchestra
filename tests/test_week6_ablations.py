@@ -26,9 +26,11 @@ from gate.rule_based_gate import RuleBasedGate
 from scripts.week6_ablations import (
     AblatedGateWrapper,
     FailureTaxonomyResult,
+    ParetoPoint,
     _make_simulated_mas,
     generate_markdown_report,
     mask_features,
+    plot_pareto_frontier,
     run_bandit_breakdown,
     run_feature_ablations,
     run_gate_taxonomy,
@@ -284,3 +286,20 @@ def test_generate_markdown_report(sample_tasks: list[Task]) -> None:
         content = report_path.read_text(encoding="utf-8")
         assert "Gate Failure Taxonomy" in content
         assert "LinUCB Bandit Strategy Routing Breakdown" in content
+
+
+def test_plot_pareto_frontier_graceful() -> None:
+    points = [
+        ParetoPoint(
+            method="GateOrchestra",
+            k=3,
+            accuracy=85.0,
+            avg_tokens=220.0,
+            token_savings_pct=50.0,
+            stop_rate_pct=95.0,
+        )
+    ]
+    with tempfile.TemporaryDirectory() as tmpdir:
+        out_fig = Path(tmpdir) / "test_pareto.png"
+        plot_pareto_frontier(points, out_fig)
+        # Should not raise any error even if matplotlib is uninstalled

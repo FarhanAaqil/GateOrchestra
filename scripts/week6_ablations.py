@@ -57,10 +57,16 @@ REPO_ROOT = Path(__file__).resolve().parent.parent
 if str(REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(REPO_ROOT))
 
-import matplotlib
+try:
+    import matplotlib
 
-matplotlib.use("Agg")  # Non-interactive backend
-import matplotlib.pyplot as plt
+    matplotlib.use("Agg")  # Non-interactive backend
+    import matplotlib.pyplot as plt
+
+    HAS_MATPLOTLIB = True
+except ImportError:
+    HAS_MATPLOTLIB = False
+    plt = None
 
 from agents.baselines.simulated_probe import SimulatedProbe
 from agents.orchestrator.bandit_router import LinUCBRouter
@@ -873,6 +879,10 @@ def run_pareto_analysis(
 
 def plot_pareto_frontier(points: list[ParetoPoint], output_path: Path) -> None:
     """Generate high-resolution Pareto frontier curve using Matplotlib."""
+    if not HAS_MATPLOTLIB or plt is None:
+        logger.warning("[WARNING] Matplotlib not installed; skipping graphical plot generation.")
+        return
+
     fig, ax = plt.subplots(figsize=(8, 5.5), dpi=300)
 
     color_map = {
@@ -1369,8 +1379,11 @@ def main() -> int:
 
         # Plot figure
         fig_path = Path(args.output_fig)
-        plot_pareto_frontier(pareto_res, fig_path)
-        print(f"[FIGURE] Saved Pareto curve visualization to {fig_path}")
+        if HAS_MATPLOTLIB and plt is not None:
+            plot_pareto_frontier(pareto_res, fig_path)
+            print(f"[FIGURE] Saved Pareto curve visualization to {fig_path}")
+        else:
+            print("[FIGURE] Matplotlib not installed; skipping graphical plot.")
 
         # Save Pareto JSON
         pareto_json_path = Path(args.output_pareto_json)
