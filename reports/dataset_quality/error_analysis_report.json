@@ -1,0 +1,121 @@
+{
+  "total_evaluated": 32,
+  "total_errors": 7,
+  "error_rate_pct": 21.88,
+  "breakdown": {
+    "total_errors": 7,
+    "by_error_type": {
+      "reasoning_error": 1,
+      "calculation_error": 2,
+      "context_misalignment": 4
+    },
+    "by_source": {
+      "template_arithmetic": 2,
+      "hotpotqa_style": 2,
+      "template_comparison": 1,
+      "musique_style": 2
+    },
+    "by_depth": {
+      "depth_3": 4,
+      "depth_4": 3
+    },
+    "by_parallel": {
+      "parallel_1": 6,
+      "parallel_2": 1
+    },
+    "by_severity": {
+      "MAJOR": 7
+    }
+  },
+  "annotations": [
+    {
+      "task_id": "arith_004",
+      "error_type": "calculation_error",
+      "predicted_answer": "Wrong answer sample",
+      "ground_truth": "$5.00",
+      "severity": "MAJOR",
+      "rationale": "Arithmetic slip, computational operator error, incorrect formula application, or unit conversion mismatch.",
+      "source_dataset": "template_arithmetic",
+      "depth_score": 3,
+      "parallel_score": 1,
+      "metadata": {}
+    },
+    {
+      "task_id": "arith_037",
+      "error_type": "calculation_error",
+      "predicted_answer": "Wrong answer sample",
+      "ground_truth": "24 kWh",
+      "severity": "MAJOR",
+      "rationale": "Arithmetic slip, computational operator error, incorrect formula application, or unit conversion mismatch.",
+      "source_dataset": "template_arithmetic",
+      "depth_score": 3,
+      "parallel_score": 1,
+      "metadata": {}
+    },
+    {
+      "task_id": "bridge_011",
+      "error_type": "context_misalignment",
+      "predicted_answer": "Wrong answer sample",
+      "ground_truth": "Spanish",
+      "severity": "MAJOR",
+      "rationale": "Ignoring, misreading, or contradicting premise facts provided in the task context.",
+      "source_dataset": "hotpotqa_style",
+      "depth_score": 3,
+      "parallel_score": 1,
+      "metadata": {}
+    },
+    {
+      "task_id": "bridge_036",
+      "error_type": "context_misalignment",
+      "predicted_answer": "Wrong answer sample",
+      "ground_truth": "Himalayas",
+      "severity": "MAJOR",
+      "rationale": "Ignoring, misreading, or contradicting premise facts provided in the task context.",
+      "source_dataset": "hotpotqa_style",
+      "depth_score": 4,
+      "parallel_score": 1,
+      "metadata": {}
+    },
+    {
+      "task_id": "cmp_025",
+      "error_type": "reasoning_error",
+      "predicted_answer": "Wrong answer sample",
+      "ground_truth": "Jupiter rotates faster (about 10 hours) compared to Earth (about 24 hours)",
+      "severity": "MAJOR",
+      "rationale": "Logical breakdown in multi-hop bridge reasoning, invalid deduction step, or incorrect relational inference between facts.",
+      "source_dataset": "template_comparison",
+      "depth_score": 3,
+      "parallel_score": 2,
+      "metadata": {}
+    },
+    {
+      "task_id": "comp_015",
+      "error_type": "context_misalignment",
+      "predicted_answer": "Wrong answer sample",
+      "ground_truth": "Claude Monet",
+      "severity": "MAJOR",
+      "rationale": "Ignoring, misreading, or contradicting premise facts provided in the task context.",
+      "source_dataset": "musique_style",
+      "depth_score": 4,
+      "parallel_score": 1,
+      "metadata": {}
+    },
+    {
+      "task_id": "comp_036",
+      "error_type": "context_misalignment",
+      "predicted_answer": "Wrong answer sample",
+      "ground_truth": "Lake Śniardwy",
+      "severity": "MAJOR",
+      "rationale": "Ignoring, misreading, or contradicting premise facts provided in the task context.",
+      "source_dataset": "musique_style",
+      "depth_score": 4,
+      "parallel_score": 1,
+      "metadata": {}
+    }
+  ],
+  "recommendations": [
+    "Calculation errors detected: Ensure arithmetic tasks route to symbolic calculation sub-agents or use calculator tool bindings.",
+    "Reasoning errors detected: Tasks with depth >= 3 require multi-step chain-of-thought verification or Reflexion agent review."
+  ],
+  "generated_at": "2026-09-22T10:39:43.342366+00:00"
+}
