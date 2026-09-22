@@ -81,12 +81,37 @@ cd gateorchestra
 pip install -e ".[dev]"
 python -m spacy download en_core_web_sm
 
-# 2. Run tests
+# 2. Run test suite (422+ unit & integration tests)
 pytest
 
-# 3. Run demo (no LLM needed — uses mocks)
-python scripts/demo_run.py
+# 3. Run Capstone Live Demo (100% deterministic offline fail-safe mode)
+python scripts/week8_demo.py --mode mock --n 5
+
+# 4. Or launch the FastAPI Backend + React Dashboard
+uvicorn api.main:app --reload --port 8000
+# In a separate terminal:
+cd frontend-react && npm run dev
 ```
+
+---
+
+## Final Capstone Empirical Results (Test Split)
+
+Evaluated across 3 seeds (`42`, `123`, `999`) on the held-out `masbench_mini` test split (32 tasks, balanced across four strata: `hotpotqa_style`, `musique_style`, `template_arithmetic`, `template_comparison`).
+
+| Method | Type | Accuracy (%) | Token Savings vs Always-MAS | Avg Tokens / Task | STOP Rate (%) |
+|---|---|---|---|---|---|
+| **GateOrchestra** | **Learned GBT Gate** | **82.29% ± 7.86%** | **78.37% ± 1.79%** | **226.0** | **96.9%** |
+| RuleBasedGate | Heuristic Gate | 81.25% ± 13.62% | 66.88% ± 0.49% | 345.9 | 76.0% |
+| CoT-SC-only | Single-Agent Baseline | 79.17% ± 1.80% | 78.20% ± 1.43% | 227.9 | 100.0% |
+| RandomGate | Random Baseline ($p=0.5$) | 71.88% ± 8.27% | 51.50% ± 6.72% | 506.7 | 46.9% |
+| Always-MAS | Un-gated Multi-Agent System | 67.71% ± 9.55% | 0.00% ± 0.00% | 1,044.8 | 0.0% |
+
+- **RQ1 (Token Savings):** **78.37% ± 1.79%** token reduction vs Always-MAS (**target $\ge 40\%$ comfortably exceeded**).
+- **RQ2 (Accuracy Preservation):** **+14.58 percentage points** higher accuracy than Always-MAS (82.29% vs 67.71%) by avoiding multi-agent overthinking.
+- **RQ3 (Pareto Dominance):** Complete Pareto frontier dominance across budget multipliers $k \in \{2, 3, 5\}$ and sample counts $N \in \{3, 5, 7\}$.
+
+📖 **Full Report:** See [Capstone Technical Report](reports/capstone_technical_report_person3.md) and [Presentation & Release Guide](docs/WEEK8_RELEASE_GUIDE.md).
 
 ---
 
