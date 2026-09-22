@@ -34,7 +34,12 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agents.baselines.always_mas_baseline import run_always_mas_baseline
 from agents.baselines.cot_sc_baseline import run_cot_sc_baseline
-from agents.orchestrator.orchestrator import orchestrator as default_orchestrator
+from agents.orchestrator.orchestrator import (
+    get_default_mas_orchestrator,
+)
+from agents.orchestrator.orchestrator import (
+    orchestrator as default_orchestrator,
+)
 from agents.probe_agent import probe_agent as default_probe_agent
 from gate.classifier import GateClassifier
 from gate.feature_extractor import extract_features
@@ -464,6 +469,7 @@ def _run_checkpointed_pipeline(
                         accountant,
                         k=k,
                         method=method,
+                        mas_orchestrator=get_default_mas_orchestrator(),
                     ),
                     task,
                     method,

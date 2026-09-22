@@ -29,6 +29,7 @@ sys.path.insert(0, str(ROOT))
 
 from agents.orchestrator import MASOrchestrator
 from agents.probe_agent import ProbeAgent
+from evaluation.metrics import compute_mas_strategy_allocation
 from gate.classifier import GBTGate
 from gate.rule_based_gate import RuleBasedGate
 from integration.pipeline import run_pipeline
@@ -140,6 +141,7 @@ def main():
     avg_tokens = total_tokens / n if n > 0 else 0
     correct_count = sum(1 for r in results if r.is_correct is True)
     accuracy = (correct_count / n) * 100 if n > 0 else 0
+    strategy_alloc = compute_mas_strategy_allocation(results)
 
     print("\n" + "=" * 74)
     print("  Week 7 Real Benchmark Summary")
@@ -147,6 +149,16 @@ def main():
     print(f"  Total Tasks Evaluated:  {n}")
     print(f"  STOP Decisions:         {n_stop}/{n} ({n_stop/n*100:.1f}%) -> Probe answer returned")
     print(f"  ESCALATE Decisions:     {n_esc}/{n} ({n_esc/n*100:.1f}%) -> MAS Orchestrator invoked")
+    if n_esc > 0:
+        print(
+            f"    |-- ReAct Allocation:    {strategy_alloc['react_count']}/{n_esc} ({strategy_alloc['react_pct']:.1f}%)"
+        )
+        print(
+            f"    |-- Debate Allocation:   {strategy_alloc['debate_count']}/{n_esc} ({strategy_alloc['debate_pct']:.1f}%)"
+        )
+        print(
+            f"    +-- Reflexion Allocation:{strategy_alloc['reflexion_count']}/{n_esc} ({strategy_alloc['reflexion_pct']:.1f}%)"
+        )
     print(f"  Total Tokens Consumed:  {total_tokens}")
     print(f"  Average Tokens / Task:  {avg_tokens:.1f}")
     print(f"  Live Accuracy:          {accuracy:.1f}% ({correct_count}/{n})")
@@ -165,6 +177,7 @@ def main():
                 "avg_tokens": avg_tokens,
                 "stop_rate": n_stop / n,
                 "escalate_rate": n_esc / n,
+                "strategy_allocation": strategy_alloc,
                 "elapsed_seconds": elapsed,
             },
             f,

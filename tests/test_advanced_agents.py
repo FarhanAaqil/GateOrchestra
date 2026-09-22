@@ -176,6 +176,93 @@ class TestLinUCBRouter:
         assert router.alpha == 0.5
         assert np.allclose(router.b["react"], np.zeros((6, 1)))
 
+    def test_warmstart_from_tuples(self, sample_task):
+        """Warm-starting from a list of (task, arm, reward) tuples updates matrices A and b."""
+        router = LinUCBRouter(alpha=0.5)
+        initial_b = float(router.b["react"].sum())
+
+        count = router.warmstart_from_traces([(sample_task, "react", 0.95)])
+        assert count == 1
+        assert float(router.b["react"].sum()) != initial_b
+
+    def test_warmstart_from_dict_records(self, sample_task):
+        """Warm-starting from dict trace records calculates reward and updates state."""
+        router = LinUCBRouter(alpha=0.5)
+        initial_b = float(router.b["debate"].sum())
+
+        record = {
+            "task": sample_task,
+            "mas_strategy": "debate",
+            "is_correct": True,
+            "tokens_spent": 100,
+            "budget": 400,
+        }
+        count = router.warmstart_from_traces([record])
+        assert count == 1
+        assert float(router.b["debate"].sum()) != initial_b
+
+    def test_save_is_atomic_no_tmp_file_left(self, tmp_path, sample_task):
+        """After a successful save, the .tmp sidecar must NOT remain on disk."""
+        state_file = tmp_path / "bandit_state.json"
+        router = LinUCBRouter(alpha=0.4)
+        router.update(sample_task, "react", reward=0.7)
+
+        router.save(state_file)
+
+        tmp_file = state_file.with_suffix(".tmp")
+        assert state_file.exists(), "Final state file must exist after save"
+        assert not tmp_file.exists(), ".tmp sidecar must be removed after atomic rename"
+
+    def test_save_creates_parent_dirs(self, tmp_path, sample_task):
+        """save() must create any missing parent directories automatically."""
+        nested_path = tmp_path / "deep" / "nested" / "bandit.json"
+        router = LinUCBRouter()
+        router.save(nested_path)  # should not raise
+
+        assert nested_path.exists()
+
+    def test_save_atomic_preserves_old_state_on_read_error(self, tmp_path, sample_task):
+        """If the old state was valid, after an atomic save the loaded router must match."""
+        state_file = tmp_path / "atomic_test.json"
+        router = LinUCBRouter(alpha=0.9)
+        router.update(sample_task, "debate", reward=0.6)
+        router.save(state_file)
+
+        # Overwrite atomically with new state
+        router.update(sample_task, "reflexion", reward=1.0)
+        router.save(state_file)
+
+        reloaded = LinUCBRouter()
+        reloaded.load(state_file)
+        assert reloaded.alpha == pytest.approx(0.9)
+        assert np.allclose(reloaded.b["debate"], router.b["debate"])
+        assert np.allclose(reloaded.b["reflexion"], router.b["reflexion"])
+
+    def test_warmstart_from_json_file(self, tmp_path, sample_task):
+        """Warm-starting from a JSON trace file correctly initializes router state."""
+        import json
+
+        trace_file = tmp_path / "warmstart_traces.json"
+        traces_data = {
+            "traces": [
+                {
+                    "task_id": sample_task.task_id,
+                    "question": sample_task.question,
+                    "ground_truth": sample_task.ground_truth,
+                    "mas_strategy": "reflexion",
+                    "is_correct": True,
+                    "tokens_spent": 80,
+                    "budget": 300,
+                }
+            ]
+        }
+        trace_file.write_text(json.dumps(traces_data), encoding="utf-8")
+
+        router = LinUCBRouter(alpha=0.5)
+        count = router.warmstart_from_traces(trace_file)
+        assert count == 1
+        assert float(router.b["reflexion"].sum()) > 0
+
 
 # ─────────────────────────────────────────────────────────────────────────────
 # 4. Test Orchestrator with Bandit Routing
@@ -214,3 +301,12 @@ class TestOrchestratorBanditMode:
 
         new_orch = MASOrchestrator(default_strategy="bandit", bandit_state_path=state_file)
         assert np.allclose(new_orch.bandit_router.b["reflexion"], orch.bandit_router.b["reflexion"])
+
+    def test_orchestrator_warmstart_bandit(self, sample_task):
+        """MASOrchestrator.warmstart_bandit delegates to bandit_router."""
+        orch = MASOrchestrator(default_strategy="bandit")
+        initial_b = float(orch.bandit_router.b["react"].sum())
+
+        count = orch.warmstart_bandit([(sample_task, "react", 0.85)])
+        assert count == 1
+        assert float(orch.bandit_router.b["react"].sum()) != initial_b
