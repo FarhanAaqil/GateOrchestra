@@ -6,6 +6,24 @@
 #   from dataset import JSONLTaskRepository, TaskRepository
 #   from dataset import load_split_filtered, load_batches, get_dataset_metadata
 
+from dataset.analysis import (
+    AnalysisReport,
+    CorrelationMatrix,
+    DatasetAnalyzer,
+    DistributionTable,
+    ImbalanceAlert,
+    JointDistributionTable,
+    LengthStatistics,
+    LexicalStatistics,
+    SplitStatistics,
+)
+from dataset.error_labels import (
+    ErrorAnalysisReport,
+    ErrorAnalyzer,
+    ErrorAnnotation,
+    ErrorBreakdown,
+    ErrorType,
+)
 from dataset.loader import (
     get_dataset_metadata,
     load_all_splits,
@@ -30,4 +48,20 @@ __all__ = [
     # Repository API (Week 5)
     "TaskRepository",
     "JSONLTaskRepository",
+    # Analysis API (Week 7)
+    "DatasetAnalyzer",
+    "AnalysisReport",
+    "SplitStatistics",
+    "DistributionTable",
+    "JointDistributionTable",
+    "LengthStatistics",
+    "LexicalStatistics",
+    "CorrelationMatrix",
+    "ImbalanceAlert",
+    # Error Taxonomy & Diagnostics (Week 8)
+    "ErrorType",
+    "ErrorAnnotation",
+    "ErrorBreakdown",
+    "ErrorAnalysisReport",
+    "ErrorAnalyzer",
 ]
