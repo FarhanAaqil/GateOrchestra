@@ -5,11 +5,28 @@ Agents module for GateOrchestra (Person 2).
 Exposes the ProbeAgent, MAS Orchestrator, LinUCBRouter, Providers, and Baselines.
 """
 
+from agents.agent_analysis import (
+    AgentAnalysisReport,
+    AgentPerformanceMetrics,
+    analyze_eval_records,
+    analyze_trace_file,
+    benchmark_agents,
+)
 from agents.baselines import (
     run_always_mas_baseline,
     run_always_mas_batch,
     run_cot_sc_baseline,
     run_cot_sc_batch,
+)
+from agents.error_analysis import (
+    AgentErrorBreakdown,
+    ErrorAnalysisReport,
+    ErrorCategory,
+    ErrorRecord,
+    GateErrorBreakdown,
+    analyze_errors_from_file,
+    analyze_errors_from_records,
+    classify_error,
 )
 from agents.orchestrator import (
     DebateAgent,
@@ -44,4 +61,17 @@ __all__ = [
     "run_cot_sc_batch",
     "run_always_mas_baseline",
     "run_always_mas_batch",
+    "AgentPerformanceMetrics",
+    "AgentAnalysisReport",
+    "analyze_eval_records",
+    "analyze_trace_file",
+    "benchmark_agents",
+    "ErrorCategory",
+    "ErrorRecord",
+    "GateErrorBreakdown",
+    "AgentErrorBreakdown",
+    "ErrorAnalysisReport",
+    "classify_error",
+    "analyze_errors_from_records",
+    "analyze_errors_from_file",
 ]
