@@ -620,10 +620,19 @@ def run_experiments(
     if not gate_model_path.exists():
         gate_model_path = LOGS_DIR / "week2_best_gate.pkl"
 
+    learned_gate = None
     if gate_model_path.exists():
-        logger.info(f"[*] Loading learned GBT gate from {gate_model_path}")
-        learned_gate = GateClassifier.load(gate_model_path)
-    else:
+        try:
+            logger.info(f"[*] Loading learned GBT gate from {gate_model_path}")
+            learned_gate = GateClassifier.load(gate_model_path)
+        except Exception as e:
+            logger.warning(
+                f"[!] Failed to load learned GBT gate from {gate_model_path} ({e}); "
+                "falling back to dynamically training a fallback GBT gate."
+            )
+            learned_gate = None
+
+    if learned_gate is None:
         logger.info("[*] Training fallback GBT gate on dataset features")
         learned_gate = GBTGate(n_estimators=100, learning_rate=0.1, max_depth=3)
         train_tasks = load_split("train")
