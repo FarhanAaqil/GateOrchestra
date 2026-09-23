@@ -177,7 +177,11 @@ def test_run_experiments_end_to_end(tmp_path: Path) -> None:
 
     assert json_path.exists()
     assert md_path.exists()
-    assert plot_path.exists()
+
+    from scripts.run_experiments import HAS_MATPLOTLIB
+
+    if HAS_MATPLOTLIB:
+        assert plot_path.exists()
 
     with json_path.open("r", encoding="utf-8") as f:
         data = json.load(f)
