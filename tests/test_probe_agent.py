@@ -22,9 +22,7 @@ from shared.schemas import EvalResult, ProbeResult, Task
 from shared.token_logger import TokenAccountant
 from tests.mocks.mock_orchestrator import mock_orchestrator
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Test Answer Extraction & Normalization
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestAnswerExtraction:
@@ -59,9 +57,7 @@ class TestAnswerExtraction:
         assert normalize_answer("The   United  States ") == "the united states"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Test Prompt Construction
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestPromptConstruction:
@@ -84,9 +80,7 @@ class TestPromptConstruction:
         assert "Who won the Nobel prize?" in prompt
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Test ProbeAgent Execution & Majority Voting
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestProbeAgentExecution:
@@ -182,9 +176,7 @@ class TestProbeAgentExecution:
             ProbeAgent(token_budget=0)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Test Pipeline Integration with ProbeAgent
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestPipelineIntegration:

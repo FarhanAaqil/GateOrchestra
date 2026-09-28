@@ -26,9 +26,7 @@ from shared.schemas import Task
 logger = logging.getLogger(__name__)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Error Taxonomy Definitions
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class ErrorType(str, Enum):
@@ -75,9 +73,7 @@ ERROR_DESCRIPTIONS: dict[ErrorType, str] = {
 }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Data Structures & Models
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @dataclass
@@ -140,9 +136,7 @@ class ErrorAnalysisReport:
         }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Diagnostic Engine
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class ErrorAnalyzer:
@@ -337,9 +331,7 @@ class ErrorAnalyzer:
 
         return recs
 
-    # ─────────────────────────────────────────────────────────────────────────
     # Renderers & Exporters
-    # ─────────────────────────────────────────────────────────────────────────
 
     @staticmethod
     def render_ascii_summary(report: ErrorAnalysisReport) -> str:

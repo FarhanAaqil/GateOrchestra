@@ -26,9 +26,7 @@ from dataset.labeling.feature_extractor import (
 from dataset.labeling.parallel_labeler import assign_parallel
 from shared.schemas import Task
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 1. Feature Extractor Unit Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestFeatureExtractor:
@@ -119,9 +117,7 @@ class TestFeatureExtractor:
         assert features["entity_count"] == 0
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 2. Depth Labeler Unit Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestDepthLabeler:
@@ -183,9 +179,7 @@ class TestDepthLabeler:
         assert res["depth_raw_score"] == 1.0
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 3. Parallel Labeler Unit Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestParallelLabeler:
@@ -232,9 +226,7 @@ class TestParallelLabeler:
         assert res["parallel_score"] >= 2
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 4. Pipeline Integration & Schema Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestLabelingPipelineIntegration:

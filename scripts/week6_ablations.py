@@ -97,9 +97,7 @@ FIGURES_DIR = REPO_ROOT / "reports" / "figures"
 FIGURES_DIR.mkdir(parents=True, exist_ok=True)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Simulation & Gating Helpers
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def _make_simulated_mas(seed: int) -> Callable[[Task, int], tuple[str, int]]:
@@ -257,9 +255,7 @@ def _train_gate_with_ablation(
     return AblatedGateWrapper(base_gate, dropped)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 1. Gate Failure Taxonomy
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @dataclass
@@ -419,9 +415,7 @@ def run_gate_taxonomy(
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 2. Feature Ablations
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @dataclass
@@ -590,9 +584,7 @@ def run_feature_ablations(
     return results
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 3. CoT-SC Sample Size Sensitivity (N-sweep)
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @dataclass
@@ -701,9 +693,7 @@ def run_n_sweep(
     return sweep_results
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 4. Pareto Frontier Analysis (k in {2, 3, 5})
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @dataclass
@@ -953,9 +943,7 @@ def plot_pareto_frontier(points: list[ParetoPoint], output_path: Path) -> None:
     plt.close(fig)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 5. LinUCB Bandit Strategy Breakdown
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @dataclass
@@ -1042,9 +1030,7 @@ def run_bandit_breakdown(
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Markdown Report Generator
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def generate_markdown_report(
@@ -1193,9 +1179,7 @@ def generate_markdown_report(
     print(f"[INFO] Markdown report written to {output_path}")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # CLI Entry Point
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def parse_args() -> argparse.Namespace:

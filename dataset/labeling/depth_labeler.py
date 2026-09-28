@@ -37,9 +37,7 @@ import logging
 
 logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Default thresholds (mirror configs/dataset.yaml)
-# ─────────────────────────────────────────────────────────────────────────────
 
 DEFAULT_WEIGHTS = {
     "hop_count": 0.40,
@@ -62,9 +60,7 @@ DEFAULT_THRESHOLDS = [
 WORD_COUNT_NORM_DENOMINATOR = 15.0  # questions longer than this normalized to 1.0
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Public API
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def assign_depth(
@@ -121,9 +117,7 @@ def assign_depth(
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Internal helpers
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def _threshold(score: float, thresholds: list[tuple[float, int]]) -> int:

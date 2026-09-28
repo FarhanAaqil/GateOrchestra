@@ -29,9 +29,7 @@ logger = logging.getLogger(__name__)
 LLMCallerFn = Callable[[str, float, int], tuple[str, int]]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 1. ReAct Agent (Decomposition & Multi-Hop Reasoning)
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class ReActAgent:
@@ -111,9 +109,7 @@ class ReActAgent:
         return extract_answer(final_resp), min(total_tokens, token_budget)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 2. Multi-Agent Debate & Consensus Agent
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class DebateAgent:
@@ -204,9 +200,7 @@ class DebateAgent:
         return extract_answer(current_solution), min(total_tokens, token_budget)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 3. Reflexion Agent (Self-Reflection & Refinement)
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class ReflexionAgent:

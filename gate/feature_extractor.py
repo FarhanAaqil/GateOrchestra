@@ -21,9 +21,7 @@ from shared.schemas import GateFeatures, ProbeResult, Task
 
 logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────────────────────
 # spaCy lazy loader
-# ─────────────────────────────────────────────────────────────────────────────
 
 _nlp = None  # Lazy-loaded to avoid slow import at module level
 _nlp_unavailable = False  # Set to True if spaCy fails to load
@@ -46,9 +44,7 @@ def _get_nlp():
     return _nlp if not _nlp_unavailable else None
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Public API
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def extract_features(
@@ -103,9 +99,7 @@ def extract_features(
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Internal helpers
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def _spacy_features(text: str, nlp) -> tuple[int, int]:

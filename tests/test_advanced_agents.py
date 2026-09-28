@@ -27,9 +27,7 @@ def sample_task() -> Task:
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 1. Test Sequential Early-Exit in ProbeAgent
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestEarlyExitProbe:
@@ -76,9 +74,7 @@ class TestEarlyExitProbe:
         assert call_count == 5
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 2. Test Semantic Soft Majority Voting
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestSemanticSoftVoting:
@@ -96,9 +92,7 @@ class TestSemanticSoftVoting:
         assert score == pytest.approx(0.6)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 3. Test LinUCB Contextual Bandit Router
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestLinUCBRouter:
@@ -264,9 +258,7 @@ class TestLinUCBRouter:
         assert float(router.b["reflexion"].sum()) > 0
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 4. Test Orchestrator with Bandit Routing
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestOrchestratorBanditMode:

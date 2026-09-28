@@ -12,9 +12,7 @@ from gate.random_gate import RandomGate
 from gate.rule_based_gate import RuleBasedGate
 from shared.schemas import GateFeatures, ProbeResult, Task
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Fixtures
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @pytest.fixture
@@ -68,9 +66,7 @@ def complex_features(complex_task, low_consistency_probe) -> GateFeatures:
     return extract_features(complex_task, low_consistency_probe, use_spacy=False)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Feature extractor tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestFeatureExtractor:
@@ -108,9 +104,7 @@ class TestFeatureExtractor:
         assert complex_features.estimated_depth >= simple_features.estimated_depth
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # RuleBasedGate tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestRuleBasedGate:
@@ -168,9 +162,7 @@ class TestRuleBasedGate:
         assert trace.rule_name != ""
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # RandomGate tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestRandomGate:
@@ -207,9 +199,7 @@ class TestRandomGate:
             RandomGate(escalation_rate=1.5)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Classifier stub tests (train + predict cycle with toy data)
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def _make_toy_data(n: int = 20) -> tuple[list[GateFeatures], list[str]]:

@@ -20,9 +20,7 @@ from typing import Literal
 
 from pydantic import BaseModel, Field, field_validator, model_validator
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Task
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class Task(BaseModel):
@@ -72,9 +70,7 @@ class Task(BaseModel):
     model_config = {"frozen": True}  # Tasks are immutable once created
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # ProbeResult
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class ProbeResult(BaseModel):
@@ -124,9 +120,7 @@ class ProbeResult(BaseModel):
         return v
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # GateFeatures
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class GateFeatures(BaseModel):
@@ -141,7 +135,7 @@ class GateFeatures(BaseModel):
 
     task_id: str = Field(..., description="Matches Task.task_id")
 
-    # ── Probe-derived features (free from ProbeResult) ────────────────────
+    # Probe-derived features (free from ProbeResult)
     consistency_score: float = Field(
         ...,
         ge=0.0,
@@ -154,7 +148,7 @@ class GateFeatures(BaseModel):
         description="Token count from ProbeResult — proxy for task complexity",
     )
 
-    # ── Text-derived features (from Task.question + context) ───────────────
+    # Text-derived features (from Task.question + context)
     question_word_count: int = Field(..., ge=0, description="Number of words in the question")
     entity_count: int = Field(
         ...,
@@ -168,7 +162,7 @@ class GateFeatures(BaseModel):
     )
     has_context: bool = Field(..., description="Whether Task.context is non-None and non-empty")
 
-    # ── Axis proxy features (heuristic approximations before labeling) ─────
+    # Axis proxy features (heuristic approximations before labeling)
     estimated_depth: float | None = Field(
         default=None,
         ge=0.0,
@@ -181,9 +175,7 @@ class GateFeatures(BaseModel):
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # GateDecision
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class GateDecision(BaseModel):
@@ -225,9 +217,7 @@ class GateDecision(BaseModel):
         return self
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # EvalResult
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class EvalResult(BaseModel):
@@ -299,9 +289,7 @@ class EvalResult(BaseModel):
         return self
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Quick smoke test
-# ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     import json

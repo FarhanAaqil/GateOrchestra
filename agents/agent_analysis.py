@@ -131,9 +131,7 @@ class AgentAnalysisReport:
         return "\n".join(lines)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 1. Existing Evaluation Data Analysis (Traces / Baseline Results)
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def analyze_eval_records(
@@ -273,9 +271,7 @@ def analyze_trace_file(file_path: str | Path) -> AgentAnalysisReport:
     return analyze_eval_records(records, source_name=str(path))
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 2. Live / Benchmark Agent Profiling Suite
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def benchmark_agents(

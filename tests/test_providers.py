@@ -20,9 +20,7 @@ from agents.providers import (
 )
 from shared.schemas import Task
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 1. Test Ollama Provider
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestOllamaProvider:
@@ -58,9 +56,7 @@ class TestOllamaProvider:
         assert payload["temperature"] == 0.7
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 2. Test Groq Provider
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestGroqProvider:
@@ -113,9 +109,7 @@ class TestGroqProvider:
             call_groq(prompt="Test", api_key="")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 3. Test Provider Dispatcher & Factory
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestProviderDispatcher:
@@ -148,9 +142,7 @@ class TestProviderDispatcher:
         assert toks == 25
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 4. Test Agents Multi-Provider Integration
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestAgentMultiProviderIntegration:

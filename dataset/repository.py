@@ -43,9 +43,7 @@ logger = logging.getLogger(__name__)
 
 _VALID_SPLITS = ("train", "val", "test")
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Abstract Interface
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TaskRepository(ABC):
@@ -157,9 +155,7 @@ class TaskRepository(ABC):
         """Return the split names that have data on this backend."""
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # JSONL Filesystem Adapter (Default / Week 5)
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class JSONLTaskRepository(TaskRepository):
@@ -393,9 +389,7 @@ class JSONLTaskRepository(TaskRepository):
         return f"JSONLTaskRepository(root={self._root}, splits={counts})"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Future: Supabase Adapter Stub
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class SupabaseTaskRepository(TaskRepository):

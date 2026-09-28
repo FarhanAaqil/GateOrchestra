@@ -26,9 +26,7 @@ from shared.schemas import Task
 logger = logging.getLogger(__name__)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Data Structures & Models
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @dataclass
@@ -442,9 +440,7 @@ class AnalysisReport:
         return asdict(self)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Analyzer Engine
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class DatasetAnalyzer:
@@ -719,9 +715,7 @@ class DatasetAnalyzer:
             imbalance_alerts=imbalance_alerts,
         )
 
-    # ─────────────────────────────────────────────────────────────────────────
     # Renderers and Exporters
-    # ─────────────────────────────────────────────────────────────────────────
 
     @staticmethod
     def render_ascii_table(dist: DistributionTable) -> str:

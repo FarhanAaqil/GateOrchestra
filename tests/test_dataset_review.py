@@ -43,9 +43,7 @@ from dataset.review.reviewer import VERDICT_LABELS, ReviewEntry, ReviewLog
 from dataset.review.sampler import ReviewSampler, select_review_sample
 from shared.schemas import Task
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Shared fixtures
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def _make_task(
@@ -98,9 +96,7 @@ def sample_entry() -> ReviewEntry:
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 1. ReviewSampler
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestReviewSampler:
@@ -203,9 +199,7 @@ class TestSelectReviewSampleHelper:
         assert all(isinstance(t, Task) for t in sample)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 2. ReviewEntry schema
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestReviewEntry:
@@ -255,9 +249,7 @@ class TestReviewEntry:
             assert verdict in VERDICT_LABELS
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 3. ReviewLog — persistence
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestReviewLogAppendLoad:
@@ -305,9 +297,7 @@ class TestReviewLogAppendLoad:
         assert len(entries) == 2
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 4. ReviewLog — load_latest (last-write-wins)
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestLoadLatest:
@@ -328,9 +318,7 @@ class TestLoadLatest:
         assert review_log.load_latest() == {}
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 5. ReviewLog — query helpers
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestReviewLogQueryHelpers:
@@ -378,9 +366,7 @@ class TestReviewLogQueryHelpers:
         assert result == []
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 6. ReviewLog — summary()
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestReviewLogSummary:
@@ -415,9 +401,7 @@ class TestReviewLogSummary:
         assert s["by_verdict"] == {}
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 7. ReviewLog — export_flagged_csv()
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestExportFlaggedCSV:
@@ -479,9 +463,7 @@ class TestExportFlaggedCSV:
         assert rows == []
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 8. Integration: full sample -> review -> query pipeline
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestFullPipeline:

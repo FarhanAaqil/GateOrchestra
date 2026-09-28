@@ -21,9 +21,7 @@ Version: v1.0 | Seed: 42 | Target: 160 tasks
 
 from __future__ import annotations
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Taxonomy constants
-# ─────────────────────────────────────────────────────────────────────────────
 
 SOURCE_LABELS = {
     "hotpotqa_style",
@@ -39,9 +37,7 @@ TASK_TYPES = {
     "comparison",
 }
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Raw task bank
-# ─────────────────────────────────────────────────────────────────────────────
 
 # Each entry is a dict with keys:
 #   question, answer, context (None if absent), source, task_type, hop_hint

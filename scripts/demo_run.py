@@ -67,9 +67,7 @@ def simulated_mas(task: Task, token_budget: int) -> tuple[str, int]:
     return answer, tokens_used
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Always-MAS baseline (no gate — always escalates)
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def always_mas_baseline(tasks: list[Task], k: int) -> list[EvalResult]:
@@ -95,9 +93,7 @@ def always_mas_baseline(tasks: list[Task], k: int) -> list[EvalResult]:
     return results
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Display helpers
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def _decision_marker(decision: str) -> str:
@@ -163,9 +159,7 @@ def print_summary(
     print(f"    Accuracy:      {acc:>5.1f}%  ({len(correct)}/{n})")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Main
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def main(

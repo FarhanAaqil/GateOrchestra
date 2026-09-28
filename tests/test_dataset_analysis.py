@@ -88,9 +88,7 @@ def sample_splits(sample_tasks: list[Task]) -> dict[str, list[Task]]:
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 1. LengthStatistics Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestLengthStatistics:
@@ -131,9 +129,7 @@ class TestLengthStatistics:
         assert d["count"] == 3
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 2. DistributionTable Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestDistributionTable:
@@ -165,9 +161,7 @@ class TestDistributionTable:
         assert d["total"] == 2
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 3. JointDistributionTable Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestJointDistributionTable:
@@ -200,9 +194,7 @@ class TestJointDistributionTable:
         assert joint.col_totals["2"] == 1
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 4. LexicalStatistics Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestLexicalStatistics:
@@ -227,9 +219,7 @@ class TestLexicalStatistics:
         assert "computing" in top_words or "quantum" in top_words
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 5. Imbalance Metrics Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestImbalanceMetrics:
@@ -261,9 +251,7 @@ class TestImbalanceMetrics:
         assert "below minimum target" in crit_alerts[0].message
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 6. CorrelationMatrix Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestCorrelationMatrix:
@@ -285,9 +273,7 @@ class TestCorrelationMatrix:
                 assert -1.0 <= val <= 1.0
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 7. DatasetAnalyzer & Report Generation Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestDatasetAnalyzer:
@@ -342,9 +328,7 @@ class TestDatasetAnalyzer:
             assert "overall" in data
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 8. CLI Integration Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestCLIIntegration:

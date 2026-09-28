@@ -169,9 +169,7 @@ class MASOrchestrator:
         return self.run(task, token_budget)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Module-level default orchestrator
-# ─────────────────────────────────────────────────────────────────────────────
 
 _default_orchestrator: MASOrchestrator | None = None
 

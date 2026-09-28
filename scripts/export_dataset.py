@@ -40,7 +40,7 @@ import logging
 import sys
 from pathlib import Path
 
-# ── Bootstrap path so we can import shared.* and dataset.* ────────────────────
+# Bootstrap path so we can import shared.* and dataset.*
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -69,9 +69,7 @@ _TASK_FIELDS = [
 DEFAULT_OUTPUT_DIR = ROOT / "exports" / "dataset"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Export helpers
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def _task_to_row(task: Task, split: str | None = None) -> dict:
@@ -240,9 +238,7 @@ def export_metadata_json(
     return out_path
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # CLI Entry Point
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def _build_parser() -> argparse.ArgumentParser:

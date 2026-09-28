@@ -28,9 +28,7 @@ from shared.schemas import GateFeatures, ProbeResult, Task
 random.seed(42)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Realistic probe simulator (Day 3 version — heuristic, not real LLM)
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def simulate_probe(task: Task) -> ProbeResult:
@@ -85,9 +83,7 @@ def _generate_fake_answers(task: Task, n: int, consistency: float) -> list[str]:
     return answers
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Main
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def run(split: str = "val", n: int = 15) -> None:

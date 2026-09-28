@@ -48,9 +48,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Output paths
-# ─────────────────────────────────────────────────────────────────────────────
 
 RAW_DIR = REPO_ROOT / "dataset" / "raw"
 PROCESSED_DIR = REPO_ROOT / "dataset" / "processed"
@@ -63,7 +61,7 @@ def main() -> None:
     print("  GateOrchestra — Dataset Build Script  (Person 1, Week 1)")
     print("=" * 65 + "\n")
 
-    # ── Step 1 & 2: Build and validate raw tasks ───────────────────────────
+    # Step 1 & 2: Build and validate raw tasks
     logger.info("STEP 1-3: Building tasks from raw pool...")
     tasks_unlabeled, rejected = build_tasks(raw_tasks=RAW_TASKS, verbose=True)
 
@@ -71,7 +69,7 @@ def main() -> None:
         logger.error("No tasks produced — aborting.")
         sys.exit(1)
 
-    # ── Step 3: Feature extraction + labeling ─────────────────────────────
+    # Step 3: Feature extraction + labeling
     logger.info(
         f"\nSTEP 4-6: Extracting features and assigning labels for {len(tasks_unlabeled)} tasks..."
     )
@@ -125,19 +123,19 @@ def main() -> None:
 
     logger.info(f"  Labels assigned to {len(labeled_tasks)} tasks")
 
-    # ── Step 4: Save raw tasks ─────────────────────────────────────────────
+    # Step 4: Save raw tasks
     logger.info(f"\nSTEP 7: Saving raw labeled tasks to {RAW_TASKS_FILE}...")
     RAW_DIR.mkdir(parents=True, exist_ok=True)
     _save_tasks_jsonl(labeled_tasks, RAW_TASKS_FILE)
     logger.info(f"  ✅ Saved {len(labeled_tasks)} tasks → {RAW_TASKS_FILE.name}")
 
-    # ── Step 5: Save feature matrix ────────────────────────────────────────
+    # Step 5: Save feature matrix
     logger.info(f"\nSTEP 8: Saving feature matrix to {FEATURES_FILE}...")
     PROCESSED_DIR.mkdir(parents=True, exist_ok=True)
     _save_jsonl(feature_rows, FEATURES_FILE)
     logger.info(f"  ✅ Saved {len(feature_rows)} feature rows → {FEATURES_FILE.name}")
 
-    # ── Step 6: Summary statistics ─────────────────────────────────────────
+    # Step 6: Summary statistics
     _print_summary(labeled_tasks, rejected)
 
 

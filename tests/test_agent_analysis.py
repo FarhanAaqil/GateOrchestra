@@ -29,9 +29,7 @@ from scripts.analyze_agents import main as cli_main
 from shared.schemas import EvalResult, Task
 from shared.token_logger import TokenAccountant
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Fixtures & Helpers
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def dummy_caller(prompt: str, temperature: float, budget: int) -> tuple[str, int]:
@@ -73,9 +71,7 @@ def sample_tasks() -> list[Task]:
     ]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 1. Tests for Data Models & Formatting
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestAgentPerformanceMetrics:
@@ -134,9 +130,7 @@ class TestAgentPerformanceMetrics:
         assert "ProbeAgent" in parsed["metrics"]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 2. Tests for Record Analysis
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestAnalyzeEvalRecords:
@@ -234,9 +228,7 @@ class TestAnalyzeEvalRecords:
         assert m.avg_latency_ms == 7.0
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 3. Tests for Trace File Loading (Existing Data)
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestAnalyzeTraceFile:
@@ -273,9 +265,7 @@ class TestAnalyzeTraceFile:
             analyze_trace_file("logs/non_existent_file_xyz.jsonl")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 4. Tests for Live / Benchmark Agent Profiling
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestBenchmarkAgents:
@@ -318,9 +308,7 @@ class TestBenchmarkAgents:
         assert len(accountant.get_total_by_method()) >= 4
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 5. Tests for CLI Main
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestAnalyzeAgentsCLI:

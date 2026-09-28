@@ -31,9 +31,7 @@ from shared.token_logger import TokenAccountant
 
 logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Type aliases for injectable dependencies
-# ─────────────────────────────────────────────────────────────────────────────
 
 ProbeAgentFn = Callable[[Task], ProbeResult]
 """Signature that any probe agent implementation must satisfy."""
@@ -42,9 +40,7 @@ OrchestratorFn = Callable[[Task, int], tuple[str, int]]
 """Signature: (task, token_budget) → (answer, tokens_used)."""
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Core pipeline
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def run_pipeline(
@@ -90,15 +86,15 @@ def run_pipeline(
     """
     logger.info(f"[Pipeline] task={task.task_id} method={method} k={k}")
 
-    # ── Stage 1: Probe ────────────────────────────────────────────────────
+    # Stage 1: Probe
     probe: ProbeResult = probe_agent(task)
     accountant.log(task.task_id, method, stage="probe", tokens=probe.tokens_used, path="N/A")
     logger.debug(f"  Probe: consistency={probe.consistency_score:.2f} tokens={probe.tokens_used}")
 
-    # ── Stage 2: Feature extraction ───────────────────────────────────────
+    # Stage 2: Feature extraction
     features = extract_features(task, probe)
 
-    # ── Stage 3: Gate decision ────────────────────────────────────────────
+    # Stage 3: Gate decision
     try:
         decision: GateDecision = gate.predict(
             features, k=k, probe_tokens=probe.tokens_used, threshold=threshold
@@ -107,7 +103,7 @@ def run_pipeline(
         decision = gate.predict(features, k=k, probe_tokens=probe.tokens_used)
     logger.debug(f"  Gate: decision={decision.decision} confidence={decision.confidence:.2f}")
 
-    # ── Stage 4: Route ────────────────────────────────────────────────────
+    # Stage 4: Route
     # token_budget is initialised here so it is always in-scope for the
     # bandit update that follows the if/else block.
     token_budget = 0
@@ -123,13 +119,13 @@ def run_pipeline(
         accountant.log(task.task_id, method, stage="mas", tokens=mas_tokens, path="ESCALATE")
         logger.debug(f"  ESCALATE → MAS answer: {answer!r} tokens={mas_tokens}")
 
-    # ── Stage 5: Build result ─────────────────────────────────────────────
+    # Stage 5: Build result
     total_tokens = probe.tokens_used + mas_tokens
     is_correct: bool | None = None
     if task.ground_truth is not None:
         is_correct = _exact_match(answer, task.ground_truth)
 
-    # ── Stage 5b: LinUCB bandit online update ─────────────────────────────
+    # Stage 5b: LinUCB bandit online update
     # Only fires on ESCALATE when the caller passes a MASOrchestrator object.
     # Duck-typed so pipeline.py stays import-free of agents code.
     if (
@@ -151,7 +147,7 @@ def run_pipeline(
             budget=token_budget,
         )
 
-    # ── Stage 5c: Resolve the MAS strategy name for the result record ─────
+    # Stage 5c: Resolve the MAS strategy name for the result record
     # STOP always → None.
     # ESCALATE → read _last_strategy from:
     #   1. mas_orchestrator (explicit object, highest priority), or
@@ -225,9 +221,7 @@ def run_batch(
     return results
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Helpers
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 _exact_match = exact_match

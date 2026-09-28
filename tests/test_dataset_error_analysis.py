@@ -68,9 +68,7 @@ def sample_tasks() -> list[Task]:
     ]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 1. ErrorType Taxonomy Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestErrorType:
@@ -94,9 +92,7 @@ class TestErrorType:
             assert len(ERROR_DESCRIPTIONS[e_type]) > 10
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 2. ErrorAnnotation Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestErrorAnnotation:
@@ -116,9 +112,7 @@ class TestErrorAnnotation:
         assert d["ground_truth"] == "96"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 3. ErrorAnalyzer Diagnosis Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestErrorAnalyzerDiagnosis:
@@ -164,9 +158,7 @@ class TestErrorAnalyzerDiagnosis:
         assert ann.rationale == "Custom factual override"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 4. ErrorBreakdown and Reporting Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestErrorBreakdownAndReporting:
@@ -239,9 +231,7 @@ class TestErrorBreakdownAndReporting:
             assert data["total_errors"] == 1
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 5. CLI Integration Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestCLIAnalyzeErrors:

@@ -79,9 +79,7 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger("final_experiments")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Simulation & Mock Callers for Deterministic Experiments
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def make_deterministic_simulated_mas(seed: int = 42) -> Callable[[Task, int], tuple[str, int]]:
@@ -119,9 +117,7 @@ def deterministic_mock_caller(prompt: str, temperature: float, budget: int) -> t
     return "Final Answer: 42", 28
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Gating Classification Evaluation (F1, Precision, Recall)
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def compute_gate_classification_metrics(
@@ -183,9 +179,7 @@ def compute_gate_classification_metrics(
     }
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Feature Ablation Engine
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class AblatedGateWrapper(GateClassifier):
@@ -317,9 +311,7 @@ def run_feature_ablations(
     return ablation_results
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Pareto Frontier Plotter
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def plot_pareto_frontier(
@@ -400,9 +392,7 @@ def plot_pareto_frontier(
     logger.info(f"Saved Pareto frontier plot to {output_path}")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Markdown Summary Formatter
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def format_markdown_summary(
@@ -568,9 +558,7 @@ def format_markdown_summary(
     return "\n".join(lines)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Main Experiment Execution Flow
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def run_experiments(
@@ -947,9 +935,7 @@ def run_experiments(
     return final_output
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # CLI Entrypoint
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:

@@ -48,9 +48,7 @@ logger = logging.getLogger(__name__)
 LLMCallerFn = Callable[[str, float, int], tuple[str, int]]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Answer Extraction and Normalization Helpers
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def normalize_answer(text: str) -> str:
@@ -136,9 +134,7 @@ def _token_jaccard_similarity(s1: str, s2: str) -> float:
     return len(tokens1 & tokens2) / len(tokens1 | tokens2)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # ProbeAgent Class
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class ProbeAgent:
@@ -313,9 +309,7 @@ class ProbeAgent:
         return majority_ans, consistency
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Module-level convenience function (satisfies ProbeAgentFn interface)
-# ─────────────────────────────────────────────────────────────────────────────
 
 _default_agent: ProbeAgent | None = None
 

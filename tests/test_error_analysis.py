@@ -31,9 +31,7 @@ from agents.error_analysis import (
 from scripts.analyze_agent_errors import main as cli_main
 from shared.schemas import EvalResult, GateDecision
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 1. Tests for Data Models & Serialization
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestErrorDataModels:
@@ -106,9 +104,7 @@ class TestErrorDataModels:
         assert parsed["gate_errors"]["false_stop"] == 1
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 2. Tests for Error Classification
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestClassifyError:
@@ -175,9 +171,7 @@ class TestClassifyError:
         assert cat == ErrorCategory.OTHER_INCORRECT
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 3. Tests for Record Diagnostics & Gate Error Rates
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestAnalyzeErrorsFromRecords:
@@ -283,9 +277,7 @@ class TestAnalyzeErrorsFromRecords:
         assert report.gate_errors.false_stop == 1
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 4. Tests for File Analysis (Existing Trace Data)
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestAnalyzeErrorsFromFile:
@@ -320,9 +312,7 @@ class TestAnalyzeErrorsFromFile:
             analyze_errors_from_file("logs/non_existent_traces_file.jsonl")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # 5. Tests for CLI Main Entrypoint
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestAnalyzeErrorsCLI:

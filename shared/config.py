@@ -12,9 +12,7 @@ from __future__ import annotations
 import os
 from pathlib import Path
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Paths
-# ─────────────────────────────────────────────────────────────────────────────
 
 ROOT_DIR: Path = Path(__file__).parent.parent
 DATASET_DIR: Path = ROOT_DIR / "dataset" / "masbench_mini"
@@ -34,9 +32,7 @@ try:
 except ImportError:
     pass
 
-# ─────────────────────────────────────────────────────────────────────────────
 # LLM / Providers (Ollama & Groq)
-# ─────────────────────────────────────────────────────────────────────────────
 
 LLM_PROVIDER: str = os.getenv("GATE_LLM_PROVIDER", "ollama").lower()
 
@@ -53,18 +49,14 @@ PROBE_TOKEN_BUDGET: int = 500  # Max tokens the probe may spend per task
 COT_SC_N_SAMPLES: int = 3  # Number of CoT-SC samples per probe run
 COT_SC_TEMPERATURE: float = 0.7  # Sampling temperature for CoT-SC
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Dataset Splits
-# ─────────────────────────────────────────────────────────────────────────────
 
 TRAIN_SPLIT: float = 0.60  # ~90 tasks (out of 150)
 VAL_SPLIT: float = 0.20  # ~30 tasks
 TEST_SPLIT: float = 0.20  # ~30 tasks  ← held-out, do not touch until Week 10
 RANDOM_SEED: int = 42
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Gate Hyperparameters
-# ─────────────────────────────────────────────────────────────────────────────
 
 GATE_ESCALATE_THRESHOLD: float = float(os.getenv("GATE_ESCALATE_THRESHOLD", "0.15"))
 """Probability threshold for ESCALATE decision to handle class imbalance."""
@@ -91,9 +83,7 @@ K_VALUES: list[int] = [2, 3, 5]
 N_REPEATS: int = int(os.getenv("GATE_N_REPEATS", "3"))
 """Number of independent train/validation repeats used for label aggregation."""
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Rule-Based Gate Thresholds (Week 2 / Day 10)
-# ─────────────────────────────────────────────────────────────────────────────
 
 RULE_CONSISTENCY_STOP_THRESHOLD: float = 0.8
 """If consistency_score ≥ this AND entity_count < RULE_ENTITY_STOP_THRESHOLD → STOP."""
@@ -107,16 +97,12 @@ RULE_DEPTH_ESCALATE_THRESHOLD: float = 3.0
 RULE_PARALLEL_ESCALATE_THRESHOLD: float = 2.0
 """If estimated_parallel ≥ this → ESCALATE."""
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Feature Extraction
-# ─────────────────────────────────────────────────────────────────────────────
 
 SPACY_MODEL: str = "en_core_web_sm"
 USE_SPACY: bool = True  # Set False to use regex fallback (slower but no dep)
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Training
-# ─────────────────────────────────────────────────────────────────────────────
 
 CLASSIFIER_NAMES: list[str] = ["logreg", "gbt", "mlp"]
 DEFAULT_CLASSIFIER: str = "gbt"

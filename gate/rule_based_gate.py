@@ -103,7 +103,7 @@ class RuleBasedGate:
     def _apply_rules(self, features: GateFeatures) -> RuleTrace:
         """Evaluate rules in priority order and return the first match."""
 
-        # ── Rule 1: High-confidence, simple task → STOP ────────────────────
+        # Rule 1: High-confidence, simple task → STOP
         if (
             features.consistency_score >= self.consistency_stop
             and features.entity_count < self.entity_stop
@@ -118,7 +118,7 @@ class RuleBasedGate:
                 ),
             )
 
-        # ── Rule 2a: Deep multi-hop task → ESCALATE ────────────────────────
+        # Rule 2a: Deep multi-hop task → ESCALATE
         if features.estimated_depth is not None and features.estimated_depth >= self.depth_escalate:
             return RuleTrace(
                 rule_id=2,
@@ -127,7 +127,7 @@ class RuleBasedGate:
                 reason=(f"estimated_depth={features.estimated_depth:.2f} >= {self.depth_escalate}"),
             )
 
-        # ── Rule 2b: Highly parallel task → ESCALATE ───────────────────────
+        # Rule 2b: Highly parallel task → ESCALATE
         if (
             features.estimated_parallel is not None
             and features.estimated_parallel >= self.parallel_escalate
@@ -141,7 +141,7 @@ class RuleBasedGate:
                 ),
             )
 
-        # ── Default: trust the probe ────────────────────────────────────────
+        # Default: trust the probe
         return RuleTrace(
             rule_id=0,
             rule_name="default_stop",

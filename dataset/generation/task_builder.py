@@ -30,9 +30,7 @@ from shared.schemas import Task
 
 logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────────────────────
 # ID generation
-# ─────────────────────────────────────────────────────────────────────────────
 
 # Prefix mapping for readable IDs
 _TYPE_PREFIX: dict[str, str] = {
@@ -53,9 +51,7 @@ def _make_task_id(task_type: str, index: int) -> str:
     return f"{prefix}_{index:03d}"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Normalisation helpers
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def _normalize_text(text: str) -> str:
@@ -79,9 +75,7 @@ def _question_fingerprint(question: str) -> str:
     return hashlib.md5(normalized.encode("utf-8")).hexdigest()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Validation
-# ─────────────────────────────────────────────────────────────────────────────
 
 _VALID_SOURCES = {
     "hotpotqa_style",
@@ -119,9 +113,7 @@ def _validate_raw(task: dict, idx: int) -> list[str]:
     return errors
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Public API
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def build_tasks(
@@ -146,7 +138,7 @@ def build_tasks(
     if verbose:
         logger.info(f"[TaskBuilder] Starting build from {len(raw_tasks)} raw tasks")
 
-    # ── Step 1: Validate raw dicts ────────────────────────────────────────────
+    # Step 1: Validate raw dicts
     valid_raws: list[dict] = []
     rejected: list[dict] = []
 
@@ -162,7 +154,7 @@ def build_tasks(
     if verbose:
         logger.info(f"  After validation: {len(valid_raws)} valid, {len(rejected)} rejected")
 
-    # ── Step 2: Deduplicate ───────────────────────────────────────────────────
+    # Step 2: Deduplicate
     seen_fingerprints: set[str] = set()
     deduped_raws: list[dict] = []
     dup_count = 0
@@ -179,7 +171,7 @@ def build_tasks(
     if verbose:
         logger.info(f"  After dedup: {len(deduped_raws)} tasks ({dup_count} duplicates removed)")
 
-    # ── Step 3: Normalize text and assign IDs ────────────────────────────────
+    # Step 3: Normalize text and assign IDs
     # Track per-type counters for stable IDs
     type_counters: dict[str, int] = {}
     tasks: list[Task] = []
@@ -224,9 +216,7 @@ def _log_type_distribution(tasks: list[Task]) -> None:
         logger.info(f"    {prefix:10s}: {count}")
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Standalone smoke test
-# ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.INFO, format="%(levelname)s | %(message)s")

@@ -102,9 +102,7 @@ class TestMASOrchestrator:
         assert isinstance(tokens, int)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Week 8 — _last_strategy caching
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestLastStrategyCache:

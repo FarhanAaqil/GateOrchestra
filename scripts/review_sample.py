@@ -51,7 +51,7 @@ import logging
 import sys
 from pathlib import Path
 
-# ── Bootstrap sys.path so we can import shared.* and dataset.* ───────────────
+# Bootstrap sys.path so we can import shared.* and dataset.*
 ROOT = Path(__file__).resolve().parent.parent
 if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
@@ -67,7 +67,7 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
-# ─── ANSI colours (gracefully degraded on Windows if not supported) ───────────
+# ANSI colours (gracefully degraded on Windows if not supported)
 try:
     import os
 
@@ -89,9 +89,7 @@ CYAN = "36"
 DIM = "2"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Display helpers
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def _display_task(task: Task, index: int, total: int, split: str | None) -> None:
@@ -138,9 +136,7 @@ def _display_verdict_menu() -> None:
     print()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Interactive review loop
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 _SHORTCUT_TO_VERDICT = {
@@ -260,9 +256,7 @@ def run_review_session(
     return session_entries
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # CLI entry point
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def _build_parser() -> argparse.ArgumentParser:
@@ -331,7 +325,7 @@ def main() -> None:
     parser = _build_parser()
     args = parser.parse_args()
 
-    # ── Setup ────────────────────────────────────────────────────────────────
+    # Setup
     log = ReviewLog(log_path=args.log_path)
     repo = JSONLTaskRepository()
 
@@ -340,7 +334,7 @@ def main() -> None:
         print(_c("ERROR: No dataset splits found. Run create_splits.py first.", RED))
         sys.exit(1)
 
-    # ── Load tasks to review ─────────────────────────────────────────────────
+    # Load tasks to review
     target_splits = [args.split] if args.split else available_splits
     all_tasks: list[Task] = []
     task_splits: dict[str, str] = {}
@@ -351,7 +345,7 @@ def main() -> None:
         for t in tasks:
             task_splits[t.task_id] = split
 
-    # ── Sample ───────────────────────────────────────────────────────────────
+    # Sample
     sampler = ReviewSampler(sample_rate=args.sample_rate, seed=args.seed)
     sample = sampler.sample(all_tasks, split_label=args.split or "all")
 
@@ -360,7 +354,7 @@ def main() -> None:
     print(f"{'='*60}")
     sampler.print_summary(sample)
 
-    # ── Resume: skip already-reviewed tasks ──────────────────────────────────
+    # Resume: skip already-reviewed tasks
     already_reviewed: set[str] = set()
     if args.resume:
         already_reviewed = log.reviewed_ids()
@@ -370,7 +364,7 @@ def main() -> None:
             f"{pending_count} remaining.\n"
         )
 
-    # ── Run the interactive loop ──────────────────────────────────────────────
+    # Run the interactive loop
     session_entries = run_review_session(
         tasks=sample,
         task_splits=task_splits,
@@ -380,7 +374,7 @@ def main() -> None:
         dry_run=args.dry_run,
     )
 
-    # ── Final summary ────────────────────────────────────────────────────────
+    # Final summary
     print(f"\n{'='*60}")
     print(_c("  Session Complete", BOLD))
     print(f"  Reviewed this session: {len(session_entries)} tasks")
@@ -389,7 +383,7 @@ def main() -> None:
     if not args.dry_run:
         log.print_summary()
 
-        # ── Export flagged tasks ──────────────────────────────────────────────
+        # Export flagged tasks
         if args.export_flagged:
             flagged_path = ROOT / "reports" / "dataset_quality" / "flagged_tasks.csv"
             log.export_flagged_csv(flagged_path)

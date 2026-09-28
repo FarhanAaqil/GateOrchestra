@@ -35,9 +35,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent.parent))
 
 from shared.schemas import ProbeResult, Task
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Calibration profiles per task source
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @dataclass
@@ -87,9 +85,7 @@ _DEFAULT_PROFILE = _Profile(
 N_SAMPLES = 5  # Number of CoT-SC samples per probe run
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Answer pool helpers
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def _wrong_variants(correct_answer: str) -> list[str]:
@@ -128,9 +124,7 @@ def _generate_samples(
     return samples
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Main class
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @dataclass
@@ -204,9 +198,7 @@ class SimulatedProbe:
         return self._rng.random() < profile.mas_beats_probe_rate
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Convenience function (matches ProbeAgentFn signature for pipeline injection)
-# ─────────────────────────────────────────────────────────────────────────────
 
 _default_probe = SimulatedProbe(seed=42)
 
@@ -216,9 +208,7 @@ def simulated_probe_agent(task: Task) -> ProbeResult:
     return _default_probe.run(task)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Demo
-# ─────────────────────────────────────────────────────────────────────────────
 
 if __name__ == "__main__":
     import sys

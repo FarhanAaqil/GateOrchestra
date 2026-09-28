@@ -61,9 +61,7 @@ def features_to_array(features: GateFeatures) -> np.ndarray:
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Abstract base class
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class GateClassifier(ABC):
@@ -141,9 +139,7 @@ class GateClassifier(ABC):
         )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Concrete implementations
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class LogRegGate(GateClassifier):
@@ -311,9 +307,7 @@ class MLPGate(GateClassifier):
         return self._make_decision(features.task_id, label, confidence, k, probe_tokens)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Factory
-# ─────────────────────────────────────────────────────────────────────────────
 
 _REGISTRY: dict[str, type[GateClassifier]] = {
     "logreg": LogRegGate,

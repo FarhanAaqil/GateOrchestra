@@ -34,9 +34,7 @@ from shared.schemas import EvalResult, GateFeatures
 logger = logging.getLogger(__name__)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Label rule
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def apply_label_rule(
@@ -125,9 +123,7 @@ def apply_repeated_label_rule(
     return labels
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Evaluation helper (used during sweep)
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def evaluate_classifier(
@@ -363,9 +359,7 @@ def calibrate_gate(
     return selected_gate, selected, candidates
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Main training function
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def train_gate(
@@ -431,9 +425,7 @@ def train_gate(
     return best_gate, best_metrics
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Data loading helpers
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def load_eval_results_from_jsonl(path: Path) -> dict[str, EvalResult]:

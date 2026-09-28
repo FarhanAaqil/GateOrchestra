@@ -32,9 +32,7 @@ from shared.token_logger import (
     reset_global_accountant,
 )
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Shared fixtures
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 @pytest.fixture
@@ -78,9 +76,7 @@ def train_labels() -> list[str]:
     return ["STOP" if i % 2 == 0 else "ESCALATE" for i in range(20)]
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # TokenAccountant — extended coverage
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestTokenAccountantExtended:
@@ -178,9 +174,7 @@ class TestTokenAccountantExtended:
         assert a1 is not a2
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # gate/train_gate.py
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def _make_eval_result(task_id: str, method: str, is_correct: bool | None) -> EvalResult:
@@ -327,9 +321,7 @@ class TestLoadEvalResultsFromJsonl:
         assert loaded == {}
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # gate/classifier.py — save / load
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestClassifierSaveLoad:

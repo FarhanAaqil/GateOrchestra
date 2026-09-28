@@ -37,7 +37,7 @@ import sys
 import time
 from pathlib import Path
 
-# ── Path setup (run from repo root or any subdirectory) ───────────────────────
+# Path setup (run from repo root or any subdirectory)
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
@@ -52,7 +52,7 @@ from shared.config import K_DEFAULT, K_VALUES, LOGS_DIR  # noqa: E402
 from shared.schemas import EvalResult, GateDecision, GateFeatures, ProbeResult, Task  # noqa: E402
 from shared.token_logger import TokenAccountant  # noqa: E402
 
-# ── Logging setup ─────────────────────────────────────────────────────────────
+# Logging setup
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
@@ -63,9 +63,7 @@ logger = logging.getLogger("week2_baseline_run")
 SEED = 42
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Data loading
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def load_split(split: str) -> list[Task]:
@@ -83,9 +81,7 @@ def load_split(split: str) -> list[Task]:
     return tasks
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Simulated MAS outcome
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def simulate_mas_result(
@@ -126,9 +122,7 @@ def simulate_mas_result(
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # CoT-SC baseline EvalResult from probe
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def make_cot_sc_result(task: Task, probe: ProbeResult) -> EvalResult:
@@ -148,9 +142,7 @@ def make_cot_sc_result(task: Task, probe: ProbeResult) -> EvalResult:
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Gate evaluation on val split
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def run_gate_on_val(
@@ -217,9 +209,7 @@ def run_gate_on_val(
     return results
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Summary report generator
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def build_summary(
@@ -338,9 +328,7 @@ def build_summary(
     return "\n".join(lines)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Main
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def main() -> None:
@@ -348,11 +336,11 @@ def main() -> None:
     logger.info("  GateOrchestra -- Week 2 Baseline Dry-Run")
     logger.info("=" * 72)
 
-    # ── 1. Load tasks ─────────────────────────────────────────────────────────
+    # 1. Load tasks
     train_tasks = load_split("train")
     val_tasks = load_split("val")
 
-    # ── 2. Run SimulatedProbe on all tasks ────────────────────────────────────
+    # 2. Run SimulatedProbe on all tasks
     logger.info("Running SimulatedProbe on train + val tasks...")
     sim_probe_train = SimulatedProbe(seed=SEED)
     sim_probe_val = SimulatedProbe(seed=SEED + 1)  # Different seed for val
@@ -365,7 +353,7 @@ def main() -> None:
     }
     logger.info(f"Probed {len(train_probes)} train + {len(val_probes)} val tasks.")
 
-    # ── 3. Simulate Always-MAS results ────────────────────────────────────────
+    # 3. Simulate Always-MAS results
     logger.info("Simulating Always-MAS outcomes...")
     k = K_DEFAULT
     train_mas_results: dict[str, EvalResult] = {
@@ -377,7 +365,7 @@ def main() -> None:
         for task in val_tasks
     }
 
-    # ── 4. CoT-SC-only results ────────────────────────────────────────────────
+    # 4. CoT-SC-only results
     train_cot_results: dict[str, EvalResult] = {
         t.task_id: make_cot_sc_result(t, train_probes[t.task_id]) for t in train_tasks
     }
@@ -385,7 +373,7 @@ def main() -> None:
         t.task_id: make_cot_sc_result(t, val_probes[t.task_id]) for t in val_tasks
     }
 
-    # ── 5. Derive labels ──────────────────────────────────────────────────────
+    # 5. Derive labels
     logger.info("Applying label rule (apply_label_rule)...")
     labels_train = apply_label_rule(train_cot_results, train_mas_results)
     labels_val = apply_label_rule(val_cot_results, val_mas_results)
@@ -397,7 +385,7 @@ def main() -> None:
         f"{len(labels_train)-n_escalate} STOP"
     )
 
-    # ── 6. Extract GateFeatures ───────────────────────────────────────────────
+    # 6. Extract GateFeatures
     logger.info("Extracting GateFeatures (regex mode, no spaCy required)...")
     train_features: dict[str, GateFeatures] = {
         task.task_id: extract_features(task, train_probes[task.task_id], use_spacy=False)
@@ -417,7 +405,7 @@ def main() -> None:
     val_feat_list = [val_features[tid] for tid in val_task_ids]
     val_label_list = [labels_val[tid] for tid in val_task_ids]
 
-    # ── 7. Train all classifiers ──────────────────────────────────────────────
+    # 7. Train all classifiers
     logger.info("Training all gate classifiers (LogReg, GBT, MLP)...")
     save_path = LOGS_DIR / "week2_best_gate.pkl"
     best_gate, best_metrics = train_gate(
@@ -441,12 +429,12 @@ def main() -> None:
         g.train(train_feat_list, train_label_list)
         learned_gates[clf_name] = g
 
-    # ── 8. Instantiate rule-based and random gates ────────────────────────────
+    # 8. Instantiate rule-based and random gates
     escalation_rate = n_escalate / len(labels_train) if labels_train else 0.3
     rule_gate = RuleBasedGate()
     rand_gate = RandomGate(escalation_rate=escalation_rate, seed=SEED)
 
-    # ── 9. Evaluate all gates on val split ────────────────────────────────────
+    # 9. Evaluate all gates on val split
     logger.info("Evaluating all gate types on val split...")
     accountant = TokenAccountant()
 
@@ -495,7 +483,7 @@ def main() -> None:
     for r in val_mas_list:
         accountant.log(r.task_id, "Always-MAS", "mas", r.tokens_spent, "ESCALATE")
 
-    # ── 10. Write EvalResult JSONL ────────────────────────────────────────────
+    # 10. Write EvalResult JSONL
     results_path = LOGS_DIR / "week2_baseline_results.jsonl"
     with results_path.open("w", encoding="utf-8") as f:
         for results in gate_results.values():
@@ -503,12 +491,12 @@ def main() -> None:
                 f.write(r.model_dump_json() + "\n")
     logger.info(f"EvalResults -> {results_path}")
 
-    # ── 11. Write Token Accountant log ────────────────────────────────────────
+    # 11. Write Token Accountant log
     token_log_path = LOGS_DIR / "week2_token_log.json"
     accountant.save_to_json(token_log_path)
     logger.info(f"Token log   -> {token_log_path} ({len(accountant)} records)")
 
-    # ── 12. GBT feature importances ───────────────────────────────────────────
+    # 12. GBT feature importances
     feature_importances: dict[str, float] | None = None
     gbt = learned_gates.get("gbt")
     if gbt and hasattr(gbt, "feature_importances"):
@@ -517,7 +505,7 @@ def main() -> None:
         except Exception:
             pass
 
-    # ── 13. Write summary report ──────────────────────────────────────────────
+    # 13. Write summary report
     summary_md = build_summary(
         gate_results=gate_results,
         gate_metrics=gate_metrics,
@@ -530,7 +518,7 @@ def main() -> None:
     summary_path.write_text(summary_md, encoding="utf-8")
     logger.info(f"Summary     -> {summary_path}")
 
-    # ── 14. Console summary ───────────────────────────────────────────────────
+    # 14. Console summary
     print()
     print("=" * 72)
     print("  GateOrchestra -- Week 2 Dry-Run COMPLETE")

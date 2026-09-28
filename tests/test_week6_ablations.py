@@ -95,9 +95,7 @@ def sample_gate_features() -> GateFeatures:
     )
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Feature Masking & Wrapper Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def test_mask_features_single(sample_gate_features: GateFeatures) -> None:
@@ -135,9 +133,7 @@ def test_ablated_gate_wrapper(sample_gate_features: GateFeatures) -> None:
     assert "ablated:consistency_score" in wrapper.name
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Taxonomy Analysis Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def test_run_gate_taxonomy(sample_tasks: list[Task]) -> None:
@@ -168,9 +164,7 @@ def test_run_gate_taxonomy(sample_tasks: list[Task]) -> None:
     assert len(taxonomy.detailed_cases) == len(sample_tasks)
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Feature Ablation Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def test_run_feature_ablations(sample_tasks: list[Task]) -> None:
@@ -193,9 +187,7 @@ def test_run_feature_ablations(sample_tasks: list[Task]) -> None:
         assert 0.0 <= m.stop_rate_pct <= 100.0
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # N-Sweep Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def test_run_n_sweep(sample_tasks: list[Task]) -> None:
@@ -215,9 +207,7 @@ def test_run_n_sweep(sample_tasks: list[Task]) -> None:
         assert res.probe_avg_tokens > 0.0
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Pareto Analysis Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def test_run_pareto_analysis(sample_tasks: list[Task]) -> None:
@@ -240,9 +230,7 @@ def test_run_pareto_analysis(sample_tasks: list[Task]) -> None:
         assert p.avg_tokens >= 0.0
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Bandit Strategy Breakdown Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def test_run_bandit_breakdown(sample_tasks: list[Task]) -> None:
@@ -258,9 +246,7 @@ def test_run_bandit_breakdown(sample_tasks: list[Task]) -> None:
         assert 0.0 <= bandit.mean_rewards[arm] <= 1.0
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Markdown Report Generator Tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 def test_generate_markdown_report(sample_tasks: list[Task]) -> None:

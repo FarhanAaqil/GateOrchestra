@@ -27,9 +27,7 @@ def tasks():
     return get_mock_tasks()
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Single task pipeline tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestRunPipeline:
@@ -104,9 +102,7 @@ class TestRunPipeline:
         assert "probe" in spend
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Batch pipeline tests
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestRunBatch:
@@ -167,9 +163,7 @@ class TestRunBatch:
         assert final_b_sum != initial_b_sum
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Exact match helper
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestExactMatch:
@@ -204,9 +198,7 @@ class TestExactMatch:
         assert _exact_match("United States is not correct; Canada is", "United States") is False
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Week 8 — LinUCB bandit online update via run_pipeline
-# ─────────────────────────────────────────────────────────────────────────────
 
 import numpy as np  # noqa: E402
 
@@ -238,14 +230,14 @@ def _make_mas_orch(answer: str = "Tokyo", tokens: int = 80) -> MASOrchestrator:
 class TestBanditOnlineUpdate:
     """Pipeline integration tests: LinUCB bandit weights update only on ESCALATE."""
 
-    # ── helpers ───────────────────────────────────────────────────────────────
+    # helpers
 
     @staticmethod
     def _snapshot_b(orch: MASOrchestrator) -> dict:
         """Deep-copy the b-vectors of all bandit arms (tracks reward signal)."""
         return {arm: orch.bandit_router.b[arm].copy() for arm in orch.bandit_router.arms}
 
-    # ── core ESCALATE update test ──────────────────────────────────────────────
+    # core ESCALATE update test
 
     def test_bandit_b_vector_changes_after_escalate(self, bandit_task):
         """After a pipeline ESCALATE the b-vector of the chosen arm must change."""
@@ -385,9 +377,7 @@ class TestBanditOnlineUpdate:
         assert updates[0]["is_correct"] is False  # fallback when ground_truth is None
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Week 8 Priority 2 — mas_strategy recorded in EvalResult
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestMasStrategyInResult:
@@ -512,9 +502,7 @@ class TestMasStrategyInResult:
         ), f"Expected 'react' for depth_score=4, got {result.mas_strategy!r}"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Week 8 Final — End-to-End Real Component Integration (Mock LLM)
-# ─────────────────────────────────────────────────────────────────────────────
 
 
 class TestEndToEndRealIntegration:

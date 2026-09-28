@@ -207,9 +207,7 @@ class TokenAccountant:
         return f"TokenAccountant(records={len(self)}, methods={list(self.get_total_by_method())})"
 
 
-# ─────────────────────────────────────────────────────────────────────────────
 # Module-level singleton (optional convenience import)
-# ─────────────────────────────────────────────────────────────────────────────
 
 _global_accountant: TokenAccountant | None = None
 
