@@ -51,9 +51,9 @@ from shared.token_logger import TokenAccountant  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
-# ─────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Application & State
-# ─────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 app = FastAPI(
     title="GateOrchestra API",
@@ -165,9 +165,9 @@ def get_trained_gate() -> GateClassifier:
     return _CACHED_LEARNED_GATE
 
 
-# ─────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Request / Response Models
-# ─────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class RunRequest(BaseModel):
@@ -196,9 +196,9 @@ class RunRequest(BaseModel):
     )
 
 
-# ─────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Health & Discovery Endpoints
-# ─────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @app.get("/")
@@ -226,43 +226,43 @@ def list_models() -> dict[str, Any]:
     methods = [
         {
             "id": "GateOrchestra",
-            "name": "⚡ GateOrchestra (Trained GBT)",
+            "name": "âš¡ GateOrchestra (Trained GBT)",
             "type": "learned_gate",
             "description": "Trained Gradient Boosted Trees gate calibrated under token-budget constraints.",
         },
         {
             "id": "RuleBasedGate",
-            "name": "📐 Rule-Based Gate",
+            "name": "ðŸ“ Rule-Based Gate",
             "type": "heuristic_gate",
             "description": "Heuristic gate using consistency score and question complexity thresholds.",
         },
         {
             "id": "RandomGate",
-            "name": "🎲 Random Gate",
+            "name": "ðŸŽ² Random Gate",
             "type": "baseline_gate",
             "description": "Calibrated coin-flip baseline escalating at a fixed empirical rate (40%).",
         },
         {
             "id": "LogRegGate",
-            "name": "📈 Logistic Regression Gate",
+            "name": "ðŸ“ˆ Logistic Regression Gate",
             "type": "learned_gate",
             "description": "Linear classifier gate with interpretable feature weights.",
         },
         {
             "id": "MLPGate",
-            "name": "🧠 Multi-Layer Perceptron Gate",
+            "name": "ðŸ§  Multi-Layer Perceptron Gate",
             "type": "learned_gate",
             "description": "Neural net classifier gate modeling non-linear feature interactions.",
         },
         {
             "id": "Always-MAS",
-            "name": "🤝 Always-MAS",
+            "name": "ðŸ¤ Always-MAS",
             "type": "full_orchestrator",
             "description": "Bypasses gating; routes every task directly to the full multi-agent system.",
         },
         {
             "id": "CoT-SC",
-            "name": "💡 CoT-SC Only",
+            "name": "ðŸ’¡ CoT-SC Only",
             "type": "single_agent",
             "description": "Cheap single-agent baseline using self-consistency majority voting.",
         },
@@ -277,9 +277,9 @@ def list_models() -> dict[str, Any]:
     }
 
 
-# ─────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Task Exploration Endpoints
-# ─────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @app.get("/tasks")
@@ -322,9 +322,9 @@ def list_tasks(
     }
 
 
-# ─────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Execution History Endpoints
-# ─────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @app.get("/history")
@@ -343,9 +343,9 @@ def clear_history() -> dict[str, str]:
     return {"status": "cleared"}
 
 
-# ─────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Capstone Benchmark Summary Endpoint
-# ─────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @app.get("/demo/summary")
@@ -356,7 +356,7 @@ def get_demo_summary() -> dict[str, Any]:
         "research_objectives": {
             "rq1_token_savings": {
                 "target": ">= 40.0%",
-                "achieved": "78.37% ± 1.79%",
+                "achieved": "78.37% Â± 1.79%",
                 "status": "EXCEEDED",
             },
             "rq2_accuracy": {
@@ -422,9 +422,9 @@ def get_demo_summary() -> dict[str, Any]:
     }
 
 
-# ─────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Run Pipeline / Execution
-# ─────────────────────────────────────────────────────────────
+# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def _simulated_orchestrator_call(task: Task, budget: int) -> tuple[str, int]:
@@ -454,33 +454,36 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
     orch_fn = _simulated_orchestrator_call if use_sim else orchestrator
 
     # 1. Baseline: CoT-SC only
-    if method_name in ("CoT-SC", "CoT-SC-only", "🧠 CoT-SC"):
+    if method_name in ("CoT-SC", "CoT-SC-only", "ðŸ§  CoT-SC"):
         try:
             result = run_cot_sc_baseline(task, probe_fn=probe_fn, accountant=accountant)
         except Exception as err:
-            logger.warning(f"Live CoT-SC failed ({err}), falling back to simulated probe")
-            result = run_cot_sc_baseline(
-                task,
-                probe_fn=SimulatedProbe(seed=42).run,
-                accountant=accountant,
-            )
+            if use_sim:
+                # Already in simulation mode; unexpected error
+                raise
+            logger.error(f"Live CoT-SC failed: {type(err).__name__}: {err}")
+            raise HTTPException(
+                status_code=503,
+                detail=f"Live CoT-SC failed: {type(err).__name__}. "
+                       "Use force_simulation=true for offline demo mode.",
+            ) from err
         data = result.model_dump(mode="json")
         _HISTORY.appendleft(data)
         return data
 
     # 2. Baseline: Always-MAS
-    if method_name in ("Always-MAS", "🤝 Always-MAS"):
+    if method_name in ("Always-MAS", "ðŸ¤ Always-MAS"):
         try:
             result = run_always_mas_baseline(task, orchestrator_fn=orch_fn, accountant=accountant)
         except Exception as err:
-            logger.warning(
-                f"Live Always-MAS failed ({err}), falling back to simulated orchestrator"
-            )
-            result = run_always_mas_baseline(
-                task,
-                orchestrator_fn=_simulated_orchestrator_call,
-                accountant=accountant,
-            )
+            if use_sim:
+                raise
+            logger.error(f"Live Always-MAS failed: {type(err).__name__}: {err}")
+            raise HTTPException(
+                status_code=503,
+                detail=f"Live Always-MAS failed: {type(err).__name__}. "
+                       "Use force_simulation=true for offline demo mode.",
+            ) from err
         data = result.model_dump(mode="json")
         _HISTORY.appendleft(data)
         return data
@@ -502,7 +505,7 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
     elif "GBT" in method_name:
         gate = _ensure_fitted(GBTGate())
         normalized_method = "GBTGate"
-    elif method_name in ("GateOrchestra", "⚡ GateOrchestra", "✨ Auto Gate"):
+    elif method_name in ("GateOrchestra", "âš¡ GateOrchestra", "âœ¨ Auto Gate"):
         gate = get_trained_gate()
         normalized_method = "GateOrchestra"
     else:
@@ -527,19 +530,18 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
             mas_orchestrator=orchestrator if not use_sim else None,
         )
     except Exception as err:
-        logger.warning(
-            f"Pipeline run encountered error with live LLM ({err}), falling back to simulation"
-        )
-        result = run_pipeline(
-            task=task,
-            gate=gate,
-            probe_agent=SimulatedProbe(seed=42).run,
-            orchestrator=_simulated_orchestrator_call,
-            accountant=accountant,
-            k=request.k,
-            method=normalized_method,
-        )
-
+        if use_sim:
+            raise
+        logger.error(f"Live pipeline failed: {type(err).__name__}: {err}")
+        raise HTTPException(
+            status_code=503,
+            detail=f"Live LLM pipeline failed: {type(err).__name__}. "
+                   "Use force_simulation=true for offline demo mode.",
+        ) from err
     data = result.model_dump(mode="json")
     _HISTORY.appendleft(data)
     return data
+
+
+
+

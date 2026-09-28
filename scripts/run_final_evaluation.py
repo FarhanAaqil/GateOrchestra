@@ -72,6 +72,11 @@ RESULTS_DIR.mkdir(parents=True, exist_ok=True)
 CHECKPOINTS_DIR = RESULTS_DIR / "checkpoints"
 CHECKPOINTS_DIR.mkdir(parents=True, exist_ok=True)
 
+# Canonical results directory for final real-mode output
+ROOT_DIR = Path(__file__).resolve().parent.parent
+REAL_FINAL_DIR = ROOT_DIR / "results" / "real" / "final"
+REAL_FINAL_DIR.mkdir(parents=True, exist_ok=True)
+
 CHECKPOINT_VERSION = 3
 MAX_TASK_ATTEMPTS = 3
 METHOD_ORDER = [
@@ -636,6 +641,7 @@ def _save_json(
         "seed": seed,
         "n": n,
         "dry_run": dry_run,
+        "execution_mode": "simulation" if dry_run else "real",
         "results": results,
     }
     _atomic_write_json(payload, output_path)
@@ -952,7 +958,7 @@ def run_evaluation(
 
     _print_table(method_results)
 
-    output_path = RESULTS_DIR / f"final_eval_seed_{seed}_n_{split_limit or 'all'}.json"
+    output_path = REAL_FINAL_DIR / f"final_eval_seed_{seed}_n_{split_limit or 'all'}.json"
     _save_json(method_results, output_path, seed=seed, n=split_limit, dry_run=False)
     elapsed = time.perf_counter() - start_time
     print(f"[OK] Complete evaluation finished in {elapsed:.2f}s")
@@ -984,3 +990,6 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+
+
