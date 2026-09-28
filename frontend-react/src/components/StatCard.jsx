@@ -1,12 +1,27 @@
-function StatCard({ label, value, accent, detail }) {
+function StatCard({ label, value, detail, type = 'default', badge }) {
+  let valueClass = 'kpi-value'
+  if (type === 'savings') valueClass += ' savings'
+  if (type === 'cyan') valueClass += ' cyan'
+
   return (
-    <article className="stat-card">
-      <div className="stat-header">
-        <span className="card-label">{label}</span>
-        {accent ? <span className="accent-dot" aria-hidden="true" /> : null}
+    <article className="kpi-card">
+      <div className="kpi-header">
+        <span className="kpi-label">{label}</span>
+        {badge ? (
+          <span
+            className="kpi-tag"
+            style={{
+              backgroundColor: type === 'savings' ? 'var(--c-lemon)' : 'var(--c-ice)',
+              color: 'var(--c-navy)',
+              border: '1px solid var(--c-sky)',
+            }}
+          >
+            {badge}
+          </span>
+        ) : null}
       </div>
-      <div className="stat-value">{value}</div>
-      {detail ? <p className="stat-detail">{detail}</p> : null}
+      <div className={valueClass}>{value}</div>
+      {detail ? <p className="kpi-sub">{detail}</p> : null}
     </article>
   )
 }

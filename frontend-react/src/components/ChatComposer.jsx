@@ -1,28 +1,28 @@
-import { useEffect, useRef, useState } from 'react'
-import ModelSelector from './ModelSelector'
-import ToolsMenu from './ToolsMenu'
+import { useState } from 'react'
 
-function ChatComposer({ onSubmit, loading, onPipeline }) {
+const PRESETS = [
+  { label: 'Arithmetic ⚡', q: 'Convert 72 kilometers per hour to meters per second.', gt: '20 m/s' },
+  { label: 'Multi-Hop Bridge 🌉', q: 'What is the capital of the country where Marie Curie was born?', gt: 'Warsaw' },
+  { label: 'Hard Multi-Hop 🧠', q: 'What is the official name of the country whose highest mountain shares its name with the person who surveyed it?', gt: 'Republic of India' },
+  { label: 'Probability 🎲', q: 'A box contains 4 red balls, 3 blue balls, and 5 green balls. What is the probability of randomly picking a blue ball?', gt: '1/4 (or 25%)' },
+]
+
+function ChatComposer({ onSubmit, loading }) {
   const [question, setQuestion] = useState('')
-  const [toolsOpen, setToolsOpen] = useState(false)
-  const [selectedStrategy, setSelectedStrategy] = useState('✨ Auto Gate')
-  const toolsRef = useRef(null)
+  const [selectedStrategy, setSelectedStrategy] = useState('GateOrchestra')
+  const [currentGt, setCurrentGt] = useState(null)
 
-  useEffect(() => {
-    const closeOnOutside = (event) => {
-      if (toolsRef.current && !toolsRef.current.contains(event.target)) setToolsOpen(false)
-    }
-    const closeOnEscape = (event) => { if (event.key === 'Escape') setToolsOpen(false) }
-    document.addEventListener('mousedown', closeOnOutside)
-    document.addEventListener('keydown', closeOnEscape)
-    return () => { document.removeEventListener('mousedown', closeOnOutside); document.removeEventListener('keydown', closeOnEscape) }
-  }, [])
+  const handlePreset = (preset) => {
+    setQuestion(preset.q)
+    setCurrentGt(preset.gt)
+  }
 
   const submit = () => {
     const value = question.trim()
     if (!value || loading) return
-    onSubmit(value, selectedStrategy)
+    onSubmit(value, selectedStrategy, null, currentGt)
     setQuestion('')
+    setCurrentGt(null)
   }
 
   const handleKeyDown = (event) => {
@@ -33,26 +33,71 @@ function ChatComposer({ onSubmit, loading, onPipeline }) {
   }
 
   return (
-    <div className="composer-wrap">
-      <div className="composer">
-        <div className="composer-plus-wrapper" ref={toolsRef}>
-          <button className="composer-icon" type="button" onClick={() => setToolsOpen((open) => !open)} aria-expanded={toolsOpen} aria-label="Open tools menu">+</button>
-          {toolsOpen ? <ToolsMenu onPipeline={() => { onPipeline(); setToolsOpen(false) }} /> : null}
-        </div>
+    <div className="composer-container">
+      {/* Presets Row */}
+      <div className="presets-row">
+        <span style={{ fontSize: '0.72rem', fontWeight: 700, color: 'var(--c-navy)', whiteSpace: 'nowrap' }}>
+          Presets:
+        </span>
+        {PRESETS.map((p) => (
+          <button
+            key={p.label}
+            type="button"
+            className="preset-chip-btn"
+            onClick={() => handlePreset(p)}
+          >
+            {p.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Input Textarea */}
+      <div className="composer-input-row">
         <textarea
+          className="composer-textarea"
           value={question}
-          onChange={(event) => setQuestion(event.target.value)}
+          onChange={(e) => setQuestion(e.target.value)}
           onKeyDown={handleKeyDown}
-          placeholder="Ask GateOrchestra anything..."
-          rows="1"
+          placeholder="Ask GateOrchestra or paste a multi-step reasoning problem..."
+          rows={2}
           disabled={loading}
         />
-        <ModelSelector value={selectedStrategy} onChange={setSelectedStrategy} />
-        <button className="send-button" type="button" onClick={submit} disabled={loading || !question.trim()}>
-          {loading ? '...' : 'Send'}
+      </div>
+
+      {/* Controls & Submit */}
+      <div className="composer-controls-row">
+        <div className="composer-controls-left">
+          <label style={{ fontSize: '0.75rem', fontWeight: 700, color: 'var(--c-navy)' }}>
+            Method:
+          </label>
+          <select
+            className="method-select-input"
+            value={selectedStrategy}
+            onChange={(e) => setSelectedStrategy(e.target.value)}
+            disabled={loading}
+          >
+            <option value="GateOrchestra">⚡ GateOrchestra (Trained GBT)</option>
+            <option value="CoT-SC">💡 CoT-SC-only (Single Agent)</option>
+            <option value="Always-MAS">🤝 Always-MAS (Full Orchestrator)</option>
+            <option value="RuleBasedGate">📋 Rule-Based Gate</option>
+            <option value="RandomGate">🎲 Random Gate</option>
+          </select>
+
+          <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+            Model: Groq / qwen3.8-27b • k=3
+          </span>
+        </div>
+
+        <button
+          className="btn-primary-ember"
+          type="button"
+          onClick={submit}
+          disabled={loading || !question.trim()}
+        >
+          <span>{loading ? '⏳' : '▶'}</span>
+          <span>{loading ? 'Evaluating...' : 'Run Execution'}</span>
         </button>
       </div>
-      <p className="composer-note">GateOrchestra can make mistakes. Check important answers.</p>
     </div>
   )
 }

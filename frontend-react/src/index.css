@@ -1,16 +1,116 @@
 :root {
-  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  color: #e7e9ee;
-  background: #17181c;
+  /* Exact 10-Color Palette */
+  --c-lemon: #FFF66B;       /* 1% Bright highlights, badges, attention badges */
+  --c-wine: #881538;        /* 2% Premium accents, selected states, strong details */
+  --c-cyan: #00E5FF;        /* 2% Futuristic tech accents, active indicators, live telemetry */
+  --c-tangerine: #FF8C42;   /* 3% Secondary CTAs, notifications, interactive highlights */
+  --c-ink: #1B1B1F;         /* 7% Dark text, headings, icons, high-contrast elements */
+  --c-ice: #F1FAFF;         /* 35% Primary page background and main light surface */
+  --c-sky: #A8DBFE;         /* 15% Cards, secondary backgrounds, borders, hover states */
+  --c-ember: #FF6B35;       /* 5% Primary CTA buttons, important actions, active states */
+  --c-navy: #1B263B;        /* 10% Major headings, navigation, dark panels, buttons */
+  --c-softwhite: #F7F7F7;   /* 20% Neutral cards, secondary sections, input backgrounds */
+
+  /* Semantic Variables */
+  --bg-main: var(--c-ice);
+  --bg-card: var(--c-softwhite);
+  --bg-card-white: #FFFFFF;
+  --bg-navy: var(--c-navy);
+
+  --text-dark: var(--c-ink);
+  --text-heading: var(--c-navy);
+  --text-muted: #545E76;
+  --text-light: #FFFFFF;
+
+  --border-sky: var(--c-sky);
+  --border-subtle: rgba(168, 219, 254, 0.55);
+
+  --btn-primary: var(--c-ember);
+  --btn-secondary: var(--c-navy);
+  --btn-warm: var(--c-tangerine);
+
+  --accent-tech: var(--c-cyan);
+  --accent-wine: var(--c-wine);
+  --accent-lemon: var(--c-lemon);
+
+  --font-sans: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', monospace;
+
+  font-family: var(--font-sans);
+  color: var(--text-dark);
+  background-color: var(--c-ice);
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
 }
 
-* { box-sizing: border-box; }
-html, body, #root { min-height: 100%; }
-body { margin: 0; min-width: 320px; background: #17181c; }
-button, textarea, select { font: inherit; }
-button { color: inherit; }
-h1, h2, h3, p { margin: 0; }
-.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
+* {
+  box-sizing: border-box;
+}
+
+html, body, #root {
+  min-height: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: var(--c-ice);
+}
+
+body {
+  color: var(--c-ink);
+  font-family: var(--font-sans);
+  overflow-x: hidden;
+}
+
+button, textarea, select, input {
+  font-family: inherit;
+}
+
+button {
+  cursor: pointer;
+  border: none;
+  outline: none;
+}
+
+h1, h2, h3, h4, h5, p {
+  margin: 0;
+}
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+@keyframes pulse-cyan {
+  0%, 100% {
+    box-shadow: 0 0 0 0 rgba(0, 229, 255, 0.7);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(0, 229, 255, 0);
+  }
+}
+
+.pulse-laser {
+  animation: pulse-cyan 2s infinite ease-in-out;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--c-ice);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--c-sky);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--c-navy);
+}
