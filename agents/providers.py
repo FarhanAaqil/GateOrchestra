@@ -136,8 +136,8 @@ def call_groq(
     }
 
     data = json.dumps(payload).encode("utf-8")
-    max_retries = 3
-    base_delay = 3.0
+    max_retries = 5
+    base_delay = 4.0
 
     for attempt in range(max_retries + 1):
         req = urllib.request.Request(
