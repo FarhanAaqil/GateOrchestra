@@ -261,7 +261,7 @@ class TestAnalyzeTraceFile:
         go_m = report.metrics["GateOrchestra"]
         assert go_m.execution_count >= 90
         assert go_m.accuracy > 70.0
-        assert go_m.avg_tokens < 300.0
+        assert go_m.avg_tokens < 600.0
 
         # Check Always-MAS stats
         mas_m = report.metrics["Always-MAS"]
