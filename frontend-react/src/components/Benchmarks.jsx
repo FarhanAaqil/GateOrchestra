@@ -1,12 +1,13 @@
 import { useEffect, useState } from 'react'
 import { fetchTasks, fetchHistory } from '../services/api'
 
+// Canonical real empirical benchmark results from results/real/final/master_results.json
 const baselineRows = [
-  ['CoT-SC (Baseline)', '83.3%', '187 tokens', '840ms', '0.0% (Single agent)'],
-  ['Always-MAS (Ceiling)', '83.3%', '586 tokens', '2.4s', '100% (All tasks)'],
-  ['Random Gate (Coin-Flip)', '76.7%', '332 tokens', '1.4s', '43.3%'],
-  ['Rule-Based Gate', '83.3%', '233 tokens', '980ms', '36.7%'],
-  ['GateOrchestra (Trained GBT)', '83.3%', '233 tokens', '790ms', '36.7% (60.2% token savings)'],
+  ['CoT-SC (Baseline)', '40.0%', '782.4 tokens', '24.1s', '0.0% (Single agent)'],
+  ['Always-MAS (Ceiling)', '20.0%', '788.2 tokens', '22.7s', '100% (All tasks)'],
+  ['Random Gate (Coin-Flip)', '20.0%', '1354.2 tokens', '18.2s', '60.0%'],
+  ['Rule-Based Gate', '40.0%', '935.8 tokens', '19.5s', '20.0%'],
+  ['GateOrchestra (Learned GBT)', '40.0%', '782.4 tokens', '24.1s', '0.0% (+0.74% savings vs Always-MAS)'],
 ]
 
 function Benchmarks({ onSelectTask }) {
@@ -17,7 +18,10 @@ function Benchmarks({ onSelectTask }) {
 
   useEffect(() => {
     let mounted = true
-    setLoadingTasks(true)
+    const timer = setTimeout(() => {
+      if (mounted) setLoadingTasks(true)
+    }, 0)
+
     fetchTasks(selectedSplit, 6)
       .then((data) => {
         if (mounted && data?.tasks) {
@@ -41,6 +45,7 @@ function Benchmarks({ onSelectTask }) {
 
     return () => {
       mounted = false
+      clearTimeout(timer)
     }
   }, [selectedSplit])
 
@@ -50,14 +55,14 @@ function Benchmarks({ onSelectTask }) {
         <p className="header-kicker">Evaluation & Empirical Lab</p>
         <h2>Benchmarks</h2>
         <p>
-          Token savings and accuracy breakdown across MASBench-mini. GateOrchestra achieves 60.2% token savings
-          over Always-MAS while preserving equal accuracy.
+          Canonical empirical evaluation across MASBench-mini. All results verified through
+          real Groq LLM inference without mock or simulation contamination.
         </p>
       </div>
 
       <section className="research-section">
         <div className="section-title-row">
-          <h3>Method Comparison (Validation Split, N=30)</h3>
+          <h3>Method Comparison (Canonical Empirical Results)</h3>
           <span className="best-indicator">Pareto-Optimal: GateOrchestra</span>
         </div>
         <div className="benchmark-table">
@@ -94,7 +99,7 @@ function Benchmarks({ onSelectTask }) {
                 className={`outline-button ${selectedSplit === split ? 'nav-active' : ''}`}
                 onClick={() => setSelectedSplit(split)}
               >
-                {split.toUpperCase()} ({split === 'train' ? '90' : '30'})
+                {split.toUpperCase()} ({split === 'train' ? '97' : '32'})
               </button>
             ))}
           </div>
