@@ -194,3 +194,28 @@ $env:GROQ_MODEL_NAME = "llama-3.3-70b-versatile"
 
 All in `shared/config.py` and `configs/default.yaml`.
 
+
+
+---
+
+## Canonical Commands (Rescue & Defense)
+
+### 1. Canonical Empirical Benchmark & Verification
+```bash
+# Run real LLM evaluation against Groq and generate master_results.json
+python scripts/final_benchmark.py --n 5
+
+# Automated result integrity audit (strict validation)
+python scripts/verify_final_results.py
+```
+
+### 2. Live & Offline Demonstration Suite
+```bash
+# Live demonstration querying Groq with live token accounting
+python scripts/demo.py --mode live --scenario easy
+python scripts/demo.py --mode live --scenario hard
+python scripts/demo.py --mode live --scenario recovery
+
+# Offline presentation fallback (100% deterministic, no external API calls)
+python scripts/demo.py --mode simulation
+```
