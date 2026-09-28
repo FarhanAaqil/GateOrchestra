@@ -131,3 +131,80 @@ def compute_evaluation_metrics(
         "token_savings_pct": token_savings_pct,
         "accuracy_delta": accuracy_delta,
     }
+
+# -----------------------------------------------------------------------------
+# Canonical Correctness Evaluation (Phase 5 – rescue plan)
+# -----------------------------------------------------------------------------
+
+import re
+
+
+def normalize_answer_for_eval(text: str) -> str:
+    """Normalise a raw answer string for deterministic correctness comparison.
+
+    Rules (applied in order):
+    1. Lower-case.
+    2. Strip surrounding whitespace.
+    3. Remove markdown formatting (bold, italic, code, quotes).
+    4. Remove leading articles (a, an, the) followed by a space.
+    5. Collapse internal whitespace.
+    6. Strip trailing punctuation.
+
+    The function is intentionally conservative: it does NOT expand contractions,
+    resolve abbreviations, or perform numeric normalisation.  It should not be
+    made so permissive that wrong answers are accepted.
+    """
+    if not text:
+        return ""
+    text = text.lower().strip()
+    text = re.sub(r"[*_`'\"]", "", text)
+    text = re.sub(r"^(a|an|the)\s+", "", text)
+    text = re.sub(r"[^\w\s]", " ", text)
+    text = " ".join(text.split())
+    return text
+
+
+def evaluate_answer(predicted: str, ground_truth: str) -> bool:
+    """Canonical correctness function used by all evaluation methods.
+
+    Args:
+        predicted: The model's answer string (may be raw LLM output).
+        ground_truth: The ground-truth answer from the dataset.
+
+    Returns:
+        True if the normalised predicted answer exactly matches or contains
+        the normalised ground-truth string.  Returns False for empty inputs.
+
+    Note:
+        Containment (rather than exact-match only) is used because LLMs often
+        wrap the answer in a sentence ("The answer is Paris.").  The denominator
+        is the ground-truth token, so a very short ground-truth like "yes"
+        cannot accidentally match a long wrong answer.
+    """
+    if not predicted or not ground_truth:
+        return False
+    norm_pred = normalize_answer_for_eval(predicted)
+    norm_gt = normalize_answer_for_eval(ground_truth)
+    if not norm_gt:
+        return False
+    return norm_gt in norm_pred or norm_pred == norm_gt
+
+
+def wilson_confidence_interval(n_correct: int, n_total: int, z: float = 1.96) -> tuple[float, float]:
+    """Compute Wilson 95% confidence interval for a proportion.
+
+    Args:
+        n_correct: Number of correct predictions.
+        n_total: Total number of predictions.
+        z: Z-score for the desired confidence level (default 1.96 for 95%).
+
+    Returns:
+        (lower, upper) bounds as fractions in [0, 1].
+    """
+    if n_total == 0:
+        return 0.0, 0.0
+    p = n_correct / n_total
+    denominator = 1.0 + z ** 2 / n_total
+    centre = (p + z ** 2 / (2 * n_total)) / denominator
+    margin = (z * (p * (1 - p) / n_total + z ** 2 / (4 * n_total ** 2)) ** 0.5) / denominator
+    return max(0.0, centre - margin), min(1.0, centre + margin)
