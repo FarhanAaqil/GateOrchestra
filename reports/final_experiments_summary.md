@@ -1,4 +1,11 @@
-# GateOrchestra -- Definitive Final Experiments Report
+# GateOrchestra -- Final Experiments Report (MOCK MODE)
+
+> **⚠️ Evaluation Mode: `mock` — NOT real LLM results.**
+> This report was auto-generated from simulated (mock) LLM calls.
+> A copy is preserved in `results/simulated/final_experiments_results_mock.json`.
+> Replace with real results by running: `python scripts/final_benchmark.py`
+
+---
 
 ## Executive Summary
 - **Timestamp:** `2026-09-22T19:48:38Z`
@@ -88,3 +95,4 @@
 | `false_stop` | 8 | 61.5% |
 | `other_incorrect` | 3 | 23.1% |
 | `empty_or_unparsed` | 2 | 15.4% |
+

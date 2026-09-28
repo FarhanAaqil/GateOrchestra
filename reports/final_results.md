@@ -1,4 +1,11 @@
-# GateOrchestra: Final Empirical Results & Theoretical Analysis
+# GateOrchestra: Final Results Report
+
+> **⚠️ IMPORTANT: These numbers were produced under `execution_mode = "mock"` (simulated LLM calls).**
+> They are development-stage results and have NOT been verified against a real LLM provider.
+> The final empirical results (real Groq/Ollama calls) will be stored in `results/real/final/`.
+> Do not present these numbers in the capstone defense without running `python scripts/final_benchmark.py`.
+
+---
 
 **Repository:** `GateOrchestra`  
 **Dataset:** MASBench-mini (`32` held-out test tasks, `161` total curated tasks across train/val/test)  
@@ -45,7 +52,7 @@ We swept token budget multipliers $k \in \{2, 3, 5\}$ to construct the empirical
 
 | Method | Budget Multiplier ($k$) | Accuracy (%) | Avg Tokens / Task | Token Savings (%) | ReAct Allocation (%) |
 |:---|:---:|:---:|:---:|:---:|:---:|
-| **CoT-SC-only** | — | 84.4% | 220.9 | +78.3% | 0.0% |
+| **CoT-SC-only** | â€” | 84.4% | 220.9 | +78.3% | 0.0% |
 | **Always-MAS** | $k=2$ | 100.0% | 677.6 | +0.0% | 0.0% |
 | **Always-MAS** | $k=3$ | 100.0% | 1,019.8 | +0.0% | 0.0% |
 | **Always-MAS** | $k=5$ | 100.0% | 1,699.8 | +0.0% | 0.0% |
@@ -123,14 +130,14 @@ Across 160 total task evaluations conducted during the primary benchmark, **13 e
 
 ### Error Taxonomy Distribution
 ```
-   ┌────────────────────────────────────────────────────────┐
-   │                  Error Distribution                   │
-   │                                                        │
-   │  False STOP (Under-routing)       [ 61.5% ] (8 tasks)  │
-   │  Other Incorrect Answer          [ 23.1% ] (3 tasks)  │
-   │  Empty / Unparsed Output         [ 15.4% ] (2 tasks)  │
-   │  Failed ESCALATE (Budget waste)  [  0.0% ] (0 tasks)  │
-   └────────────────────────────────────────────────────────┘
+   â”Œâ”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”
+   â”‚                  Error Distribution                   â”‚
+   â”‚                                                        â”‚
+   â”‚  False STOP (Under-routing)       [ 61.5% ] (8 tasks)  â”‚
+   â”‚  Other Incorrect Answer          [ 23.1% ] (3 tasks)  â”‚
+   â”‚  Empty / Unparsed Output         [ 15.4% ] (2 tasks)  â”‚
+   â”‚  Failed ESCALATE (Budget waste)  [  0.0% ] (0 tasks)  â”‚
+   â””â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”˜
 ```
 
 ### Detailed Failure Mode Examination
@@ -161,3 +168,4 @@ To maintain scientific rigor, empirical results are strictly delineated from mod
 ## 9. Conclusion
 
 Phase 2 analysis proves that **GateOrchestra** successfully achieves its primary research objective: providing a cost-effective, high-accuracy alternative to un-gated multi-agent execution. By gating simple and moderately complex queries through a cheap CoT-SC probe and reserving expensive multi-agent collaboration for genuine reasoning bottlenecks, GateOrchestra delivers near-ceiling accuracy at less than a quarter of the token cost.
+

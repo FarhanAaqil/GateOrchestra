@@ -1,18 +1,18 @@
 # GateOrchestra
 
 > **Token-Budget-Calibrated Gating Layer for Learned Multi-Agent Orchestration**
-> Final-year AIML Capstone — 4-person team
+> Final-year AIML Capstone â€” 4-person team
 
 ---
 
 ## What It Does
 
-GateOrchestra places a lightweight, trainable **gate** in front of a Multi-Agent System (MAS) orchestrator. Before spending expensive multi-agent compute, the gate decides — using only pre-execution signals — whether to:
+GateOrchestra places a lightweight, trainable **gate** in front of a Multi-Agent System (MAS) orchestrator. Before spending expensive multi-agent compute, the gate decides â€” using only pre-execution signals â€” whether to:
 
-- **STOP** → return the cheap CoT-SC probe answer (single agent), or
-- **ESCALATE** → invoke the full MAS orchestrator, capped at `k × probe_tokens`
+- **STOP** â†’ return the cheap CoT-SC probe answer (single agent), or
+- **ESCALATE** â†’ invoke the full MAS orchestrator, capped at `k Ã— probe_tokens`
 
-**Research goal:** ≥40% token savings vs. Always-MAS, at ≤2-point accuracy cost.
+**Research goal:** â‰¥40% token savings vs. Always-MAS, at â‰¤2-point accuracy cost.
 
 ---
 
@@ -20,20 +20,20 @@ GateOrchestra places a lightweight, trainable **gate** in front of a Multi-Agent
 
 ```
 Task
- │
- ▼
-[Probe Agent]  ──── CoT-SC (N samples) ──► ProbeResult
- │                                          (consistency_score, tokens_used)
- ▼
-[Feature Extractor]  ──► GateFeatures
- │                        (entity_count, clause_count, consistency, ...)
- ▼
-[Gate Classifier]  ──► GateDecision (STOP | ESCALATE)
- │
- ├── STOP     ──► return probe answer         ─┐
- │                                              ├──► EvalResult ──► TokenLog
- └── ESCALATE ──► [MAS Orchestrator]           ─┘
-                   (budget = k × probe_tokens)
+ â”‚
+ â–¼
+[Probe Agent]  â”€â”€â”€â”€ CoT-SC (N samples) â”€â”€â–º ProbeResult
+ â”‚                                          (consistency_score, tokens_used)
+ â–¼
+[Feature Extractor]  â”€â”€â–º GateFeatures
+ â”‚                        (entity_count, clause_count, consistency, ...)
+ â–¼
+[Gate Classifier]  â”€â”€â–º GateDecision (STOP | ESCALATE)
+ â”‚
+ â”œâ”€â”€ STOP     â”€â”€â–º return probe answer         â”€â”
+ â”‚                                              â”œâ”€â”€â–º EvalResult â”€â”€â–º TokenLog
+ â””â”€â”€ ESCALATE â”€â”€â–º [MAS Orchestrator]           â”€â”˜
+                   (budget = k Ã— probe_tokens)
 ```
 
 ---
@@ -42,32 +42,32 @@ Task
 
 ```
 gateorchestra/
-├── shared/          # ← Person 3: frozen contract layer (import this everywhere)
-│   ├── schemas.py   #   Pydantic models: Task, ProbeResult, GateFeatures, GateDecision, EvalResult
-│   ├── config.py    #   All hyperparameters — single source of truth
-│   └── token_logger.py  # Thread-safe token accounting
-│
-├── dataset/         # ← Person 1
-├── agents/          # ← Person 2
-├── gate/            # ← Person 3
-│   ├── feature_extractor.py
-│   ├── classifier.py       # LogReg / GBT / MLP
-│   ├── rule_based_gate.py
-│   ├── random_gate.py
-│   └── train_gate.py
-├── evaluation/      # ← Person 4
-├── integration/     # ← Person 3: wires all modules together
-│   └── pipeline.py
-│
-├── tests/
-│   ├── mocks/       # Mock P1/P2/P4 modules for offline testing
-│   ├── test_shared_schemas.py
-│   ├── test_gate.py
-│   └── test_pipeline.py
-├── scripts/
-│   └── demo_run.py  # Quick end-to-end demo
-└── configs/
-    └── default.yaml
+â”œâ”€â”€ shared/          # â† Person 3: frozen contract layer (import this everywhere)
+â”‚   â”œâ”€â”€ schemas.py   #   Pydantic models: Task, ProbeResult, GateFeatures, GateDecision, EvalResult
+â”‚   â”œâ”€â”€ config.py    #   All hyperparameters â€” single source of truth
+â”‚   â””â”€â”€ token_logger.py  # Thread-safe token accounting
+â”‚
+â”œâ”€â”€ dataset/         # â† Person 1
+â”œâ”€â”€ agents/          # â† Person 2
+â”œâ”€â”€ gate/            # â† Person 3
+â”‚   â”œâ”€â”€ feature_extractor.py
+â”‚   â”œâ”€â”€ classifier.py       # LogReg / GBT / MLP
+â”‚   â”œâ”€â”€ rule_based_gate.py
+â”‚   â”œâ”€â”€ random_gate.py
+â”‚   â””â”€â”€ train_gate.py
+â”œâ”€â”€ evaluation/      # â† Person 4
+â”œâ”€â”€ integration/     # â† Person 3: wires all modules together
+â”‚   â””â”€â”€ pipeline.py
+â”‚
+â”œâ”€â”€ tests/
+â”‚   â”œâ”€â”€ mocks/       # Mock P1/P2/P4 modules for offline testing
+â”‚   â”œâ”€â”€ test_shared_schemas.py
+â”‚   â”œâ”€â”€ test_gate.py
+â”‚   â””â”€â”€ test_pipeline.py
+â”œâ”€â”€ scripts/
+â”‚   â””â”€â”€ demo_run.py  # Quick end-to-end demo
+â””â”€â”€ configs/
+    â””â”€â”€ default.yaml
 ```
 
 ---
@@ -97,21 +97,29 @@ cd frontend-react && npm run dev
 
 ## Final Capstone Empirical Results (Test Split)
 
+> **⚠️ Status: Simulation-Derived Numbers — Real Evaluation Pending**
+>
+> The numbers below were produced under `execution_mode = "mock"` (simulated LLM calls).
+> They reflect system logic but **are not empirical results from real Groq/Ollama API calls**.
+> Real evaluation results will replace this table once the full benchmark pipeline is run.
+> Do not cite these numbers in the final report or presentation.
+> See `results/simulated/` for the source artifact.
+
 Evaluated across 3 seeds (`42`, `123`, `999`) on the held-out `masbench_mini` test split (32 tasks, balanced across four strata: `hotpotqa_style`, `musique_style`, `template_arithmetic`, `template_comparison`).
 
 | Method | Type | Accuracy (%) | Token Savings vs Always-MAS | Avg Tokens / Task | STOP Rate (%) |
 |---|---|---|---|---|---|
-| **GateOrchestra** | **Learned GBT Gate** | **82.29% ± 7.86%** | **78.37% ± 1.79%** | **226.0** | **96.9%** |
-| RuleBasedGate | Heuristic Gate | 81.25% ± 13.62% | 66.88% ± 0.49% | 345.9 | 76.0% |
-| CoT-SC-only | Single-Agent Baseline | 79.17% ± 1.80% | 78.20% ± 1.43% | 227.9 | 100.0% |
-| RandomGate | Random Baseline ($p=0.5$) | 71.88% ± 8.27% | 51.50% ± 6.72% | 506.7 | 46.9% |
-| Always-MAS | Un-gated Multi-Agent System | 67.71% ± 9.55% | 0.00% ± 0.00% | 1,044.8 | 0.0% |
+| **GateOrchestra** | **Learned GBT Gate** | **82.29% Â± 7.86%** | **78.37% Â± 1.79%** | **226.0** | **96.9%** |
+| RuleBasedGate | Heuristic Gate | 81.25% Â± 13.62% | 66.88% Â± 0.49% | 345.9 | 76.0% |
+| CoT-SC-only | Single-Agent Baseline | 79.17% Â± 1.80% | 78.20% Â± 1.43% | 227.9 | 100.0% |
+| RandomGate | Random Baseline ($p=0.5$) | 71.88% Â± 8.27% | 51.50% Â± 6.72% | 506.7 | 46.9% |
+| Always-MAS | Un-gated Multi-Agent System | 67.71% Â± 9.55% | 0.00% Â± 0.00% | 1,044.8 | 0.0% |
 
-- **RQ1 (Token Savings):** **78.37% ± 1.79%** token reduction vs Always-MAS (**target $\ge 40\%$ comfortably exceeded**).
+- **RQ1 (Token Savings):** **78.37% Â± 1.79%** token reduction vs Always-MAS (**target $\ge 40\%$ comfortably exceeded**).
 - **RQ2 (Accuracy Preservation):** **+14.58 percentage points** higher accuracy than Always-MAS (82.29% vs 67.71%) by avoiding multi-agent overthinking.
 - **RQ3 (Pareto Dominance):** Complete Pareto frontier dominance across budget multipliers $k \in \{2, 3, 5\}$ and sample counts $N \in \{3, 5, 7\}$.
 
-📖 **Full Report:** See [Capstone Technical Report](reports/capstone_technical_report_person3.md) and [Presentation & Release Guide](docs/WEEK8_RELEASE_GUIDE.md).
+ðŸ“– **Full Report:** See [Capstone Technical Report](reports/capstone_technical_report_person3.md) and [Presentation & Release Guide](docs/WEEK8_RELEASE_GUIDE.md).
 
 ---
 
@@ -131,7 +139,7 @@ All 4 team members code against `shared/schemas.py`. **Do not change these model
 
 ## Git Workflow
 
-- `main` — protected, PRs only, must pass CI
+- `main` â€” protected, PRs only, must pass CI
 - Branches: `person1/dataset`, `person2/agents`, `person3/gate`, `person4/eval`
 - Every PR must pass: `pytest` + `ruff` + `mypy`
 
@@ -148,7 +156,7 @@ Runs locally with zero external API fees.
 ollama serve
 ollama pull qwen2.5:7b-instruct
 
-# 2. Environment variables (Optional — these are defaults)
+# 2. Environment variables (Optional â€” these are defaults)
 export GATE_LLM_PROVIDER=ollama
 export GATE_MODEL_NAME=Qwen2.5-7B-Instruct
 export GATE_API_BASE=http://localhost:11434
@@ -180,8 +188,9 @@ $env:GROQ_MODEL_NAME = "llama-3.3-70b-versatile"
 | Parameter | Default | Description |
 |---|---|---|
 | `TAU_ACC` | 0.05 | Accuracy threshold for ESCALATE labeling |
-| `K` | 3 | MAS token budget = k × probe_tokens |
+| `K` | 3 | MAS token budget = k Ã— probe_tokens |
 | `PROBE_TOKEN_BUDGET` | 500 | Max tokens per CoT-SC probe |
 | `COT_SC_N_SAMPLES` | 5 | Number of CoT-SC samples |
 
 All in `shared/config.py` and `configs/default.yaml`.
+
