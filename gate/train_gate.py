@@ -335,7 +335,7 @@ def calibrate_gate(
                 "[gate-training] Single-class training labels; falling back to pretrained gate "
                 f"from {pretrained_path}"
             )
-            fallback_gate = GBTGate.load(pretrained_path)
+            fallback_gate = GateClassifier.load(pretrained_path)
             fallback_gate.save(save_path)
             fallback_candidate = {
                 "classifier": "gbt_pretrained",
