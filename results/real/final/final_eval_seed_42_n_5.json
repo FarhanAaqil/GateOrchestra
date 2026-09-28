@@ -1,0 +1,58 @@
+{
+  "seed": 42,
+  "n": 5,
+  "dry_run": false,
+  "execution_mode": "real",
+  "results": [
+    {
+      "method": "CoT-SC-only",
+      "accuracy": 0.4,
+      "total_tokens": 3912,
+      "avg_tokens": 782.4,
+      "token_savings_pct": 0.7358538442019835,
+      "stop_rate": 0.0,
+      "escalate_rate": 0.0,
+      "avg_latency_ms": 24077.77304002084
+    },
+    {
+      "method": "Always-MAS",
+      "accuracy": 0.2,
+      "total_tokens": 3941,
+      "avg_tokens": 788.2,
+      "token_savings_pct": 0.0,
+      "stop_rate": 0.0,
+      "escalate_rate": 0.0,
+      "avg_latency_ms": 22678.18597992882
+    },
+    {
+      "method": "RandomGate",
+      "accuracy": 0.2,
+      "total_tokens": 6771,
+      "avg_tokens": 1354.2,
+      "token_savings_pct": -71.80918548591728,
+      "stop_rate": 0.4,
+      "escalate_rate": 0.6,
+      "avg_latency_ms": 0.0
+    },
+    {
+      "method": "RuleBasedGate",
+      "accuracy": 0.4,
+      "total_tokens": 4679,
+      "avg_tokens": 935.8,
+      "token_savings_pct": -18.726211621415878,
+      "stop_rate": 0.8,
+      "escalate_rate": 0.2,
+      "avg_latency_ms": 0.0
+    },
+    {
+      "method": "GateOrchestra",
+      "accuracy": 0.4,
+      "total_tokens": 3912,
+      "avg_tokens": 782.4,
+      "token_savings_pct": 0.7358538442019835,
+      "stop_rate": 1.0,
+      "escalate_rate": 0.0,
+      "avg_latency_ms": 0.0
+    }
+  ]
+}
