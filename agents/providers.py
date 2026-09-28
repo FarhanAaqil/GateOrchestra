@@ -192,8 +192,18 @@ def call_groq(
                 continue
 
             if e.code == 400 and "Tool choice is none" in err_msg and model != "qwen/qwen3.8-27b":
-                logger.warning(f"[GroqProvider] Tool choice error on {model}. Retrying with qwen/qwen3.8-27b...")
-                return call_groq(prompt, temperature, max_tokens, model_name="qwen/qwen3.8-27b", api_key=api_key, api_base=api_base, timeout=timeout)
+                logger.warning(
+                    f"[GroqProvider] Tool choice error on {model}. Retrying with qwen/qwen3.8-27b..."
+                )
+                return call_groq(
+                    prompt,
+                    temperature,
+                    max_tokens,
+                    model_name="qwen/qwen3.8-27b",
+                    api_key=api_key,
+                    api_base=api_base,
+                    timeout=timeout,
+                )
 
             logger.error(f"[GroqProvider] Groq API returned HTTP {e.code}: {err_msg}")
             raise RuntimeError(

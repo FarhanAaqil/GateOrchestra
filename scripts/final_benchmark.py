@@ -123,15 +123,17 @@ def _write_master_results(seed_results: list[dict], args: argparse.Namespace) ->
         mean_acc = sum(acc_values) / n
         std_acc = (sum((x - mean_acc) ** 2 for x in acc_values) / max(n - 1, 1)) ** 0.5
 
-        aggregated.append({
-            "method": method_name,
-            "seeds": [r["seed"] if "seed" in r else None for r in rows],
-            "accuracy_mean": round(mean_acc * 100, 2),
-            "accuracy_std": round(std_acc * 100, 2),
-            "avg_tokens_mean": round(sum(token_values) / n, 1),
-            "token_savings_pct_mean": round(sum(savings_values) / n, 2),
-            "n_seeds": n,
-        })
+        aggregated.append(
+            {
+                "method": method_name,
+                "seeds": [r["seed"] if "seed" in r else None for r in rows],
+                "accuracy_mean": round(mean_acc * 100, 2),
+                "accuracy_std": round(std_acc * 100, 2),
+                "avg_tokens_mean": round(sum(token_values) / n, 1),
+                "token_savings_pct_mean": round(sum(savings_values) / n, 2),
+                "n_seeds": n,
+            }
+        )
 
     master = {
         "execution_mode": "real",

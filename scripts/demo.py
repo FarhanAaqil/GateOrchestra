@@ -24,9 +24,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 
 SCENARIO_TASKS = {
-    "easy": ("arith_005", "val"),       # Easy arithmetic -> STOP (Probe answers correctly, saves tokens)
-    "hard": ("comp_038", "test"),      # Multi-hop complex -> ESCALATE (Routes to MAS)
-    "recovery": ("arith_012", "val"),   # Probe wrong -> Gate escalates -> MAS solves correctly
+    "easy": ("arith_005", "val"),  # Easy arithmetic -> STOP (Probe answers correctly, saves tokens)
+    "hard": ("comp_038", "test"),  # Multi-hop complex -> ESCALATE (Routes to MAS)
+    "recovery": ("arith_012", "val"),  # Probe wrong -> Gate escalates -> MAS solves correctly
 }
 
 

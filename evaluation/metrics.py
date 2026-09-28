@@ -9,6 +9,7 @@ breakdowns (ReAct %, Debate %, Reflexion %) for evaluation runs and Pareto front
 
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from shared.schemas import EvalResult
@@ -132,11 +133,10 @@ def compute_evaluation_metrics(
         "accuracy_delta": accuracy_delta,
     }
 
+
 # -----------------------------------------------------------------------------
 # Canonical Correctness Evaluation (Phase 5 – rescue plan)
 # -----------------------------------------------------------------------------
-
-import re
 
 
 def normalize_answer_for_eval(text: str) -> str:
@@ -190,7 +190,9 @@ def evaluate_answer(predicted: str, ground_truth: str) -> bool:
     return norm_gt in norm_pred or norm_pred == norm_gt
 
 
-def wilson_confidence_interval(n_correct: int, n_total: int, z: float = 1.96) -> tuple[float, float]:
+def wilson_confidence_interval(
+    n_correct: int, n_total: int, z: float = 1.96
+) -> tuple[float, float]:
     """Compute Wilson 95% confidence interval for a proportion.
 
     Args:
@@ -204,7 +206,7 @@ def wilson_confidence_interval(n_correct: int, n_total: int, z: float = 1.96) ->
     if n_total == 0:
         return 0.0, 0.0
     p = n_correct / n_total
-    denominator = 1.0 + z ** 2 / n_total
-    centre = (p + z ** 2 / (2 * n_total)) / denominator
-    margin = (z * (p * (1 - p) / n_total + z ** 2 / (4 * n_total ** 2)) ** 0.5) / denominator
+    denominator = 1.0 + z**2 / n_total
+    centre = (p + z**2 / (2 * n_total)) / denominator
+    margin = (z * (p * (1 - p) / n_total + z**2 / (4 * n_total**2)) ** 0.5) / denominator
     return max(0.0, centre - margin), min(1.0, centre + margin)

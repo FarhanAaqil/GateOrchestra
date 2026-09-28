@@ -465,7 +465,7 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
             raise HTTPException(
                 status_code=503,
                 detail=f"Live CoT-SC failed: {type(err).__name__}. "
-                       "Use force_simulation=true for offline demo mode.",
+                "Use force_simulation=true for offline demo mode.",
             ) from err
         data = result.model_dump(mode="json")
         _HISTORY.appendleft(data)
@@ -482,7 +482,7 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
             raise HTTPException(
                 status_code=503,
                 detail=f"Live Always-MAS failed: {type(err).__name__}. "
-                       "Use force_simulation=true for offline demo mode.",
+                "Use force_simulation=true for offline demo mode.",
             ) from err
         data = result.model_dump(mode="json")
         _HISTORY.appendleft(data)
@@ -536,12 +536,8 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
         raise HTTPException(
             status_code=503,
             detail=f"Live LLM pipeline failed: {type(err).__name__}. "
-                   "Use force_simulation=true for offline demo mode.",
+            "Use force_simulation=true for offline demo mode.",
         ) from err
     data = result.model_dump(mode="json")
     _HISTORY.appendleft(data)
     return data
-
-
-
-
