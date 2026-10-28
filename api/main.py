@@ -442,7 +442,10 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
             if use_sim:
                 raise
             raise _live_failure("Always-MAS", err) from err
-        return _respond(result.model_dump(mode="json"), use_sim)
+        data = result.model_dump(mode="json")
+        if not use_sim:
+            data["mas_strategy"] = get_default_mas_orchestrator()._last_strategy
+        return _respond(data, use_sim)
 
     # 3. Gating Methods
     gate: Any

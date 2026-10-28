@@ -11,9 +11,24 @@ function ExecutionDetails({ result }) {
   const features = result.features || null
   const masStrategy = result.mas_strategy
     ? STRATEGY_LABELS[result.mas_strategy] || result.mas_strategy
-    : isStop
-      ? 'None (STOP)'
-      : '—'
+    : 'MAS'
+
+  // Only the stages this method actually ran.
+  const stages = []
+  if (result.probe_tokens != null) {
+    stages.push({ label: 'CoT-SC Probe', detail: `${result.probe_tokens} tok` })
+  }
+  if (decision) {
+    stages.push({ label: 'Gate', detail: decision.gate_type })
+    stages.push({
+      label: decision.decision,
+      detail: isStop ? 'probe answer returned' : `cap ${decision.token_budget_cap} tok`,
+    })
+  }
+  if (result.mas_tokens) {
+    stages.push({ label: masStrategy, detail: `${result.mas_tokens} MAS tok` })
+  }
+  stages.push({ label: 'Answer', detail: result.is_correct == null ? 'ungraded' : result.is_correct ? 'correct' : 'incorrect' })
 
   // Only features the gate actually saw; meters are scaled to typical ranges.
   const featureList = features
@@ -69,38 +84,15 @@ function ExecutionDetails({ result }) {
             <p className="sidebar-label" style={{ marginBottom: '6px' }}>Pipeline Trace</p>
             <div className="lifecycle-stepper">
               <div className="stepper-line" />
-
-              <div className="stepper-node">
-                <div className="node-circle done">1</div>
-                <span className="node-text">CoT-SC Probe</span>
-                <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                  {result.probe_tokens != null ? `${result.probe_tokens} tok` : 'skipped'}
-                </span>
-              </div>
-
-              <div className="stepper-node">
-                <div className="node-circle done">2</div>
-                <span className="node-text">Gate</span>
-                <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                  {decision ? decision.gate_type : 'none'}
-                </span>
-              </div>
-
-              <div className="stepper-node">
-                <div className={`node-circle ${isStop ? 'done' : 'active'}`}>3</div>
-                <span className="node-text">{decision ? decision.decision : 'MAS'}</span>
-                <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                  {isStop ? '0 MAS tok' : decision?.token_budget_cap ? `Cap: ${decision.token_budget_cap}` : ''}
-                </span>
-              </div>
-
-              <div className="stepper-node">
-                <div className={`node-circle ${isStop ? 'done' : 'active'}`}>4</div>
-                <span className="node-text">MAS Strategy</span>
-                <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                  {masStrategy}
-                </span>
-              </div>
+              {stages.map((stage, index) => (
+                <div className="stepper-node" key={`${stage.label}-${index}`}>
+                  <div className="node-circle done">{index + 1}</div>
+                  <span className="node-text">{stage.label}</span>
+                  <span style={{ fontSize: '0.62rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
+                    {stage.detail}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
 
