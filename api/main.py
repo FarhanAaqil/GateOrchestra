@@ -38,9 +38,13 @@ from agents.orchestrator.orchestrator import (  # noqa: E402
     get_default_mas_orchestrator,
     orchestrator,
 )
-from agents.probe_agent import probe_agent  # noqa: E402
+from agents.probe_agent import extract_answer, probe_agent  # noqa: E402
+from evaluation.results_detail import build_results_detail  # noqa: E402
 from gate.classifier import (  # noqa: E402
+    FEATURE_NAMES,
     GateClassifier,
+    GBTGate,
+    LogRegGate,
     benchmark_gate_paths,
     gate_provenance,
     load_provenanced_gate,
@@ -175,6 +179,13 @@ class RunRequest(BaseModel):
     force_simulation: bool = Field(
         default=False,
         description="Use the offline simulator instead of a live LLM. Results are not graded.",
+    )
+    threshold: float | None = Field(
+        default=None,
+        ge=0.0,
+        le=1.0,
+        description="Optional ESCALATE probability threshold for the learned gate "
+        "(other gates ignore it). Omit to use the classifier's own decision.",
     )
 
 
@@ -381,9 +392,36 @@ def _live_failure(stage: str, err: Exception) -> HTTPException:
     )
 
 
+def _probe_details(probe: ProbeResult) -> dict[str, Any]:
+    """What the CoT-SC probe saw: the vote, its agreement, and each sample's answer."""
+    return {
+        "answer": probe.answer,
+        "consistency_score": probe.consistency_score,
+        "tokens_used": probe.tokens_used,
+        "latency_ms": probe.latency_ms,
+        "samples": [
+            output if output.startswith("Error:") else extract_answer(output)
+            for output in probe.raw_outputs
+        ],
+    }
+
+
+def _mas_trace(use_sim: bool, mas_tokens: int | None) -> list[dict[str, Any]]:
+    """Steps the chosen sub-agent took in this request (empty when MAS did not run)."""
+    if use_sim or not mas_tokens:
+        return []
+    return list(get_default_mas_orchestrator()._last_trace)
+
+
 @app.post("/run")
 def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
-    """Run one task through the requested method / gate pipeline."""
+    """Run one task through the requested method / gate pipeline.
+
+    Besides the EvalResult fields the response carries ``probe`` (the CoT-SC
+    vote and per-sample answers, when a probe ran), ``features`` (gated
+    methods), ``trace`` (each sub-agent step, when MAS ran live) and
+    ``simulated``.
+    """
     use_sim = request.force_simulation or (LLM_PROVIDER == "mock")
     task = Task(
         task_id=request.task_id,
@@ -396,8 +434,14 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
     accountant = TokenAccountant()
     method_name = request.method.strip()
 
-    probe_fn = SimulatedProbe(seed=42).run if use_sim else probe_agent
+    base_probe_fn = SimulatedProbe(seed=42).run if use_sim else probe_agent
     orch_fn = _simulated_orchestrator_call if use_sim else orchestrator
+    probes: list[ProbeResult] = []
+
+    def probe_fn(current: Task) -> ProbeResult:
+        probe = base_probe_fn(current)
+        probes.append(probe)
+        return probe
 
     # 1. Baseline: CoT-SC only
     if method_name in ("CoT-SC", "CoT-SC-only"):
@@ -407,7 +451,10 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
             if use_sim:
                 raise
             raise _live_failure("CoT-SC", err) from err
-        return _respond(result.model_dump(mode="json"), use_sim)
+        data = result.model_dump(mode="json")
+        data["probe"] = _probe_details(probes[-1])
+        data["trace"] = []
+        return _respond(data, use_sim)
 
     # 2. Baseline: Always-MAS
     if method_name == "Always-MAS":
@@ -425,6 +472,8 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
         data = result.model_dump(mode="json")
         if not use_sim:
             data["mas_strategy"] = get_default_mas_orchestrator()._last_strategy
+        data["probe"] = None
+        data["trace"] = _mas_trace(use_sim, result.mas_tokens)
         return _respond(data, use_sim)
 
     # 3. Gating Methods
@@ -444,22 +493,16 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
             ),
         )
 
-    probes: list[ProbeResult] = []
-
-    def recording_probe(current: Task) -> ProbeResult:
-        probe = probe_fn(current)
-        probes.append(probe)
-        return probe
-
     try:
         result = run_pipeline(
             task=task,
             gate=gate,
-            probe_agent=recording_probe,
+            probe_agent=probe_fn,
             orchestrator=orch_fn,
             accountant=accountant,
             k=request.k,
             method=method_name,
+            threshold=request.threshold,
             mas_orchestrator=None if use_sim else get_default_mas_orchestrator(),
         )
     except Exception as err:
@@ -469,4 +512,75 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
     data = result.model_dump(mode="json")
     # The exact features the gate saw (extraction is deterministic).
     data["features"] = extract_features(task, probes[-1]).model_dump(mode="json")
+    data["probe"] = _probe_details(probes[-1])
+    data["trace"] = _mas_trace(use_sim, result.mas_tokens)
     return _respond(data, use_sim)
+
+
+# Gate & Results Detail Endpoints
+
+
+@app.get("/gate/importance")
+def gate_importance() -> dict[str, Any]:
+    """Feature importances of the loaded learned gate, when its classifier has them.
+
+    GBT gates report impurity-based importances; logistic-regression gates
+    report normalised absolute coefficients (on standardised features).
+    """
+    found = _load_provenanced_gate()
+    if found is None:
+        return {
+            "available": False,
+            "reason": "No trained gate yet.",
+            "gate": None,
+            "importances": [],
+        }
+    gate, info = found
+    values: list[float] | None = None
+    if isinstance(gate, GBTGate) and gate._is_trained:
+        values = [float(v) for v in gate._model.feature_importances_]
+    elif isinstance(gate, LogRegGate) and gate._is_trained:
+        coefs = [abs(float(c)) for c in gate._model.coef_[0]]
+        total = sum(coefs) or 1.0
+        values = [c / total for c in coefs]
+    if values is None:
+        return {
+            "available": False,
+            "reason": f"{info['classifier']} has no feature importances.",
+            "gate": info,
+            "importances": [],
+        }
+    return {
+        "available": True,
+        "gate": info,
+        "importances": sorted(
+            ({"feature": f, "importance": v} for f, v in zip(FEATURE_NAMES, values, strict=True)),
+            key=lambda row: row["importance"],
+            reverse=True,
+        ),
+    }
+
+
+@app.get("/results/detail")
+def results_detail() -> dict[str, Any]:
+    """Per-task outcomes and derived views of the recorded benchmark results."""
+    empty: dict[str, list[Any]] = {
+        "per_task": [],
+        "axis_cells": [],
+        "escalation_quality": [],
+        "k_sweep": [],
+        "gates": [],
+    }
+    if not MASTER_RESULTS_PATH.exists():
+        return {"status": "no_results", **empty}
+    from scripts.verify_final_results import verify_master_results  # noqa: PLC0415
+
+    master = json.loads(MASTER_RESULTS_PATH.read_text(encoding="utf-8"))
+    errors, partial = verify_master_results(MASTER_RESULTS_PATH, allow_partial=True)
+    labels = {
+        t.task_id: t.model_dump(include={"depth_score", "parallel_score", "source_dataset"})
+        for split in ("train", "val", "test")
+        for t in load_split(split)
+    }
+    status = "unverified" if errors else "partial" if partial else "verified"
+    return {"status": status, **build_results_detail(master, labels)}

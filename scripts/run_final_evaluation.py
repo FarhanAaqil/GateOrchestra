@@ -1004,6 +1004,22 @@ def run_evaluation(
                 "note": best_metrics.get("note"),
             },
             "paired_tests": paired_tests,
+            # Validation metrics for every (classifier, tau, k) tried during calibration.
+            "calibration": [
+                {
+                    key: candidate.get(key)
+                    for key in (
+                        "classifier",
+                        "tau_acc",
+                        "k",
+                        "accuracy",
+                        "avg_tokens",
+                        "token_savings_pct",
+                        "escalation_rate",
+                    )
+                }
+                for candidate in (state.get("gate_training") or {}).get("candidates", [])
+            ],
             "per_task": {
                 method: [
                     {

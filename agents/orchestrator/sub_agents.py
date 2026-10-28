@@ -39,6 +39,9 @@ LLMCallerFn = Callable[[str, float, int], tuple[str, int]]
 MIN_CALL_TOKENS = 32
 """Smallest completion cap worth spending a call on."""
 
+TRACE_OUTPUT_CHARS = 2000
+"""How much of each step's output is kept in the trace."""
+
 
 class SubAgentError(RuntimeError):
     """An LLM call made by a sub-agent failed."""
@@ -81,25 +84,36 @@ class _SubAgentBase:
         else:
             self.model_name = model_name or MODEL_NAME
         self.llm_caller = llm_caller
+        # Steps taken by the most recent run(): step name, output, tokens.
+        self.last_trace: list[dict] = []
 
-    def _call(self, prompt: str, budget: int) -> tuple[str, int]:
+    def _call(self, prompt: str, budget: int, step: str = "call") -> tuple[str, int]:
         try:
             if self.llm_caller is not None:
-                return self.llm_caller(prompt, self.temperature, budget)
-            return default_llm_caller(
-                prompt=prompt,
-                temperature=self.temperature,
-                max_tokens=budget,
-                model_name=self.model_name,
-                provider=self.provider,
-                api_key=self.api_key,
-            )
+                response, tokens = self.llm_caller(prompt, self.temperature, budget)
+            else:
+                response, tokens = default_llm_caller(
+                    prompt=prompt,
+                    temperature=self.temperature,
+                    max_tokens=budget,
+                    model_name=self.model_name,
+                    provider=self.provider,
+                    api_key=self.api_key,
+                )
         except Exception as e:
             logger.warning(f"[{type(self).__name__}] LLM call error: {e}")
             raise SubAgentError(f"{type(self).__name__} LLM call failed: {e}") from e
+        self.last_trace.append(
+            {"step": step, "output": response[:TRACE_OUTPUT_CHARS], "tokens": tokens}
+        )
+        return response, tokens
 
     def _budgeted_call(
-        self, prompt: str, remaining_budget: int, step_cap: int | None = None
+        self,
+        prompt: str,
+        remaining_budget: int,
+        step_cap: int | None = None,
+        step: str = "call",
     ) -> tuple[str, int] | None:
         """Call the LLM if the remaining budget allows; None means 'out of budget'."""
         cap = completion_cap(prompt, remaining_budget)
@@ -107,7 +121,7 @@ class _SubAgentBase:
             cap = min(cap, step_cap)
         if cap < MIN_CALL_TOKENS:
             return None
-        return self._call(prompt, cap)
+        return self._call(prompt, cap, step)
 
 
 # 1. ReAct Agent (Decomposition & Multi-Hop Reasoning)
@@ -131,6 +145,7 @@ class ReActAgent(_SubAgentBase):
 
     def run(self, task: Task, token_budget: int) -> tuple[str, int]:
         """Execute the ReAct loop until a final answer, max_steps, or the budget runs out."""
+        self.last_trace = []
         total_tokens = 0
         history = [
             "Solve the following question step by step using Thought and Action.\n"
@@ -141,7 +156,9 @@ class ReActAgent(_SubAgentBase):
 
         for step in range(1, self.max_steps + 1):
             prompt = "\n".join(history) + f"\nStep {step}:\nThought:"
-            outcome = self._budgeted_call(prompt, token_budget - total_tokens, step_cap)
+            outcome = self._budgeted_call(
+                prompt, token_budget - total_tokens, step_cap, step=f"Thought {step}"
+            )
             if outcome is None:
                 break
             response, tokens = outcome
@@ -153,7 +170,9 @@ class ReActAgent(_SubAgentBase):
 
         # No explicit final answer yet: ask for one if the budget still allows.
         synthesis_prompt = "\n".join(history) + "\nConclude with: Final Answer: <answer>"
-        outcome = self._budgeted_call(synthesis_prompt, token_budget - total_tokens)
+        outcome = self._budgeted_call(
+            synthesis_prompt, token_budget - total_tokens, step="Synthesis"
+        )
         if outcome is not None:
             response, fin_tokens = outcome
             total_tokens += fin_tokens
@@ -182,6 +201,7 @@ class DebateAgent(_SubAgentBase):
 
     def run(self, task: Task, token_budget: int) -> tuple[str, int]:
         """Run proposer/critic rounds; every prompt carries the task context."""
+        self.last_trace = []
         total_tokens = 0
         context = _context_block(task)
         round_cap = max(MIN_CALL_TOKENS, token_budget // (self.num_rounds * 2 + 1))
@@ -192,13 +212,13 @@ class DebateAgent(_SubAgentBase):
             f"{context}Question: {task.question}\n"
             "Conclude with Final Answer: <answer>"
         )
-        outcome = self._budgeted_call(prop_prompt, token_budget, round_cap)
+        outcome = self._budgeted_call(prop_prompt, token_budget, round_cap, step="Proposer")
         if outcome is None:
             return "Unknown", 0
         current_solution, tokens = outcome
         total_tokens += tokens
 
-        for _r in range(self.num_rounds):
+        for round_no in range(1, self.num_rounds + 1):
             critic_prompt = (
                 "You are Agent Critic. Critique the proposed solution for errors or "
                 "unverified assumptions, using the context where relevant.\n"
@@ -206,7 +226,9 @@ class DebateAgent(_SubAgentBase):
                 f"Proposed Solution: {current_solution}\n"
                 "Point out any flaws or confirm if correct."
             )
-            outcome = self._budgeted_call(critic_prompt, token_budget - total_tokens, round_cap)
+            outcome = self._budgeted_call(
+                critic_prompt, token_budget - total_tokens, round_cap, step=f"Critic {round_no}"
+            )
             if outcome is None:
                 break
             critic_feedback, tokens = outcome
@@ -220,7 +242,9 @@ class DebateAgent(_SubAgentBase):
                 f"Critic Feedback: {critic_feedback}\n"
                 "Provide your final refined conclusion with Final Answer: <answer>"
             )
-            outcome = self._budgeted_call(revision_prompt, token_budget - total_tokens, round_cap)
+            outcome = self._budgeted_call(
+                revision_prompt, token_budget - total_tokens, round_cap, step=f"Revision {round_no}"
+            )
             if outcome is None:
                 break
             current_solution, tokens = outcome
@@ -239,6 +263,7 @@ class ReflexionAgent(_SubAgentBase):
 
     def run(self, task: Task, token_budget: int) -> tuple[str, int]:
         """Draft an initial response, self-critique, and refine it."""
+        self.last_trace = []
         total_tokens = 0
         context = _context_block(task)
         step_cap = max(MIN_CALL_TOKENS, token_budget // 3)
@@ -250,7 +275,7 @@ class ReflexionAgent(_SubAgentBase):
             "End with Final Answer: <answer>\n"
             "Draft Answer:"
         )
-        outcome = self._budgeted_call(draft_prompt, token_budget, step_cap)
+        outcome = self._budgeted_call(draft_prompt, token_budget, step_cap, step="Draft")
         if outcome is None:
             return "Unknown", 0
         draft, tokens = outcome
@@ -262,7 +287,9 @@ class ReflexionAgent(_SubAgentBase):
             f"Draft: {draft}\n"
             "Critique: Are there any logical fallacies, arithmetic errors, or missed nuances?"
         )
-        outcome = self._budgeted_call(reflect_prompt, token_budget - total_tokens, step_cap)
+        outcome = self._budgeted_call(
+            reflect_prompt, token_budget - total_tokens, step_cap, step="Reflect"
+        )
         if outcome is None:
             return extract_answer(draft), total_tokens
         reflection, tokens = outcome
@@ -275,7 +302,9 @@ class ReflexionAgent(_SubAgentBase):
             f"Reflection: {reflection}\n"
             "Provide the final corrected answer. Format: Final Answer: <answer>"
         )
-        outcome = self._budgeted_call(refine_prompt, token_budget - total_tokens, step_cap)
+        outcome = self._budgeted_call(
+            refine_prompt, token_budget - total_tokens, step_cap, step="Refine"
+        )
         if outcome is None:
             return extract_answer(draft), total_tokens
         refined, tokens = outcome
