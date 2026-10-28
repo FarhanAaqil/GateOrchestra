@@ -2,11 +2,23 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 
 export async function checkHealth() {
-  const response = await fetch(`${API_BASE_URL}/health`)
-  if (!response.ok) {
-    throw new Error('API server is not responding.')
+  let response
+  try {
+    response = await fetch(`${API_BASE_URL}/`)
+  } catch {
+    throw new Error(
+      `No GateOrchestra API at ${API_BASE_URL}. Start it with: uvicorn api.main:app --port 8000`,
+    )
   }
-  return response.json()
+  const data = response.ok ? await response.json().catch(() => null) : null
+  // Another local app can hold the port; make sure this is really our backend.
+  if (data?.name !== 'GateOrchestra API') {
+    throw new Error(
+      `The server at ${API_BASE_URL} is not the GateOrchestra API (another app is using that port). ` +
+        'Run the API on a free port and set VITE_API_BASE_URL in frontend-react/.env.local.',
+    )
+  }
+  return data
 }
 
 export async function fetchModels() {

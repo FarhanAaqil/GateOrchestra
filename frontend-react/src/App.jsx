@@ -53,7 +53,10 @@ function App() {
   useEffect(() => {
     checkHealth()
       .then(() => setApiOnline(true))
-      .catch(() => setApiOnline(false))
+      .catch((err) => {
+        setApiOnline(false)
+        setError(err.message)
+      })
     fetchModels()
       .then((data) => {
         setModelLabel(`${data.current_provider} / ${data.default_model}`)
