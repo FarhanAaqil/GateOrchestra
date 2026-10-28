@@ -1,4 +1,5 @@
-const API_BASE_URL = 'http://127.0.0.1:8000'
+// Override with VITE_API_BASE_URL (e.g. in frontend-react/.env.local).
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 
 export async function checkHealth() {
   const response = await fetch(`${API_BASE_URL}/health`)

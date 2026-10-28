@@ -38,16 +38,16 @@ from agents.baselines.cot_sc_baseline import run_cot_sc_baseline  # noqa: E402
 from agents.baselines.simulated_probe import SimulatedProbe  # noqa: E402
 from agents.orchestrator.orchestrator import orchestrator  # noqa: E402
 from agents.probe_agent import probe_agent  # noqa: E402
-from gate.classifier import GateClassifier, GBTGate  # noqa: E402
+from gate.classifier import load_benchmark_gate  # noqa: E402
 from gate.random_gate import RandomGate  # noqa: E402
 from gate.rule_based_gate import RuleBasedGate  # noqa: E402
 from integration.pipeline import run_pipeline  # noqa: E402
 from shared.config import (  # noqa: E402
-    BEST_MODEL_PATH,
     GROQ_API_KEY,
     K_DEFAULT,
     LLM_PROVIDER,
     LOGS_DIR,
+    MODELS_DIR,
 )
 from shared.data_loader import load_split  # noqa: E402
 from shared.schemas import EvalResult, Task  # noqa: E402
@@ -64,13 +64,12 @@ logger = logging.getLogger("collect_traces")
 def get_gate_instance(method: str) -> Any:
     """Instantiate gate classifier for a given method."""
     if method == "GateOrchestra":
-        for candidate in [BEST_MODEL_PATH, LOGS_DIR / "week2_best_gate.pkl"]:
-            if candidate.exists():
-                try:
-                    return GateClassifier.load(candidate)
-                except Exception:
-                    pass
-        return GBTGate()
+        found = load_benchmark_gate(MODELS_DIR)
+        if found is None:
+            raise SystemExit(
+                "No benchmark-calibrated gate found. Run scripts/final_benchmark.py first."
+            )
+        return found[0]
     elif method == "RuleBasedGate":
         return RuleBasedGate()
     elif method == "RandomGate":

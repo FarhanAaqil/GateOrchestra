@@ -16,7 +16,6 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 import sys
 import threading
 from collections import deque
@@ -40,7 +39,12 @@ from agents.orchestrator.orchestrator import (  # noqa: E402
     orchestrator,
 )
 from agents.probe_agent import probe_agent  # noqa: E402
-from gate.classifier import ConstantGate, GateClassifier  # noqa: E402
+from gate.classifier import (  # noqa: E402
+    GateClassifier,
+    benchmark_gate_paths,
+    gate_provenance,
+    load_provenanced_gate,
+)
 from gate.feature_extractor import extract_features  # noqa: E402
 from gate.random_gate import RandomGate  # noqa: E402
 from gate.rule_based_gate import RuleBasedGate  # noqa: E402
@@ -95,29 +99,11 @@ _RANDOM_GATE_LOCK = threading.Lock()
 
 def _gate_model_candidates() -> list[Path]:
     """Gates written by benchmark calibration, newest first."""
-    seed_gates = sorted(
-        MODELS_DIR.glob("best_gate_seed_*.pkl"), key=lambda p: p.stat().st_mtime, reverse=True
-    )
-    return [*seed_gates, BEST_MODEL_PATH]
-
-
-def _gate_provenance(path: Path, gate: GateClassifier) -> dict[str, Any]:
-    seed = re.search(r"best_gate_seed_(\d+)\.pkl$", path.name)
-    return {
-        "path": str(path.relative_to(ROOT)) if path.is_relative_to(ROOT) else str(path),
-        "seed": int(seed.group(1)) if seed else None,
-        "classifier": gate.name,
-        "degenerate": isinstance(gate, ConstantGate),
-        "build_info": getattr(gate, "build_info", None),
-    }
+    return [*benchmark_gate_paths(MODELS_DIR), BEST_MODEL_PATH]
 
 
 def _load_provenanced_gate() -> tuple[GateClassifier, dict[str, Any]] | None:
-    """Newest trained gate that records how it was built; None if there is none.
-
-    Gates without build info (written before calibration recorded it) are
-    skipped: nobody can say what data trained them.
-    """
+    """Newest trained gate with known provenance (cached until a newer file lands)."""
     global _CACHED_LEARNED_GATE, _CACHED_GATE_INFO, _CACHED_GATE_KEY
     for candidate in _gate_model_candidates():
         if not candidate.exists():
@@ -125,21 +111,15 @@ def _load_provenanced_gate() -> tuple[GateClassifier, dict[str, Any]] | None:
         key = (str(candidate), candidate.stat().st_mtime)
         if key == _CACHED_GATE_KEY and _CACHED_LEARNED_GATE is not None:
             return _CACHED_LEARNED_GATE, _CACHED_GATE_INFO or {}
-        try:
-            loaded = GateClassifier.load(candidate)
-        except Exception as err:
-            logger.warning(f"Could not load gate from {candidate}: {err}")
+        loaded = load_provenanced_gate(candidate)
+        if loaded is None:
             continue
-        if not getattr(loaded, "_is_trained", False):
-            continue
-        if getattr(loaded, "build_info", None) is None:
-            logger.warning(f"Skipping gate {candidate}: no build info, provenance unknown")
-            continue
-        _CACHED_LEARNED_GATE = loaded
-        _CACHED_GATE_INFO = _gate_provenance(candidate, loaded)
-        _CACHED_GATE_KEY = key
+        info = gate_provenance(candidate, loaded)
+        if candidate.is_relative_to(ROOT):
+            info["path"] = str(candidate.relative_to(ROOT))
+        _CACHED_LEARNED_GATE, _CACHED_GATE_INFO, _CACHED_GATE_KEY = loaded, info, key
         logger.info(f"Loaded trained gate from {candidate}")
-        return loaded, _CACHED_GATE_INFO
+        return loaded, info
     return None
 
 

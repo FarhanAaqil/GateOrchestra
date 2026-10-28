@@ -36,13 +36,13 @@ if str(REPO_ROOT) not in sys.path:
 
 from agents.baselines.simulated_probe import SimulatedProbe
 from agents.orchestrator.bandit_router import LinUCBRouter
-from gate.classifier import GateClassifier, GBTGate
+from gate.classifier import load_benchmark_gate
 from gate.random_gate import RandomGate
 from gate.rule_based_gate import RuleBasedGate
 from integration.pipeline import run_pipeline
-from shared.config import BEST_MODEL_PATH, K_DEFAULT, LOGS_DIR
+from shared.config import K_DEFAULT, LOGS_DIR, MODELS_DIR
 from shared.data_loader import load_split
-from shared.schemas import EvalResult, GateFeatures, ProbeResult, Task
+from shared.schemas import EvalResult, ProbeResult, Task
 from shared.token_logger import TokenAccountant
 
 
@@ -119,48 +119,17 @@ def get_demo_gate(gate_type: str) -> Any:
     if gate_type == "random":
         return RandomGate(escalation_rate=0.4, seed=42)
 
-    # GBT / Learned Gate
-    for path in [
-        LOGS_DIR / "week7_real_gbt_gate.pkl",
-        BEST_MODEL_PATH,
-        LOGS_DIR / "week2_best_gate.pkl",
-    ]:
-        if path.exists():
-            try:
-                loaded = GateClassifier.load(path)
-                if getattr(loaded, "_is_trained", False):
-                    return loaded
-            except Exception:
-                pass
-
-    # Fallback trained GBT
-    gbt = GBTGate()
-    dummy_feats = [
-        GateFeatures(
-            task_id="d1",
-            consistency_score=1.0,
-            probe_tokens=100,
-            question_word_count=10,
-            entity_count=1,
-            clause_count=1,
-            has_context=False,
-            estimated_depth=1.0,
-            estimated_parallel=1.0,
-        ),
-        GateFeatures(
-            task_id="d2",
-            consistency_score=0.2,
-            probe_tokens=450,
-            question_word_count=40,
-            entity_count=5,
-            clause_count=4,
-            has_context=True,
-            estimated_depth=4.0,
-            estimated_parallel=3.0,
-        ),
-    ]
-    gbt.train(dummy_feats, ["STOP", "ESCALATE"])
-    return gbt
+    # Learned gate: only one written by benchmark calibration, with known provenance.
+    found = load_benchmark_gate(MODELS_DIR)
+    if found is not None:
+        gate, info = found
+        print(f"[gate] Using {info['classifier']} from {Path(info['path']).name}")
+        return gate
+    print(
+        "[gate] No benchmark-calibrated gate found (run scripts/final_benchmark.py); "
+        "using the rule-based gate instead."
+    )
+    return RuleBasedGate()
 
 
 def run_demo(

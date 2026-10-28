@@ -131,7 +131,7 @@ cd frontend-react
 npm install
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173). `GateOrchestra` needs a trained gate in `configs/models/` (written by the final benchmark); without one the API returns HTTP 503. Simulated runs (`force_simulation: true`) show routing only and are returned ungraded.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173). The console talks to `http://127.0.0.1:8000` unless `VITE_API_BASE_URL` is set (e.g. in `frontend-react/.env.local`). `GateOrchestra` needs a trained gate in `configs/models/` (written by the final benchmark); without one the API returns HTTP 503. Simulated runs (`force_simulation: true`) show routing only and are returned ungraded.
 
 ---
 
