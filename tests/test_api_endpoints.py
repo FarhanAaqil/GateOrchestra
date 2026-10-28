@@ -245,3 +245,53 @@ class TestExecutionAndHistory:
         response = client.post("/run", json=payload)
         assert response.status_code == 400
         assert "Unknown method" in response.json()["detail"]
+
+
+class TestGateProvenance:
+    def _isolate(self, monkeypatch: pytest.MonkeyPatch, paths) -> None:
+        monkeypatch.setattr(api_main, "_CACHED_LEARNED_GATE", None)
+        monkeypatch.setattr(api_main, "_CACHED_GATE_INFO", None)
+        monkeypatch.setattr(api_main, "_CACHED_GATE_KEY", None)
+        monkeypatch.setattr(api_main, "_gate_model_candidates", lambda: paths)
+
+    def test_gate_without_build_info_is_never_served(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path
+    ) -> None:
+        import pickle
+
+        legacy = ConstantGate("STOP")
+        legacy.train([], ["STOP"])
+        path = tmp_path / "best_gate.pkl"
+        path.write_bytes(pickle.dumps(legacy))  # written without save(): no build_info
+        self._isolate(monkeypatch, [path])
+
+        assert client.get("/models").json()["trained_gate"] is None
+        payload = {
+            "task_id": "t",
+            "question": "Q?",
+            "method": "GateOrchestra",
+            "force_simulation": True,
+        }
+        assert client.post("/run", json=payload).status_code == 503
+
+    def test_newest_benchmark_gate_is_served_with_provenance(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path
+    ) -> None:
+        gate = ConstantGate("STOP")
+        gate.train([], ["STOP"])
+        path = tmp_path / "best_gate_seed_123.pkl"
+        gate.save(path)
+        self._isolate(monkeypatch, [path])
+
+        info = client.get("/models").json()["trained_gate"]
+        assert info["seed"] == 123
+        assert info["classifier"] == "ConstantGate"
+        assert info["degenerate"] is True
+        assert info["build_info"]["sklearn_version"]
+        payload = {
+            "task_id": "t2",
+            "question": "Q?",
+            "method": "GateOrchestra",
+            "force_simulation": True,
+        }
+        assert client.post("/run", json=payload).status_code == 200

@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 import sys
 import threading
 from collections import deque
@@ -39,7 +40,7 @@ from agents.orchestrator.orchestrator import (  # noqa: E402
     orchestrator,
 )
 from agents.probe_agent import probe_agent  # noqa: E402
-from gate.classifier import GateClassifier  # noqa: E402
+from gate.classifier import ConstantGate, GateClassifier  # noqa: E402
 from gate.feature_extractor import extract_features  # noqa: E402
 from gate.random_gate import RandomGate  # noqa: E402
 from gate.rule_based_gate import RuleBasedGate  # noqa: E402
@@ -83,6 +84,8 @@ _HISTORY: deque[dict[str, Any]] = deque(maxlen=50)
 
 # Cached learned gate instance to avoid repeated disk reads
 _CACHED_LEARNED_GATE: GateClassifier | None = None
+_CACHED_GATE_INFO: dict[str, Any] | None = None
+_CACHED_GATE_KEY: tuple[str, float] | None = None
 
 # One RandomGate for the server's lifetime, so successive requests draw new
 # coin flips (a gate rebuilt per request with a fixed seed always draws the same).
@@ -91,44 +94,74 @@ _RANDOM_GATE_LOCK = threading.Lock()
 
 
 def _gate_model_candidates() -> list[Path]:
-    """Trained gates produced by real calibration runs, preferred first."""
+    """Gates written by benchmark calibration, newest first."""
     seed_gates = sorted(
         MODELS_DIR.glob("best_gate_seed_*.pkl"), key=lambda p: p.stat().st_mtime, reverse=True
     )
-    return [BEST_MODEL_PATH, *seed_gates]
+    return [*seed_gates, BEST_MODEL_PATH]
 
 
-def get_trained_gate() -> GateClassifier:
-    """Load the gate trained by the evaluation pipeline.
+def _gate_provenance(path: Path, gate: GateClassifier) -> dict[str, Any]:
+    seed = re.search(r"best_gate_seed_(\d+)\.pkl$", path.name)
+    return {
+        "path": str(path.relative_to(ROOT)) if path.is_relative_to(ROOT) else str(path),
+        "seed": int(seed.group(1)) if seed else None,
+        "classifier": gate.name,
+        "degenerate": isinstance(gate, ConstantGate),
+        "build_info": getattr(gate, "build_info", None),
+    }
 
-    Raises:
-        HTTPException(503): If no trained gate exists. The API never trains a
-            stand-in gate on made-up data.
+
+def _load_provenanced_gate() -> tuple[GateClassifier, dict[str, Any]] | None:
+    """Newest trained gate that records how it was built; None if there is none.
+
+    Gates without build info (written before calibration recorded it) are
+    skipped: nobody can say what data trained them.
     """
-    global _CACHED_LEARNED_GATE
-    if _CACHED_LEARNED_GATE is not None:
-        return _CACHED_LEARNED_GATE
-
+    global _CACHED_LEARNED_GATE, _CACHED_GATE_INFO, _CACHED_GATE_KEY
     for candidate in _gate_model_candidates():
         if not candidate.exists():
             continue
+        key = (str(candidate), candidate.stat().st_mtime)
+        if key == _CACHED_GATE_KEY and _CACHED_LEARNED_GATE is not None:
+            return _CACHED_LEARNED_GATE, _CACHED_GATE_INFO or {}
         try:
             loaded = GateClassifier.load(candidate)
         except Exception as err:
             logger.warning(f"Could not load gate from {candidate}: {err}")
             continue
-        if getattr(loaded, "_is_trained", False):
-            _CACHED_LEARNED_GATE = loaded
-            logger.info(f"Loaded trained gate from {candidate}")
-            return loaded
+        if not getattr(loaded, "_is_trained", False):
+            continue
+        if getattr(loaded, "build_info", None) is None:
+            logger.warning(f"Skipping gate {candidate}: no build info, provenance unknown")
+            continue
+        _CACHED_LEARNED_GATE = loaded
+        _CACHED_GATE_INFO = _gate_provenance(candidate, loaded)
+        _CACHED_GATE_KEY = key
+        logger.info(f"Loaded trained gate from {candidate}")
+        return loaded, _CACHED_GATE_INFO
+    return None
 
-    raise HTTPException(
-        status_code=503,
-        detail=(
-            "No trained gate is available. Run `python scripts/final_benchmark.py` "
-            f"to calibrate one (expected under {MODELS_DIR})."
-        ),
-    )
+
+def get_trained_gate() -> GateClassifier:
+    """Load the newest gate trained by the benchmark's calibration.
+
+    Raises:
+        HTTPException(503): If no gate with known provenance exists. The API
+            never trains a stand-in gate on made-up data.
+    """
+    if _CACHED_LEARNED_GATE is not None and _CACHED_GATE_KEY is None:
+        return _CACHED_LEARNED_GATE  # injected directly (tests)
+    found = _load_provenanced_gate()
+    if found is None:
+        raise HTTPException(
+            status_code=503,
+            detail=(
+                "No trained gate is available. Run `python scripts/final_benchmark.py` "
+                f"to calibrate one (expected under {MODELS_DIR})."
+            ),
+        )
+    return found[0]
 
 
 class _SharedRandomGate:
@@ -188,7 +221,9 @@ def health() -> dict[str, str]:
 @app.get("/models")
 def list_models() -> dict[str, Any]:
     """Return available gate strategies, baselines, and provider status."""
-    trained_available = any(path.exists() for path in _gate_model_candidates())
+    found = _load_provenanced_gate()
+    gate_info = found[1] if found else None
+    trained_available = gate_info is not None
 
     methods = [
         {
@@ -237,6 +272,7 @@ def list_models() -> dict[str, Any]:
         "current_provider": LLM_PROVIDER,
         "default_model": GROQ_MODEL_NAME if LLM_PROVIDER == "groq" else MODEL_NAME,
         "trained_gate_available": trained_available,
+        "trained_gate": gate_info,
     }
 
 

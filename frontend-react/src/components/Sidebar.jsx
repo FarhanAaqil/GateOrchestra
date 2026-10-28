@@ -9,6 +9,7 @@ function Sidebar({
   onDelete,
   onNavigate,
   modelLabel,
+  gateInfo,
 }) {
   const navItems = [
     { id: 'chat', label: 'Orchestration Studio', icon: '⚡', badge: 'LIVE' },
@@ -120,6 +121,14 @@ function Sidebar({
           <div className="resource-row">
             <span>Model</span>
             <span className="resource-val">{modelLabel}</span>
+          </div>
+          <div className="resource-row">
+            <span>Gate</span>
+            <span className="resource-val" title={gateInfo?.path || ''}>
+              {gateInfo
+                ? `${gateInfo.classifier}${gateInfo.seed != null ? ` · seed ${gateInfo.seed}` : ''}${gateInfo.degenerate ? ' · degenerate' : ''}`
+                : 'none trained'}
+            </span>
           </div>
         </div>
       ) : null}

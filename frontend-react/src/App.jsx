@@ -33,6 +33,7 @@ function App() {
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [view, setView] = useState('chat')
   const [modelLabel, setModelLabel] = useState('')
+  const [gateInfo, setGateInfo] = useState(undefined)
   const [benchmark, setBenchmark] = useState(null)
 
   const activeConversation = conversations.find((c) => c.id === activeId)
@@ -48,7 +49,10 @@ function App() {
       .then(() => setApiOnline(true))
       .catch(() => setApiOnline(false))
     fetchModels()
-      .then((data) => setModelLabel(`${data.current_provider} / ${data.default_model}`))
+      .then((data) => {
+        setModelLabel(`${data.current_provider} / ${data.default_model}`)
+        setGateInfo(data.trained_gate ?? null)
+      })
       .catch(() => setModelLabel(''))
     fetchBenchmarkSummary()
       .then(setBenchmark)
@@ -174,6 +178,7 @@ function App() {
           onDelete={deleteConversation}
           onNavigate={(nextView) => setView(nextView)}
           modelLabel={modelLabel}
+          gateInfo={gateInfo}
         />
 
         <main className="workspace-shell">
@@ -227,6 +232,7 @@ function App() {
                 onSubmit={handleSubmit}
                 loading={loading}
                 modelLabel={modelLabel}
+                gateInfo={gateInfo}
               />
             </div>
           ) : (

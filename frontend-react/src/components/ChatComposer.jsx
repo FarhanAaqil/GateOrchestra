@@ -7,10 +7,12 @@ const PRESETS = [
   { label: 'Probability 🎲', q: 'A box contains 4 red balls, 3 blue balls, and 5 green balls. What is the probability of randomly picking a blue ball?', gt: '1/4 (or 25%)' },
 ]
 
-function ChatComposer({ onSubmit, loading, modelLabel }) {
+function ChatComposer({ onSubmit, loading, modelLabel, gateInfo }) {
   const [question, setQuestion] = useState('')
   const [selectedStrategy, setSelectedStrategy] = useState('GateOrchestra')
   const [currentGt, setCurrentGt] = useState(null)
+  // Without a trained gate the GateOrchestra option is disabled; fall back to CoT-SC.
+  const strategy = gateInfo === null && selectedStrategy === 'GateOrchestra' ? 'CoT-SC' : selectedStrategy
 
   const handlePreset = (preset) => {
     setQuestion(preset.q)
@@ -20,7 +22,7 @@ function ChatComposer({ onSubmit, loading, modelLabel }) {
   const submit = () => {
     const value = question.trim()
     if (!value || loading) return
-    onSubmit(value, selectedStrategy, null, currentGt)
+    onSubmit(value, strategy, null, currentGt)
     setQuestion('')
     setCurrentGt(null)
   }
@@ -72,11 +74,13 @@ function ChatComposer({ onSubmit, loading, modelLabel }) {
           </label>
           <select
             className="method-select-input"
-            value={selectedStrategy}
+            value={strategy}
             onChange={(e) => setSelectedStrategy(e.target.value)}
             disabled={loading}
           >
-            <option value="GateOrchestra">⚡ GateOrchestra (learned gate)</option>
+            <option value="GateOrchestra" disabled={gateInfo === null}>
+              ⚡ GateOrchestra {gateInfo === null ? '(no trained gate yet)' : '(learned gate)'}
+            </option>
             <option value="CoT-SC">💡 CoT-SC-only (Single Agent)</option>
             <option value="Always-MAS">🤝 Always-MAS (Full Orchestrator)</option>
             <option value="RuleBasedGate">📋 Rule-Based Gate</option>
