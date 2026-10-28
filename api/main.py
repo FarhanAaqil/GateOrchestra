@@ -57,6 +57,7 @@ from shared.config import (  # noqa: E402
     BEST_MODEL_PATH,
     GROQ_MODEL_NAME,
     K_DEFAULT,
+    K_VALUES,
     LLM_PROVIDER,
     MODEL_NAME,
     MODELS_DIR,
@@ -264,6 +265,8 @@ def list_models() -> dict[str, Any]:
         "default_model": GROQ_MODEL_NAME if LLM_PROVIDER == "groq" else MODEL_NAME,
         "trained_gate_available": trained_available,
         "trained_gate": gate_info,
+        "probe_token_budget": PROBE_TOKEN_BUDGET,
+        "k_values": K_VALUES,
     }
 
 

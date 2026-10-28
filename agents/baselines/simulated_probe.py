@@ -171,7 +171,7 @@ class SimulatedProbe:
         tokens = self._rng.randint(profile.token_min, profile.token_max)
 
         # --- Answer ---
-        correct = task.ground_truth or "[simulated answer]"
+        correct = task.ground_truth or "[simulated output]"
 
         # Probe gets it right if consistency >= 0.5 (majority vote)
         probe_is_correct = consistency >= 0.5
