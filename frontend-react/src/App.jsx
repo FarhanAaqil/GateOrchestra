@@ -59,7 +59,14 @@ function App() {
       .catch(() => setBenchmark(null))
   }, [])
 
-  const handleSubmit = async (question, selectedStrategy, taskContext = null, groundTruth = null, taskIdOverride = null) => {
+  const handleSubmit = async (
+    question,
+    selectedStrategy,
+    taskContext = null,
+    groundTruth = null,
+    taskIdOverride = null,
+    simulate = false,
+  ) => {
     const conversation = activeConversation || createConversation()
     if (!activeConversation) {
       setConversations((current) => [conversation, ...current])
@@ -87,6 +94,7 @@ function App() {
         ground_truth: groundTruth,
         method,
         k: 3,
+        force_simulation: simulate,
       })
 
       updateConversation(conversation.id, (current) => ({

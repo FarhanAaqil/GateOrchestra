@@ -11,6 +11,7 @@ function ChatComposer({ onSubmit, loading, modelLabel, gateInfo }) {
   const [question, setQuestion] = useState('')
   const [selectedStrategy, setSelectedStrategy] = useState('GateOrchestra')
   const [currentGt, setCurrentGt] = useState(null)
+  const [simulate, setSimulate] = useState(false)
   // Without a trained gate the GateOrchestra option is disabled; fall back to CoT-SC.
   const strategy = gateInfo === null && selectedStrategy === 'GateOrchestra' ? 'CoT-SC' : selectedStrategy
 
@@ -22,7 +23,7 @@ function ChatComposer({ onSubmit, loading, modelLabel, gateInfo }) {
   const submit = () => {
     const value = question.trim()
     if (!value || loading) return
-    onSubmit(value, strategy, null, currentGt)
+    onSubmit(value, strategy, null, currentGt, null, simulate)
     setQuestion('')
     setCurrentGt(null)
   }
@@ -88,8 +89,21 @@ function ChatComposer({ onSubmit, loading, modelLabel, gateInfo }) {
           </select>
 
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-            {modelLabel ? `Model: ${modelLabel} • ` : ''}k=3
+            {simulate ? 'Offline simulation (no LLM, ungraded) • ' : modelLabel ? `Model: ${modelLabel} • ` : ''}k=3
           </span>
+
+          <label
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--c-navy)', cursor: 'pointer' }}
+            title="Exercise the routing without calling an LLM. The simulator never sees the answer, so runs are not graded."
+          >
+            <input
+              type="checkbox"
+              checked={simulate}
+              onChange={(e) => setSimulate(e.target.checked)}
+              disabled={loading}
+            />
+            Offline simulation
+          </label>
         </div>
 
         <button
