@@ -95,7 +95,7 @@ gateorchestra/
 ├── evaluation/      # Metrics, Wilson CIs, exact McNemar test
 ├── integration/     # Pipeline wiring Probe → Gate → MAS
 ├── api/             # FastAPI backend (/run, /tasks, /models, /history, /demo/summary)
-├── frontend-react/  # React + Vite console
+├── frontend-react/  # React + TypeScript console with three.js scenes (see frontend-react/README.md)
 ├── tests/           # pytest suite (network calls blocked; see tests/conftest.py)
 ├── scripts/         # Final benchmark, verifier, dataset tools; weekN_* scripts are the simulated dev pipeline
 ├── results/         # real/final (benchmark output), simulated/ (simulation only)
@@ -126,7 +126,7 @@ The suite (542 tests, ~87% coverage over those packages) never calls a real LLM.
 # Terminal 1: FastAPI backend
 uvicorn api.main:app --host 127.0.0.1 --port 8000
 
-# Terminal 2: React console
+# Terminal 2: React console (inside Google Drive, see frontend-react/README.md for npm install)
 cd frontend-react
 npm install
 npm run dev -- --host 127.0.0.1 --port 5173
