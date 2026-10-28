@@ -16,6 +16,14 @@ export async function fetchModels() {
   return response.json()
 }
 
+export async function fetchBenchmarkSummary() {
+  const response = await fetch(`${API_BASE_URL}/demo/summary`)
+  if (!response.ok) {
+    throw new Error('Failed to load benchmark results.')
+  }
+  return response.json()
+}
+
 export async function fetchTasks(split = 'val', limit = 20, offset = 0, search = '') {
   const params = new URLSearchParams({ split, limit: String(limit), offset: String(offset) })
   if (search) {

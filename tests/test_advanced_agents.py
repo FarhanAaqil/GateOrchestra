@@ -2,7 +2,7 @@
 tests/test_advanced_agents.py
 =============================
 Unit tests for advanced research components in Person 2:
-  - Sequential Early-Exit SPRT in ProbeAgent
+  - Majority-locked early exit in ProbeAgent
   - Semantic Soft Majority Voting
   - Contextual Multi-Armed Bandit (LinUCB) Sub-Agent Router
   - Bandit reward update and strategy adaptation
@@ -39,7 +39,7 @@ class TestEarlyExitProbe:
             call_count += 1
             return "Final Answer: 12", 20
 
-        # With early_exit=True, 5 max samples should stop at 3 samples
+        # 3 agreeing samples out of 5 already form a majority, so sampling stops at 3
         agent = ProbeAgent(n_samples=5, early_exit=True, llm_caller=unanimous_caller)
         res = agent.run(sample_task)
 
@@ -69,9 +69,11 @@ class TestEarlyExitProbe:
         agent = ProbeAgent(n_samples=5, early_exit=True, llm_caller=split_caller)
         res = agent.run(sample_task)
 
-        # Because sample 2 disagreed, early exit was not triggered at sample 3
-        assert len(res.raw_outputs) == 5
-        assert call_count == 5
+        # Sample 2 disagreed, so the majority (3 of 5) is only locked after sample 4
+        assert len(res.raw_outputs) == 4
+        assert call_count == 4
+        assert res.answer == "12"
+        assert res.consistency_score == pytest.approx(0.75)
 
 
 # 2. Test Semantic Soft Majority Voting
@@ -90,6 +92,12 @@ class TestSemanticSoftVoting:
         assert "paris" in majority.lower()
         # Paris variants group together (3/5 = 0.6)
         assert score == pytest.approx(0.6)
+
+    def test_different_numbers_with_same_unit_do_not_merge(self):
+        answers = ["30 square centimeters", "60 square centimeters", "45 square centimeters"]
+        majority, score = ProbeAgent._majority_vote(answers)
+        assert majority == "30 square centimeters"
+        assert score == pytest.approx(1 / 3)
 
 
 # 3. Test LinUCB Contextual Bandit Router

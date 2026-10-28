@@ -12,17 +12,22 @@ Flow:
   6. Print a single comparison table and save metrics as JSON.
 
 Important:
-  - The existing apply_label_rule() is preserved unchanged.
-  - Real probe and real orchestrator are used by default.
-  - No simulated_mas() fallback is silently used.
-  - If the real endpoints are unavailable, the script exits with a clear blocker.
+  - Real probe and real orchestrator are used. There is no simulation fallback;
+    if the endpoints are unavailable the script exits with a clear blocker.
+  - Equal budgets: every MAS call (Always-MAS and gated escalations) is capped
+    at k x (the paired probe's tokens) for the same task, with the same k.
+  - RandomGate escalates at the selected gate's validation escalation rate, so
+    it isolates whether the learned decisions are informative.
+  - All methods share the same probe per test task (paired design), and each
+    method is compared with CoT-SC-only and Always-MAS by an exact McNemar test.
+  - If calibration finds single-class labels, the constant gate it returns is
+    reported as degenerate rather than replaced.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
-import logging
 import random
 import sys
 import time
@@ -41,6 +46,7 @@ from agents.orchestrator.orchestrator import (
     orchestrator as default_orchestrator,
 )
 from agents.probe_agent import probe_agent as default_probe_agent
+from evaluation.metrics import mcnemar_exact, wilson_confidence_interval
 from gate.classifier import GateClassifier
 from gate.feature_extractor import extract_features
 from gate.random_gate import RandomGate
@@ -63,7 +69,7 @@ from shared.config import (
     TAU_ACC,
     TAU_ACC_SWEEP,
 )
-from shared.data_loader import load_split
+from shared.data_loader import dataset_sha256, load_split
 from shared.schemas import EvalResult, GateDecision, ProbeResult, Task
 from shared.token_logger import TokenAccountant
 
@@ -77,7 +83,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 REAL_FINAL_DIR = ROOT_DIR / "results" / "real" / "final"
 REAL_FINAL_DIR.mkdir(parents=True, exist_ok=True)
 
-CHECKPOINT_VERSION = 3
+CHECKPOINT_VERSION = 4  # v4: equal k x probe-token MAS budgets
 MAX_TASK_ATTEMPTS = 3
 METHOD_ORDER = [
     "CoT-SC-only",
@@ -223,35 +229,9 @@ def _validate_eval_result(result: EvalResult, task: Task, method: str) -> EvalRe
     return result
 
 
-class _ProviderFailureHandler(logging.Handler):
-    """Capture swallowed provider failures emitted by the existing sub-agents."""
-
-    def __init__(self) -> None:
-        super().__init__(level=logging.WARNING)
-        self.messages: list[str] = []
-
-    def emit(self, record: logging.LogRecord) -> None:
-        if (
-            record.name == "agents.orchestrator.sub_agents"
-            and "LLM call error" in record.getMessage()
-        ):
-            self.messages.append(record.getMessage())
-
-
 def _checked_orchestrator(task: Task, token_budget: int) -> tuple[str, int]:
-    """Run MAS and surface provider failures swallowed by the existing agents."""
-    logger = logging.getLogger("agents.orchestrator.sub_agents")
-    handler = _ProviderFailureHandler()
-    logger.addHandler(handler)
-    try:
-        result = default_orchestrator(task, token_budget)
-    finally:
-        logger.removeHandler(handler)
-    if handler.messages:
-        raise RuntimeError(
-            f"MAS provider failure for task_id={task.task_id!r}: {handler.messages[-1]}"
-        )
-    return result
+    """Run MAS; sub-agents raise SubAgentError on provider failure, so it is retried."""
+    return default_orchestrator(task, token_budget)
 
 
 class _FixedGate:
@@ -575,8 +555,12 @@ def _summarize_results(results: list[EvalResult], baseline_avg_tokens: float | N
     stop_count = sum(
         1 for r in results if r.gate_decision is not None and r.gate_decision.decision == "STOP"
     )
+    # Always-MAS has no gate but sends every task to the MAS.
     escalate_count = sum(
-        1 for r in results if r.gate_decision is not None and r.gate_decision.decision == "ESCALATE"
+        1
+        for r in results
+        if (r.gate_decision is not None and r.gate_decision.decision == "ESCALATE")
+        or (r.method == "Always-MAS")
     )
 
     token_savings_pct = 0.0
@@ -584,9 +568,13 @@ def _summarize_results(results: list[EvalResult], baseline_avg_tokens: float | N
         token_savings_pct = (1.0 - (avg_tokens / baseline_avg_tokens)) * 100.0
 
     avg_latency_ms = sum(float(r.latency_ms or 0.0) for r in results) / n
+    ci_low, ci_high = wilson_confidence_interval(correct, n)
 
     return {
+        "n": n,
+        "n_correct": correct,
         "accuracy": correct / n,
+        "accuracy_ci95": [ci_low, ci_high],
         "total_tokens": total_tokens,
         "avg_tokens": avg_tokens,
         "token_savings_pct": token_savings_pct,
@@ -633,16 +621,50 @@ def _print_table(rows: list[dict]) -> None:
     print(f"{'=' * 130}\n")
 
 
+def _paired_tests(results_by_method: dict[str, list[EvalResult]]) -> list[dict[str, Any]]:
+    """Exact McNemar test of every method against CoT-SC-only and Always-MAS."""
+
+    def correctness(method: str) -> dict[str, bool]:
+        return {r.task_id: r.is_correct is True for r in results_by_method[method]}
+
+    tests: list[dict[str, Any]] = []
+    for reference in ("CoT-SC-only", "Always-MAS"):
+        ref = correctness(reference)
+        for method in results_by_method:
+            if method == reference:
+                continue
+            other = correctness(method)
+            task_ids = sorted(ref)
+            outcome = mcnemar_exact([other[t] for t in task_ids], [ref[t] for t in task_ids])
+            tests.append(
+                {
+                    "method": method,
+                    "reference": reference,
+                    "method_only_correct": outcome["a_only"],
+                    "reference_only_correct": outcome["b_only"],
+                    "p_value": outcome["p_value"],
+                }
+            )
+    return tests
+
+
 def _save_json(
-    results: list[dict], output_path: Path, *, seed: int, n: int | None, dry_run: bool
+    results: list[dict],
+    output_path: Path,
+    *,
+    seed: int,
+    n: int | None,
+    dry_run: bool,
+    extra: dict[str, Any] | None = None,
 ) -> None:
-    """Persist metrics as JSON under logs/results."""
+    """Persist metrics as JSON."""
     payload = {
         "seed": seed,
         "n": n,
         "dry_run": dry_run,
-        "execution_mode": "simulation" if dry_run else "real",
+        "execution_mode": "dry_run" if dry_run else "real",
         "results": results,
+        **(extra or {}),
     }
     _atomic_write_json(payload, output_path)
 
@@ -759,11 +781,11 @@ def run_evaluation(
         state=state,
         checkpoint_path=checkpoint_path,
         accountant_factory=TokenAccountant,
-        runner=lambda task, _repeat_index, accountant: run_always_mas_baseline(
+        runner=lambda task, repeat_index, accountant: run_always_mas_baseline(
             task,
             orchestrator_fn=_checked_orchestrator,
             accountant=accountant,
-            token_budget=K_DEFAULT * PROBE_TOKEN_BUDGET,
+            token_budget=K_DEFAULT * get_probe(task, "train", repeat_index).tokens_used,
         ),
     )
     train_probe_lookup = {task.task_id: get_probe(task, "train", 0) for task in train_tasks}
@@ -793,11 +815,11 @@ def run_evaluation(
         state=state,
         checkpoint_path=checkpoint_path,
         accountant_factory=TokenAccountant,
-        runner=lambda task, _repeat_index, accountant: run_always_mas_baseline(
+        runner=lambda task, repeat_index, accountant: run_always_mas_baseline(
             task,
             orchestrator_fn=_checked_orchestrator,
             accountant=accountant,
-            token_budget=K_DEFAULT * PROBE_TOKEN_BUDGET,
+            token_budget=K_DEFAULT * get_probe(task, "val", repeat_index).tokens_used,
         ),
     )
     val_probe_lookup = {task.task_id: get_probe(task, "val", 0) for task in val_tasks}
@@ -902,7 +924,7 @@ def run_evaluation(
             task,
             orchestrator_fn=_checked_orchestrator,
             accountant=test_mas_accountant,
-            token_budget=K_DEFAULT * PROBE_TOKEN_BUDGET,
+            token_budget=gate_k * get_probe(task).tokens_used,
         ),
     )
     baseline_avg_tokens = sum(r.tokens_spent for r in test_mas_results) / len(test_mas_results)
@@ -913,7 +935,9 @@ def run_evaluation(
         "Always-MAS": test_mas_results,
     }
 
-    random_gate = RandomGate(escalation_rate=0.5, seed=seed)
+    # Match RandomGate to the selected gate's validation escalation rate.
+    random_rate = float(best_metrics.get("escalation_rate", 0.0))
+    random_gate = RandomGate(escalation_rate=random_rate, seed=seed)
     rule_gate = RuleBasedGate()
     test_accountant_random = TokenAccountant()
     results_by_method["RandomGate"] = _run_checkpointed_pipeline(
@@ -925,6 +949,7 @@ def run_evaluation(
         checkpoint_path=checkpoint_path,
         get_probe=get_probe,
         accountant=test_accountant_random,
+        k=gate_k,
     )
 
     test_accountant_rule = TokenAccountant()
@@ -937,6 +962,7 @@ def run_evaluation(
         checkpoint_path=checkpoint_path,
         get_probe=get_probe,
         accountant=test_accountant_rule,
+        k=gate_k,
     )
 
     test_accountant_gate = TokenAccountant()
@@ -959,7 +985,45 @@ def run_evaluation(
     _print_table(method_results)
 
     output_path = REAL_FINAL_DIR / f"final_eval_seed_{seed}_n_{split_limit or 'all'}.json"
-    _save_json(method_results, output_path, seed=seed, n=split_limit, dry_run=False)
+    paired_tests = _paired_tests(results_by_method)
+    _save_json(
+        method_results,
+        output_path,
+        seed=seed,
+        n=split_limit,
+        dry_run=False,
+        extra={
+            "k": gate_k,
+            "dataset_sha256": dataset_sha256(),
+            "test_task_ids": [task.task_id for task in test_tasks],
+            "gate": {
+                "classifier": best_metrics.get("classifier"),
+                "tau_acc": best_metrics.get("tau_acc"),
+                "degenerate": bool(best_metrics.get("degenerate", False)),
+                "val_escalation_rate": random_rate,
+                "note": best_metrics.get("note"),
+            },
+            "paired_tests": paired_tests,
+            "per_task": {
+                method: [
+                    {
+                        "task_id": r.task_id,
+                        "is_correct": r.is_correct,
+                        "tokens_spent": r.tokens_spent,
+                        "decision": r.gate_decision.decision if r.gate_decision else None,
+                    }
+                    for r in results
+                ]
+                for method, results in results_by_method.items()
+            },
+        },
+    )
+    for test in paired_tests:
+        print(
+            f"[McNemar] {test['method']} vs {test['reference']}: "
+            f"{test['method_only_correct']} vs {test['reference_only_correct']} discordant, "
+            f"p={test['p_value']:.3f}"
+        )
     elapsed = time.perf_counter() - start_time
     print(f"[OK] Complete evaluation finished in {elapsed:.2f}s")
     print(f"[OK] Results written to {output_path}")

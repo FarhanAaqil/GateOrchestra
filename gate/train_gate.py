@@ -22,7 +22,7 @@ import logging
 from pathlib import Path
 from typing import Any
 
-from gate.classifier import GateClassifier, make_classifier
+from gate.classifier import ConstantGate, GateClassifier, make_classifier
 from shared.config import (
     BEST_MODEL_PATH,
     CLASSIFIER_NAMES,
@@ -325,31 +325,39 @@ def calibrate_gate(
                 )
 
     if not candidates:
-        pretrained_path = Path("logs/week2_best_gate.pkl")
-        if pretrained_path.exists():
-            logger.warning(
-                "[gate-training] Single-class training labels; falling back to pretrained gate "
-                f"from {pretrained_path}"
+        # Every tau produced single-class training labels: there is nothing to
+        # learn. Report the constant policy honestly, scored on real validation
+        # data, instead of substituting a gate trained on other data.
+        for tau_acc in tau_values:
+            train_labels = apply_repeated_label_rule(
+                train_repeated_cot, train_repeated_mas, n_repeats, tau_acc
             )
-            fallback_gate = GateClassifier.load(pretrained_path)
-            fallback_gate.save(save_path)
-            fallback_candidate = {
-                "classifier": "gbt_pretrained",
-                "tau_acc": 0.05,
-                "best_threshold": 0.5,
-                "best_k": 3,
-                "val_accuracy": 0.8,
-                "val_tokens": 1000.0,
-                "token_savings_pct": 50.0,
-                "train_label_counts": {"STOP": len(train_features), "ESCALATE": 0},
-                "val_label_counts": {"STOP": len(val_features), "ESCALATE": 0},
-                "note": "Pretrained fallback due to single-class training subset",
-            }
-            return fallback_gate, fallback_candidate, [fallback_candidate]
-
-        raise ValueError(
-            "Insufficient training data for gate calibration: no tau_acc "
-            "produced both STOP and ESCALATE training labels."
+            only_label = next(iter(set(train_labels.values())), "STOP")
+            gate = ConstantGate(only_label)
+            gate.train(train_features, [only_label] * len(train_features))
+            gates[("constant", tau_acc)] = gate
+            for k in k_values:
+                metrics = evaluate_validation_policy(
+                    gate, val_features, val_cot_results, val_mas_results_by_k, k
+                )
+                candidates.append(
+                    {
+                        "classifier": "constant",
+                        "tau_acc": tau_acc,
+                        "k": k,
+                        **metrics,
+                        "degenerate": True,
+                        "note": f"All training labels were {only_label}; the gate "
+                        f"always predicts {only_label}.",
+                        "train_label_counts": {
+                            "STOP": list(train_labels.values()).count("STOP"),
+                            "ESCALATE": list(train_labels.values()).count("ESCALATE"),
+                        },
+                    }
+                )
+        logger.warning(
+            "[gate-training] Single-class training labels for every tau_acc; "
+            "using a constant gate (degenerate result)."
         )
 
     selected = select_calibration_candidate(candidates, epsilon)

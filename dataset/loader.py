@@ -16,7 +16,8 @@ Usage:
     df          = load_features_df()        # pandas DataFrame (if available)
 
 Paths are resolved relative to repo root (shared/config.py DATASET_DIR).
-The loader reads from dataset/masbench_mini/{split}.jsonl files.
+The loader reads from dataset/masbench_mini/{split}/{split}.jsonl files and attaches
+the curated answer aliases from dataset/masbench_mini/answer_aliases.json.
 
 Person 1 owns this file.
 """
@@ -30,6 +31,7 @@ from pathlib import Path
 from typing import Any
 
 from shared.config import DATASET_DIR
+from shared.data_loader import attach_answer_aliases, load_answer_aliases
 from shared.schemas import Task
 
 logger = logging.getLogger(__name__)
@@ -60,10 +62,10 @@ def load_dataset(
     if split not in _VALID_SPLITS:
         raise ValueError(f"split must be one of {_VALID_SPLITS}, got {split!r}")
 
-    # Check both flat (dataset/masbench_mini/train.jsonl) and nested (dataset/masbench_mini/train/train.jsonl)
-    split_file = DATASET_DIR / f"{split}.jsonl"
+    # Canonical layout is nested (masbench_mini/train/train.jsonl); flat is accepted too.
+    split_file = DATASET_DIR / split / f"{split}.jsonl"
     if not split_file.exists():
-        split_file = DATASET_DIR / split / f"{split}.jsonl"
+        split_file = DATASET_DIR / f"{split}.jsonl"
 
     if not split_file.exists():
         raise FileNotFoundError(
@@ -180,13 +182,14 @@ def load_features_df():
 def _load_jsonl_tasks(path: Path) -> list[Task]:
     """Read a JSONL file and parse each line into a Task object."""
     tasks: list[Task] = []
+    aliases = load_answer_aliases()
     with path.open(encoding="utf-8") as f:
         for line_num, line in enumerate(f, start=1):
             line = line.strip()
             if not line:
                 continue
             try:
-                data = json.loads(line)
+                data = attach_answer_aliases(json.loads(line), aliases)
                 task = Task(**data)
                 tasks.append(task)
             except Exception as e:

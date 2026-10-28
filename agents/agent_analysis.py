@@ -21,7 +21,6 @@ from __future__ import annotations
 
 import json
 import logging
-import re
 import time
 from collections import Counter
 from collections.abc import Callable, Sequence
@@ -37,6 +36,7 @@ from agents.orchestrator.sub_agents import (
 )
 from agents.probe_agent import ProbeAgent
 from shared.config import K_DEFAULT, PROBE_TOKEN_BUDGET
+from shared.grading import is_correct as _grade
 from shared.schemas import EvalResult, Task
 from shared.token_logger import TokenAccountant
 
@@ -46,16 +46,8 @@ LLMCallerFn = Callable[[str, float, int], tuple[str, int]]
 
 
 def exact_match(predicted: str, ground_truth: str) -> bool:
-    """Normalized exact match comparison between predicted and ground truth."""
-    if not predicted or not ground_truth:
-        return False
-
-    def normalize(s: str) -> str:
-        s = s.lower().strip()
-        s = re.sub(r"[^\w\s]", "", s)
-        return " ".join(s.split())
-
-    return normalize(predicted) == normalize(ground_truth)
+    """Grade with the canonical grader (see shared/grading.py)."""
+    return _grade(predicted, ground_truth)
 
 
 @dataclass

@@ -135,24 +135,27 @@ def test_run_demo_json_export(sample_demo_tasks: list[Task]) -> None:
 
 
 def test_api_demo_summary_endpoint() -> None:
-    """Test the /demo/summary API endpoint returns complete capstone metrics."""
+    """/demo/summary reports recorded real results and their verification status.
+
+    It must never serve hardcoded or simulated numbers.
+    """
     client = TestClient(app)
     response = client.get("/demo/summary")
     assert response.status_code == 200
 
     data = response.json()
-    assert "status" in data
-    assert "research_objectives" in data
-    assert "benchmark_methods" in data
-    assert "taxonomy" in data
-    assert "top_features" in data
-
-    methods = [m["method"] for m in data["benchmark_methods"]]
-    assert "GateOrchestra" in methods
-    assert "Always-MAS" in methods
-    assert "RuleBasedGate" in methods
-    assert "CoT-SC-only" in methods
-
-    # Verify RQ values
-    rq1 = data["research_objectives"]["rq1_token_savings"]
-    assert "78.37%" in rq1["achieved"]
+    assert data["status"] in {"verified", "partial", "unverified", "no_results"}
+    assert "aggregated" in data
+    assert "research_objectives" not in data
+    for row in data["aggregated"]:
+        assert row["method"] in {
+            "CoT-SC-only",
+            "Always-MAS",
+            "RandomGate",
+            "RuleBasedGate",
+            "GateOrchestra",
+        }
+    # The simulation-derived figures must not appear anywhere in the payload.
+    payload = response.text
+    for mock_figure in ("78.37", "82.29", "67.71"):
+        assert mock_figure not in payload

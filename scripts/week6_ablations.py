@@ -1048,6 +1048,10 @@ def generate_markdown_report(
         "> **System:** GateOrchestra | **Role:** Person 3 (Architecture, Gate, Integration)",
         f"> **Generated at:** {time.strftime('%Y-%m-%d %H:%M:%S UTC', time.gmtime())}",
         "",
+        "> **SIMULATION RESULTS.** Produced with `SimulatedProbe` and a simulated MAS, whose",
+        "> outcomes are drawn from fixed rates using the ground truth. These numbers describe the",
+        "> simulator, not real LLM behaviour, and must not be cited as results.",
+        "",
         "---",
         "",
     ]

@@ -10,7 +10,7 @@ function ConversationView({ messages, loading }) {
         <h2>GateOrchestra Precision Console</h2>
         <p>
           Adaptive learned pre-execution gating and dynamic token budgeting for multi-agent LLM systems.
-          Run a reasoning query to observe real-time 8-dimensional signal extraction, GBT classification,
+          Run a reasoning query to see the probe, the 8 gate features, the routing decision,
           and token-budgeted MAS orchestration.
         </p>
       </div>

@@ -1,20 +1,23 @@
 import { useEffect, useState } from 'react'
 import { fetchTasks, fetchHistory } from '../services/api'
 
-// Canonical real empirical benchmark results from results/real/final/master_results.json
-const baselineRows = [
-  ['CoT-SC (Baseline)', '40.0%', '782.4 tokens', '24.1s', '0.0% (Single agent)'],
-  ['Always-MAS (Ceiling)', '20.0%', '788.2 tokens', '22.7s', '100% (All tasks)'],
-  ['Random Gate (Coin-Flip)', '20.0%', '1354.2 tokens', '18.2s', '60.0%'],
-  ['Rule-Based Gate', '40.0%', '935.8 tokens', '19.5s', '20.0%'],
-  ['GateOrchestra (Learned GBT)', '40.0%', '782.4 tokens', '24.1s', '0.0% (+0.74% savings vs Always-MAS)'],
-]
+const STATUS_TEXT = {
+  verified: 'Verified: full test split, all required seeds, matching dataset hash.',
+  partial: 'Smoke run: internally consistent, but not the full benchmark.',
+  unverified: 'These results fail scripts/verify_final_results.py and must not be cited.',
+  no_results: 'No real benchmark results recorded yet. Run scripts/final_benchmark.py.',
+}
 
-function Benchmarks({ onSelectTask }) {
+function formatPct(value) {
+  return value == null ? '—' : `${Number(value).toFixed(1)}%`
+}
+
+function Benchmarks({ onSelectTask, benchmark }) {
   const [tasks, setTasks] = useState([])
   const [loadingTasks, setLoadingTasks] = useState(false)
   const [selectedSplit, setSelectedSplit] = useState('val')
   const [historyRuns, setHistoryRuns] = useState([])
+  const [splitTotals, setSplitTotals] = useState({})
 
   useEffect(() => {
     let mounted = true
@@ -26,6 +29,7 @@ function Benchmarks({ onSelectTask }) {
       .then((data) => {
         if (mounted && data?.tasks) {
           setTasks(data.tasks)
+          setSplitTotals((current) => ({ ...current, [selectedSplit]: data.total }))
         }
       })
       .catch(() => {
@@ -55,34 +59,46 @@ function Benchmarks({ onSelectTask }) {
         <p className="header-kicker">Evaluation & Empirical Lab</p>
         <h2>Benchmarks</h2>
         <p>
-          Canonical empirical evaluation across MASBench-mini. All results verified through
-          real Groq LLM inference without mock or simulation contamination.
+          Recorded results from results/real/final/master_results.json, checked by
+          scripts/verify_final_results.py.
         </p>
       </div>
 
       <section className="research-section">
         <div className="section-title-row">
-          <h3>Method Comparison (Canonical Empirical Results)</h3>
-          <span className="best-indicator">Pareto-Optimal: GateOrchestra</span>
+          <h3>Method Comparison</h3>
+          <span className="best-indicator">
+            {benchmark ? benchmark.status.replace('_', ' ').toUpperCase() : 'API OFFLINE'}
+          </span>
         </div>
+        {benchmark ? (
+          <p className="muted-text" style={{ marginBottom: '8px' }}>
+            {STATUS_TEXT[benchmark.status]}
+            {benchmark.seeds?.length
+              ? ` Seeds: ${benchmark.seeds.join(', ')} • test tasks per seed: ${benchmark.n_per_split ?? 'all'}.`
+              : ''}
+          </p>
+        ) : null}
         <div className="benchmark-table">
           <div className="benchmark-row benchmark-head">
             <span>Method</span>
             <span>Accuracy</span>
             <span>Avg Tokens</span>
-            <span>Latency</span>
+            <span>Savings vs Always-MAS</span>
             <span>Escalation Rate</span>
           </div>
-          {baselineRows.map((row) => (
-            <div
-              className={`benchmark-row ${row[0].startsWith('GateOrchestra') ? 'best-row' : ''}`}
-              key={row[0]}
-            >
-              <strong>{row[0]}</strong>
-              <span>{row[1]}</span>
-              <span>{row[2]}</span>
-              <span>{row[3]}</span>
-              <span>{row[4]}</span>
+          {(benchmark?.aggregated || []).map((row) => (
+            <div className="benchmark-row" key={row.method}>
+              <strong>{row.method}</strong>
+              <span>
+                {formatPct(row.accuracy_mean)}
+                {row.accuracy_pooled_ci95
+                  ? ` [${row.accuracy_pooled_ci95[0].toFixed(0)}–${row.accuracy_pooled_ci95[1].toFixed(0)}]`
+                  : ''}
+              </span>
+              <span>{row.avg_tokens_mean?.toFixed(0) ?? '—'}</span>
+              <span>{row.token_savings_pct_mean == null ? '—' : `${row.token_savings_pct_mean.toFixed(1)}%`}</span>
+              <span>{row.escalate_rate_mean == null ? '—' : formatPct(row.escalate_rate_mean * 100)}</span>
             </div>
           ))}
         </div>
@@ -99,7 +115,7 @@ function Benchmarks({ onSelectTask }) {
                 className={`outline-button ${selectedSplit === split ? 'nav-active' : ''}`}
                 onClick={() => setSelectedSplit(split)}
               >
-                {split.toUpperCase()} ({split === 'train' ? '97' : '32'})
+                {split.toUpperCase()}{splitTotals[split] != null ? ` (${splitTotals[split]})` : ''}
               </button>
             ))}
           </div>
@@ -162,7 +178,7 @@ function Benchmarks({ onSelectTask }) {
                 <span>{run.method}</span>
                 <span>{run.tokens_spent}</span>
                 <span>{run.gate_decision?.decision || 'N/A'}</span>
-                <span>{run.is_correct === true ? '✅ Correct' : run.is_correct === false ? '❌ Miss' : 'Completed'}</span>
+                <span>{run.is_correct === true ? '✅ Correct' : run.is_correct === false ? '❌ Miss' : run.simulated ? 'Simulated (ungraded)' : 'Ungraded'}</span>
               </div>
             ))}
           </div>

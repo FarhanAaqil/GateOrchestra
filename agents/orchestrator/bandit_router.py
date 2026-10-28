@@ -16,6 +16,7 @@ from typing import Any
 
 import numpy as np
 
+from gate.feature_extractor import estimate_task_structure
 from shared.schemas import Task
 
 logger = logging.getLogger(__name__)
@@ -54,8 +55,8 @@ class LinUCBRouter:
         word_count = len(task.question.split())
         has_context = 1.0 if task.context else 0.0
         context_len = len(task.context) if task.context else 0
-        depth = float(task.depth_score) if task.depth_score is not None else 2.0
-        parallel = float(task.parallel_score) if task.parallel_score is not None else 1.0
+        # Text-only estimates: real queries carry no depth/parallel labels.
+        depth, parallel = estimate_task_structure(task)
 
         feat = np.array(
             [

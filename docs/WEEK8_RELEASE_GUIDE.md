@@ -5,6 +5,10 @@
 > **Sprint:** Week 8 Final Release & Capstone Presentation  
 > **Repository:** [FarhanAaqil/GateOrchestra](https://github.com/FarhanAaqil/GateOrchestra)
 
+> **Before presenting:** the 78.37% / 82.29% figures below come from the *simulated* pipeline
+> (`mode: mock`) and must be presented as simulation, not as results. Real-LLM status is in
+> `README.md`. `--mode mock` demos show routing only.
+
 ---
 
 ## 1. Executive Demonstration Overview
@@ -56,11 +60,11 @@ Or open the **React Dashboard** (detailed in Section 4 below).
 
 ---
 
-### Minute 3:30 – 4:30: Empirical Findings & Validation
-Summarize the 3-seed held-out test split results:
-- **RQ1 (Token Savings):** **78.37% ± 1.79%** token savings vs Always-MAS (**nearly 2x the 40% goal**).
-- **RQ2 (Accuracy Preservation):** Pipeline achieves **82.29% ± 7.86%** accuracy (up to 87.5% with GBT), outperforming Always-MAS (67.71%) by **+14.58 percentage points** because gating prevents agent overthinking.
-- **RQ3 (Pareto Dominance):** GateOrchestra dominates the Pareto frontier across all budget multipliers ($k=2$, $k=3$, $k=5$) and sample sizes ($N=3, 5, 7$).
+### Minute 3:30 – 4:30: Findings and Their Status
+Be explicit about what is measured and what is simulated:
+- **Simulation (development pipeline):** 78.37% token savings and 82.29% accuracy versus 67.71% for Always-MAS. These are properties of the simulator (whose probe samples come from the ground truth), not results.
+- **Real LLM so far:** 5 test tasks, 1 seed. All methods fall inside the same confidence interval and the learned gate never escalated.
+- **Final benchmark:** 32 test tasks × 3 seeds under equal budgets with paired McNemar tests, reported as measured, including a negative result if the gate learns to always stop.
 
 ---
 

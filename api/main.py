@@ -5,12 +5,19 @@ Connects the dashboard and external clients to the GateOrchestra pipeline.
 
 Run from the repository root:
     uvicorn api.main:app --reload --port 8000
+
+Simulation mode (``force_simulation`` or ``GATE_LLM_PROVIDER=mock``) exercises
+the routing logic without an LLM. Simulated components never see the ground
+truth, so simulated runs are returned ungraded (``is_correct = null``) and
+flagged with ``"simulated": true``.
 """
 
 from __future__ import annotations
 
+import json
 import logging
 import sys
+import threading
 from collections import deque
 from pathlib import Path
 from typing import Any
@@ -27,38 +34,40 @@ if str(ROOT) not in sys.path:
 from agents.baselines.always_mas_baseline import run_always_mas_baseline  # noqa: E402
 from agents.baselines.cot_sc_baseline import run_cot_sc_baseline  # noqa: E402
 from agents.baselines.simulated_probe import SimulatedProbe  # noqa: E402
-from agents.orchestrator.orchestrator import orchestrator  # noqa: E402
-from agents.probe_agent import probe_agent  # noqa: E402
-from gate.classifier import (  # noqa: E402
-    GateClassifier,
-    GBTGate,
-    LogRegGate,
-    MLPGate,
+from agents.orchestrator.orchestrator import (  # noqa: E402
+    get_default_mas_orchestrator,
+    orchestrator,
 )
+from agents.probe_agent import probe_agent  # noqa: E402
+from gate.classifier import GateClassifier  # noqa: E402
+from gate.feature_extractor import extract_features  # noqa: E402
 from gate.random_gate import RandomGate  # noqa: E402
 from gate.rule_based_gate import RuleBasedGate  # noqa: E402
 from integration.pipeline import run_pipeline  # noqa: E402
 from shared.config import (  # noqa: E402
     BEST_MODEL_PATH,
+    GROQ_MODEL_NAME,
     K_DEFAULT,
     LLM_PROVIDER,
-    LOGS_DIR,
     MODEL_NAME,
+    MODELS_DIR,
+    PROBE_TOKEN_BUDGET,
 )
 from shared.data_loader import load_split  # noqa: E402
-from shared.schemas import GateFeatures, Task  # noqa: E402
+from shared.schemas import ProbeResult, Task  # noqa: E402
 from shared.token_logger import TokenAccountant  # noqa: E402
 
 logger = logging.getLogger(__name__)
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+MASTER_RESULTS_PATH = ROOT / "results" / "real" / "final" / "master_results.json"
+RANDOM_GATE_ESCALATION_RATE = 0.5
+
 # Application & State
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 app = FastAPI(
     title="GateOrchestra API",
     description="API bridge for the GateOrchestra multi-agent gating pipeline",
-    version="1.1.0",
+    version="1.2.0",
 )
 
 app.add_middleware(
@@ -75,99 +84,62 @@ _HISTORY: deque[dict[str, Any]] = deque(maxlen=50)
 # Cached learned gate instance to avoid repeated disk reads
 _CACHED_LEARNED_GATE: GateClassifier | None = None
 
-
-def _make_dummy_gate_features() -> list[GateFeatures]:
-    """Generate synthetic gate features to bootstrap untrained gates."""
-    return [
-        GateFeatures(
-            task_id="dummy_1",
-            consistency_score=1.0,
-            probe_tokens=100,
-            question_word_count=10,
-            entity_count=1,
-            clause_count=1,
-            has_context=False,
-            estimated_depth=1.0,
-            estimated_parallel=1.0,
-        ),
-        GateFeatures(
-            task_id="dummy_2",
-            consistency_score=0.9,
-            probe_tokens=150,
-            question_word_count=15,
-            entity_count=2,
-            clause_count=1,
-            has_context=False,
-            estimated_depth=2.0,
-            estimated_parallel=1.0,
-        ),
-        GateFeatures(
-            task_id="dummy_3",
-            consistency_score=0.3,
-            probe_tokens=400,
-            question_word_count=30,
-            entity_count=5,
-            clause_count=4,
-            has_context=True,
-            estimated_depth=4.0,
-            estimated_parallel=3.0,
-        ),
-        GateFeatures(
-            task_id="dummy_4",
-            consistency_score=0.2,
-            probe_tokens=500,
-            question_word_count=45,
-            entity_count=6,
-            clause_count=5,
-            has_context=True,
-            estimated_depth=5.0,
-            estimated_parallel=4.0,
-        ),
-    ]
+# One RandomGate for the server's lifetime, so successive requests draw new
+# coin flips (a gate rebuilt per request with a fixed seed always draws the same).
+_RANDOM_GATE = RandomGate(escalation_rate=RANDOM_GATE_ESCALATION_RATE, seed=42)
+_RANDOM_GATE_LOCK = threading.Lock()
 
 
-def _ensure_fitted(gate: Any) -> Any:
-    """Ensure a learned gate is trained with dummy data if not already trained."""
-    is_trained = getattr(gate, "_is_trained", None)
-    if is_trained is False:
-        gate.train(_make_dummy_gate_features(), ["STOP", "STOP", "ESCALATE", "ESCALATE"])
-    return gate
-
-
-def _make_fallback_trained_gate() -> GateClassifier:
-    """Create a trained fallback GBTGate so predict() always succeeds."""
-    return _ensure_fitted(GBTGate())
+def _gate_model_candidates() -> list[Path]:
+    """Trained gates produced by real calibration runs, preferred first."""
+    seed_gates = sorted(
+        MODELS_DIR.glob("best_gate_seed_*.pkl"), key=lambda p: p.stat().st_mtime, reverse=True
+    )
+    return [BEST_MODEL_PATH, *seed_gates]
 
 
 def get_trained_gate() -> GateClassifier:
-    """Load the trained best gate from disk or fallback to a trained GBTGate."""
+    """Load the gate trained by the evaluation pipeline.
+
+    Raises:
+        HTTPException(503): If no trained gate exists. The API never trains a
+            stand-in gate on made-up data.
+    """
     global _CACHED_LEARNED_GATE
     if _CACHED_LEARNED_GATE is not None:
         return _CACHED_LEARNED_GATE
 
-    for candidate in [BEST_MODEL_PATH, LOGS_DIR / "week2_best_gate.pkl"]:
-        if candidate.exists():
-            try:
-                loaded = GateClassifier.load(candidate)
-                if getattr(loaded, "_is_trained", False):
-                    _CACHED_LEARNED_GATE = loaded
-                    logger.info(f"Loaded trained gate from {candidate}")
-                    return _CACHED_LEARNED_GATE
-                else:
-                    _CACHED_LEARNED_GATE = _ensure_fitted(loaded)
-                    return _CACHED_LEARNED_GATE
-            except Exception as err:
-                logger.warning(f"Could not load gate from {candidate}: {err}")
+    for candidate in _gate_model_candidates():
+        if not candidate.exists():
+            continue
+        try:
+            loaded = GateClassifier.load(candidate)
+        except Exception as err:
+            logger.warning(f"Could not load gate from {candidate}: {err}")
+            continue
+        if getattr(loaded, "_is_trained", False):
+            _CACHED_LEARNED_GATE = loaded
+            logger.info(f"Loaded trained gate from {candidate}")
+            return loaded
 
-    # Fallback to trained GBTGate so predict() is always valid
-    logger.info("Using fallback trained GBTGate instance")
-    _CACHED_LEARNED_GATE = _make_fallback_trained_gate()
-    return _CACHED_LEARNED_GATE
+    raise HTTPException(
+        status_code=503,
+        detail=(
+            "No trained gate is available. Run `python scripts/final_benchmark.py` "
+            f"to calibrate one (expected under {MODELS_DIR})."
+        ),
+    )
 
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+class _SharedRandomGate:
+    """Thread-safe view of the server-wide RandomGate."""
+
+    def predict(self, features: Any, k: int, probe_tokens: int) -> Any:
+        with _RANDOM_GATE_LOCK:
+            return _RANDOM_GATE.predict(features, k=k, probe_tokens=probe_tokens)
+
+
 # Request / Response Models
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 class RunRequest(BaseModel):
@@ -176,14 +148,11 @@ class RunRequest(BaseModel):
     context: str | None = Field(default=None, description="Optional context")
     ground_truth: str | None = Field(
         default=None,
-        description="Optional answer used for evaluation",
+        description="Optional answer used for evaluation (ignored in simulation mode)",
     )
     method: str = Field(
         default="GateOrchestra",
-        description=(
-            "Method or Gate: GateOrchestra, GBTGate, LogRegGate, MLPGate, "
-            "RuleBasedGate, RandomGate, Always-MAS, CoT-SC"
-        ),
+        description="Method or Gate: GateOrchestra, RuleBasedGate, RandomGate, Always-MAS, CoT-SC",
     )
     k: int = Field(
         default=K_DEFAULT,
@@ -192,13 +161,11 @@ class RunRequest(BaseModel):
     )
     force_simulation: bool = Field(
         default=False,
-        description="Force using simulated probe/orchestrator instead of live LLM",
+        description="Use the offline simulator instead of a live LLM. Results are not graded.",
     )
 
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Health & Discovery Endpoints
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @app.get("/")
@@ -221,50 +188,46 @@ def health() -> dict[str, str]:
 @app.get("/models")
 def list_models() -> dict[str, Any]:
     """Return available gate strategies, baselines, and provider status."""
-    trained_available = BEST_MODEL_PATH.exists() or (LOGS_DIR / "week2_best_gate.pkl").exists()
+    trained_available = any(path.exists() for path in _gate_model_candidates())
 
     methods = [
         {
             "id": "GateOrchestra",
-            "name": "âš¡ GateOrchestra (Trained GBT)",
+            "name": "GateOrchestra (learned gate)",
             "type": "learned_gate",
-            "description": "Trained Gradient Boosted Trees gate calibrated under token-budget constraints.",
+            "description": "Gate selected by validation calibration in the final benchmark.",
+            "available": trained_available,
         },
         {
             "id": "RuleBasedGate",
-            "name": "ðŸ“ Rule-Based Gate",
+            "name": "Rule-Based Gate",
             "type": "heuristic_gate",
             "description": "Heuristic gate using consistency score and question complexity thresholds.",
+            "available": True,
         },
         {
             "id": "RandomGate",
-            "name": "ðŸŽ² Random Gate",
+            "name": "Random Gate",
             "type": "baseline_gate",
-            "description": "Calibrated coin-flip baseline escalating at a fixed empirical rate (40%).",
-        },
-        {
-            "id": "LogRegGate",
-            "name": "ðŸ“ˆ Logistic Regression Gate",
-            "type": "learned_gate",
-            "description": "Linear classifier gate with interpretable feature weights.",
-        },
-        {
-            "id": "MLPGate",
-            "name": "ðŸ§  Multi-Layer Perceptron Gate",
-            "type": "learned_gate",
-            "description": "Neural net classifier gate modeling non-linear feature interactions.",
+            "description": (
+                f"Coin-flip baseline escalating {RANDOM_GATE_ESCALATION_RATE:.0%} of tasks. "
+                "In the benchmark its rate is matched to the learned gate's."
+            ),
+            "available": True,
         },
         {
             "id": "Always-MAS",
-            "name": "ðŸ¤ Always-MAS",
+            "name": "Always-MAS",
             "type": "full_orchestrator",
             "description": "Bypasses gating; routes every task directly to the full multi-agent system.",
+            "available": True,
         },
         {
             "id": "CoT-SC",
-            "name": "ðŸ’¡ CoT-SC Only",
+            "name": "CoT-SC Only",
             "type": "single_agent",
-            "description": "Cheap single-agent baseline using self-consistency majority voting.",
+            "description": "Single-agent baseline using self-consistency majority voting.",
+            "available": True,
         },
     ]
 
@@ -272,14 +235,12 @@ def list_models() -> dict[str, Any]:
         "methods": methods,
         "providers": ["ollama", "groq", "mock"],
         "current_provider": LLM_PROVIDER,
-        "default_model": MODEL_NAME,
+        "default_model": GROQ_MODEL_NAME if LLM_PROVIDER == "groq" else MODEL_NAME,
         "trained_gate_available": trained_available,
     }
 
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Task Exploration Endpoints
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @app.get("/tasks")
@@ -322,9 +283,7 @@ def list_tasks(
     }
 
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Execution History Endpoints
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 @app.get("/history")
@@ -343,201 +302,152 @@ def clear_history() -> dict[str, str]:
     return {"status": "cleared"}
 
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-# Capstone Benchmark Summary Endpoint
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+# Benchmark Results Endpoint
 
 
 @app.get("/demo/summary")
 def get_demo_summary() -> dict[str, Any]:
-    """Return verified aggregate capstone evaluation metrics for dashboard display."""
+    """Return the recorded real benchmark results and whether they pass verification.
+
+    Nothing here is hardcoded: the numbers come from
+    results/real/final/master_results.json, checked by
+    scripts/verify_final_results.py.
+    """
+    if not MASTER_RESULTS_PATH.exists():
+        return {
+            "status": "no_results",
+            "message": "No real benchmark results yet. Run scripts/final_benchmark.py.",
+            "aggregated": [],
+        }
+
+    from scripts.verify_final_results import verify_master_results  # noqa: PLC0415
+
+    data = json.loads(MASTER_RESULTS_PATH.read_text(encoding="utf-8"))
+    errors, partial = verify_master_results(MASTER_RESULTS_PATH, allow_partial=True)
+    if errors:
+        status = "unverified"
+    elif partial:
+        status = "partial"
+    else:
+        status = "verified"
+
     return {
-        "status": "Week 8 Capstone Release Ready",
-        "research_objectives": {
-            "rq1_token_savings": {
-                "target": ">= 40.0%",
-                "achieved": "78.37% Â± 1.79%",
-                "status": "EXCEEDED",
-            },
-            "rq2_accuracy": {
-                "target": "<= 2.0 pt accuracy difference",
-                "achieved": "+14.58 pt improvement vs Always-MAS (82.29% vs 67.71%)",
-                "status": "EXCEEDED",
-            },
-            "rq3_pareto": {
-                "target": "Pareto frontier dominance across k in {2, 3, 5}",
-                "achieved": "Dominates all baselines at every budget multiplier k",
-                "status": "VALIDATED",
-            },
-        },
-        "benchmark_methods": [
-            {
-                "method": "GateOrchestra",
-                "accuracy_pct": 82.29,
-                "token_savings_pct": 78.37,
-                "avg_tokens": 226.0,
-                "type": "Learned GBT Gate",
-            },
-            {
-                "method": "RuleBasedGate",
-                "accuracy_pct": 81.25,
-                "token_savings_pct": 66.88,
-                "avg_tokens": 345.9,
-                "type": "Heuristic Gate",
-            },
-            {
-                "method": "CoT-SC-only",
-                "accuracy_pct": 79.17,
-                "token_savings_pct": 78.20,
-                "avg_tokens": 227.9,
-                "type": "Single-Agent Baseline",
-            },
-            {
-                "method": "RandomGate",
-                "accuracy_pct": 71.88,
-                "token_savings_pct": 51.50,
-                "avg_tokens": 506.7,
-                "type": "Random Baseline (p=0.5)",
-            },
-            {
-                "method": "Always-MAS",
-                "accuracy_pct": 67.71,
-                "token_savings_pct": 0.00,
-                "avg_tokens": 1044.8,
-                "type": "Un-gated Multi-Agent System",
-            },
-        ],
-        "taxonomy": {
-            "true_stops_pct": 93.75,
-            "false_stops_pct": 6.25,
-            "false_escalates_pct": 0.0,
-            "true_escalates_pct": 0.0,
-        },
-        "top_features": [
-            {"feature": "probe_tokens", "importance": 0.4619},
-            {"feature": "estimated_depth", "importance": 0.2030},
-            {"feature": "consistency_score", "importance": 0.1033},
-            {"feature": "estimated_parallel", "importance": 0.0994},
-        ],
+        "status": status,
+        "verification_issues": errors or partial,
+        "seeds": data.get("seeds", []),
+        "n_per_split": data.get("n_per_split"),
+        "aggregated": data.get("aggregated", []),
+        "pooled_paired_tests": data.get("pooled_paired_tests", []),
     }
 
 
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 # Run Pipeline / Execution
-# â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
 
 
 def _simulated_orchestrator_call(task: Task, budget: int) -> tuple[str, int]:
-    """Fallback simulated orchestrator when live LLMs are offline or simulation requested."""
-    depth = task.depth_score or 2
-    tokens = min(budget, max(120, int(depth * 140)))
-    answer = task.ground_truth if task.ground_truth else "MAS simulated consensus answer"
-    return answer, tokens
+    """Offline stand-in for the MAS. It has no model, so it has no answer."""
+    tokens = min(budget, max(120, len(task.question.split()) * 12))
+    return "[simulated: no LLM answer]", tokens
+
+
+def _respond(data: dict[str, Any], simulated: bool) -> dict[str, Any]:
+    data["simulated"] = simulated
+    _HISTORY.appendleft(data)
+    return data
+
+
+def _live_failure(stage: str, err: Exception) -> HTTPException:
+    logger.error(f"Live {stage} failed: {type(err).__name__}: {err}")
+    return HTTPException(
+        status_code=503,
+        detail=f"Live {stage} failed: {type(err).__name__}: {err}. "
+        "Use force_simulation=true for offline demo mode.",
+    )
 
 
 @app.post("/run")
 def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
     """Run one task through the requested method / gate pipeline."""
+    use_sim = request.force_simulation or (LLM_PROVIDER == "mock")
     task = Task(
         task_id=request.task_id,
         question=request.question,
         context=request.context,
-        ground_truth=request.ground_truth,
+        # Simulated components must never see the answer; simulated runs are ungraded.
+        ground_truth=None if use_sim else request.ground_truth,
     )
 
     accountant = TokenAccountant()
-    method_name = request.method
+    method_name = request.method.strip()
 
-    # Determine probe agent and orchestrator callables (with automatic graceful simulated fallback)
-    use_sim = request.force_simulation or (LLM_PROVIDER == "mock")
     probe_fn = SimulatedProbe(seed=42).run if use_sim else probe_agent
     orch_fn = _simulated_orchestrator_call if use_sim else orchestrator
 
     # 1. Baseline: CoT-SC only
-    if method_name in ("CoT-SC", "CoT-SC-only", "ðŸ§  CoT-SC"):
+    if method_name in ("CoT-SC", "CoT-SC-only"):
         try:
             result = run_cot_sc_baseline(task, probe_fn=probe_fn, accountant=accountant)
         except Exception as err:
             if use_sim:
-                # Already in simulation mode; unexpected error
                 raise
-            logger.error(f"Live CoT-SC failed: {type(err).__name__}: {err}")
-            raise HTTPException(
-                status_code=503,
-                detail=f"Live CoT-SC failed: {type(err).__name__}. "
-                "Use force_simulation=true for offline demo mode.",
-            ) from err
-        data = result.model_dump(mode="json")
-        _HISTORY.appendleft(data)
-        return data
+            raise _live_failure("CoT-SC", err) from err
+        return _respond(result.model_dump(mode="json"), use_sim)
 
     # 2. Baseline: Always-MAS
-    if method_name in ("Always-MAS", "ðŸ¤ Always-MAS"):
+    if method_name == "Always-MAS":
         try:
-            result = run_always_mas_baseline(task, orchestrator_fn=orch_fn, accountant=accountant)
+            result = run_always_mas_baseline(
+                task,
+                orchestrator_fn=orch_fn,
+                accountant=accountant,
+                token_budget=request.k * PROBE_TOKEN_BUDGET,
+            )
         except Exception as err:
             if use_sim:
                 raise
-            logger.error(f"Live Always-MAS failed: {type(err).__name__}: {err}")
-            raise HTTPException(
-                status_code=503,
-                detail=f"Live Always-MAS failed: {type(err).__name__}. "
-                "Use force_simulation=true for offline demo mode.",
-            ) from err
-        data = result.model_dump(mode="json")
-        _HISTORY.appendleft(data)
-        return data
+            raise _live_failure("Always-MAS", err) from err
+        return _respond(result.model_dump(mode="json"), use_sim)
 
     # 3. Gating Methods
-    normalized_method = method_name
-    if "Rule" in method_name:
-        gate: Any = RuleBasedGate()
-        normalized_method = "RuleBasedGate"
-    elif "Random" in method_name:
-        gate = RandomGate(escalation_rate=0.4, seed=42)
-        normalized_method = "RandomGate"
-    elif "LogReg" in method_name:
-        gate = _ensure_fitted(LogRegGate())
-        normalized_method = "LogRegGate"
-    elif "MLP" in method_name:
-        gate = _ensure_fitted(MLPGate())
-        normalized_method = "MLPGate"
-    elif "GBT" in method_name:
-        gate = _ensure_fitted(GBTGate())
-        normalized_method = "GBTGate"
-    elif method_name in ("GateOrchestra", "âš¡ GateOrchestra", "âœ¨ Auto Gate"):
+    gate: Any
+    if method_name == "RuleBasedGate":
+        gate = RuleBasedGate()
+    elif method_name == "RandomGate":
+        gate = _SharedRandomGate()
+    elif method_name == "GateOrchestra":
         gate = get_trained_gate()
-        normalized_method = "GateOrchestra"
     else:
         raise HTTPException(
             status_code=400,
             detail=(
                 f"Unknown method '{method_name}'. Supported: "
-                "GateOrchestra, GBTGate, LogRegGate, MLPGate, RuleBasedGate, "
-                "RandomGate, Always-MAS, CoT-SC"
+                "GateOrchestra, RuleBasedGate, RandomGate, Always-MAS, CoT-SC"
             ),
         )
+
+    probes: list[ProbeResult] = []
+
+    def recording_probe(current: Task) -> ProbeResult:
+        probe = probe_fn(current)
+        probes.append(probe)
+        return probe
 
     try:
         result = run_pipeline(
             task=task,
             gate=gate,
-            probe_agent=probe_fn,
+            probe_agent=recording_probe,
             orchestrator=orch_fn,
             accountant=accountant,
             k=request.k,
-            method=normalized_method,
-            mas_orchestrator=orchestrator if not use_sim else None,
+            method=method_name,
+            mas_orchestrator=None if use_sim else get_default_mas_orchestrator(),
         )
     except Exception as err:
         if use_sim:
             raise
-        logger.error(f"Live pipeline failed: {type(err).__name__}: {err}")
-        raise HTTPException(
-            status_code=503,
-            detail=f"Live LLM pipeline failed: {type(err).__name__}. "
-            "Use force_simulation=true for offline demo mode.",
-        ) from err
+        raise _live_failure("pipeline", err) from err
     data = result.model_dump(mode="json")
-    _HISTORY.appendleft(data)
-    return data
+    # The exact features the gate saw (extraction is deterministic).
+    data["features"] = extract_features(task, probes[-1]).model_dump(mode="json")
+    return _respond(data, use_sim)

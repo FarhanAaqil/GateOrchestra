@@ -16,19 +16,41 @@ Run as script:
 
 from __future__ import annotations
 
+import hashlib
 import json
-import re
 import sys
-import unicodedata
+from collections.abc import Iterable
 from pathlib import Path
 from typing import Literal
 
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from shared.config import DATASET_DIR
+from shared.grading import is_correct
 from shared.schemas import Task
 
 SplitName = Literal["train", "val", "test"]
+
+ANSWER_ALIASES_PATH: Path = DATASET_DIR / "answer_aliases.json"
+
+
+def load_answer_aliases(path: Path = ANSWER_ALIASES_PATH) -> dict[str, tuple[str, ...]]:
+    """Load the curated acceptable-answer variants, keyed by task_id."""
+    if not path.exists():
+        return {}
+    raw = json.loads(path.read_text(encoding="utf-8"))
+    return {
+        task_id: tuple(aliases)
+        for task_id, aliases in raw.items()
+        if not task_id.startswith("_") and isinstance(aliases, list)
+    }
+
+
+def attach_answer_aliases(data: dict, aliases: dict[str, tuple[str, ...]]) -> dict:
+    """Return a task row with curated aliases added (row-level aliases take priority)."""
+    if data.get("answer_aliases") or data.get("task_id") not in aliases:
+        return data
+    return {**data, "answer_aliases": aliases[data["task_id"]]}
 
 
 def load_split(split: SplitName) -> list[Task]:
@@ -53,6 +75,7 @@ def load_split(split: SplitName) -> list[Task]:
 
     tasks: list[Task] = []
     errors: list[str] = []
+    aliases = load_answer_aliases()
 
     with path.open(encoding="utf-8") as f:
         for lineno, line in enumerate(f, start=1):
@@ -60,7 +83,7 @@ def load_split(split: SplitName) -> list[Task]:
             if not line:
                 continue
             try:
-                data = json.loads(line)
+                data = attach_answer_aliases(json.loads(line), aliases)
                 tasks.append(Task(**data))
             except Exception as e:
                 errors.append(f"  Line {lineno}: {e}")
@@ -69,6 +92,22 @@ def load_split(split: SplitName) -> list[Task]:
         raise ValueError(f"Validation errors in {path}:\n" + "\n".join(errors[:5]))
 
     return tasks
+
+
+def dataset_sha256() -> str:
+    """SHA-256 over the three split files and the alias file, in a fixed order.
+
+    Line endings are normalised so the hash is the same on every OS.
+    """
+    hasher = hashlib.sha256()
+    paths = [DATASET_DIR / split / f"{split}.jsonl" for split in ("train", "val", "test")]
+    paths.append(ANSWER_ALIASES_PATH)
+    for path in paths:
+        if not path.exists():
+            raise FileNotFoundError(f"Dataset file missing: {path}")
+        hasher.update(path.name.encode("utf-8"))
+        hasher.update(path.read_bytes().replace(b"\r\n", b"\n"))
+    return hasher.hexdigest()
 
 
 def load_all() -> dict[SplitName, list[Task]]:
@@ -98,64 +137,9 @@ def split_stats(tasks: list[Task]) -> dict:
     }
 
 
-def exact_match(predicted: str, ground_truth: str) -> bool:
-    """Match benchmark answers after conservative answer extraction.
-
-    Explicit answer markers and conclusion phrases are extracted first. A
-    response may also begin with the exact gold answer followed by an
-    explanation, but an answer appearing only in the middle of a response is
-    not accepted.
-    """
-    predicted_answer = _extract_evaluation_answer(predicted)
-    normalized_predicted = _normalize_evaluation_answer(predicted_answer)
-    normalized_ground_truth = _normalize_evaluation_answer(ground_truth)
-
-    if normalized_predicted == normalized_ground_truth:
-        return True
-
-    if not normalized_predicted.startswith(normalized_ground_truth + " "):
-        return False
-
-    remainder = normalized_predicted[len(normalized_ground_truth) :].strip()
-    return not re.match(
-        r"^(?:is|was|are|were|means|equals)?\s*(?:not|wrong|incorrect|false)\b",
-        remainder,
-    )
-
-
-def _normalize_evaluation_answer(text: str) -> str:
-    """Normalize formatting while preserving answer token boundaries."""
-    normalized = unicodedata.normalize("NFKC", text).lower().strip()
-    normalized = re.sub(r"[^\w\s]", "", normalized)
-    normalized = " ".join(normalized.split())
-    return re.sub(r"^(?:the|a|an)\s+", "", normalized)
-
-
-def _extract_evaluation_answer(text: str) -> str:
-    """Extract an explicitly stated final answer without generic substring matching."""
-    if not text or not text.strip():
-        return ""
-
-    cleaned = text.strip()
-    marker_patterns = (
-        r"(?:final\s+answer|the\s+answer\s+is|answer)\s*[:=]?\s*([^\n\r]+)",
-        r"####\s*([^\n\r]+)",
-        r"\\boxed\{([^}]+)\}",
-    )
-    for pattern in marker_patterns:
-        matches = list(re.finditer(pattern, cleaned, flags=re.IGNORECASE))
-        if matches:
-            return matches[-1].group(1).strip().strip("`*_\"'")
-
-    conclusion = re.search(
-        r"(?:therefore|thus|so),?\s+.*?\b(?:is|are|equals)\s+([^.!?\n]+)",
-        cleaned,
-        flags=re.IGNORECASE,
-    )
-    if conclusion:
-        return conclusion.group(1).strip()
-
-    return cleaned
+def exact_match(predicted: str, ground_truth: str, aliases: Iterable[str] = ()) -> bool:
+    """Grade an answer with the canonical grader (see shared/grading.py)."""
+    return is_correct(predicted, ground_truth, aliases)
 
 
 # Demo

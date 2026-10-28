@@ -129,7 +129,7 @@ def make_cot_sc_result(task: Task, probe: ProbeResult) -> EvalResult:
     """Convert a ProbeResult into a CoT-SC-only EvalResult."""
     is_correct: bool | None = None
     if task.ground_truth is not None:
-        is_correct = _exact_match(probe.answer, task.ground_truth)
+        is_correct = _exact_match(probe.answer, task.ground_truth, task.answer_aliases)
     return EvalResult(
         task_id=task.task_id,
         method="CoT-SC-only",
@@ -174,7 +174,7 @@ def run_gate_on_val(
             total_tokens = probe.tokens_used
             is_correct: bool | None = None
             if task.ground_truth is not None:
-                is_correct = _exact_match(answer, task.ground_truth)
+                is_correct = _exact_match(answer, task.ground_truth, task.answer_aliases)
             accountant.log(task.task_id, schema_method, "probe", probe.tokens_used, "N/A")
             accountant.log(task.task_id, schema_method, "mas", 0, "STOP")
         else:  # ESCALATE

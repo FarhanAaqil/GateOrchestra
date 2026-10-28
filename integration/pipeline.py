@@ -19,13 +19,16 @@ Week 10: swap mock injections for real Person 2 modules
 
 from __future__ import annotations
 
+import inspect
 import logging
+import time
 from collections.abc import Callable
 
 from gate.classifier import GateClassifier
 from gate.feature_extractor import extract_features
 from shared.config import K_DEFAULT
 from shared.data_loader import exact_match
+from shared.grading import grade_task
 from shared.schemas import EvalResult, GateDecision, ProbeResult, Task
 from shared.token_logger import TokenAccountant
 
@@ -94,12 +97,13 @@ def run_pipeline(
     # Stage 2: Feature extraction
     features = extract_features(task, probe)
 
-    # Stage 3: Gate decision
-    try:
+    # Stage 3: Gate decision. The threshold only applies to learned gates;
+    # rule-based and random gates have no threshold parameter.
+    if _accepts_threshold(gate):
         decision: GateDecision = gate.predict(
             features, k=k, probe_tokens=probe.tokens_used, threshold=threshold
         )
-    except TypeError:
+    else:
         decision = gate.predict(features, k=k, probe_tokens=probe.tokens_used)
     logger.debug(f"  Gate: decision={decision.decision} confidence={decision.confidence:.2f}")
 
@@ -107,6 +111,7 @@ def run_pipeline(
     # token_budget is initialised here so it is always in-scope for the
     # bandit update that follows the if/else block.
     token_budget = 0
+    mas_latency_ms = 0.0
     if decision.decision == "STOP":
         answer = probe.answer
         mas_tokens = 0
@@ -115,15 +120,15 @@ def run_pipeline(
 
     else:  # ESCALATE
         token_budget = decision.token_budget_cap or (k * probe.tokens_used)
+        mas_start = time.perf_counter()
         answer, mas_tokens = orchestrator(task, token_budget)
+        mas_latency_ms = (time.perf_counter() - mas_start) * 1000.0
         accountant.log(task.task_id, method, stage="mas", tokens=mas_tokens, path="ESCALATE")
         logger.debug(f"  ESCALATE → MAS answer: {answer!r} tokens={mas_tokens}")
 
     # Stage 5: Build result
     total_tokens = probe.tokens_used + mas_tokens
-    is_correct: bool | None = None
-    if task.ground_truth is not None:
-        is_correct = _exact_match(answer, task.ground_truth)
+    is_correct = grade_task(answer, task)
 
     # Stage 5b: LinUCB bandit online update
     # Only fires on ESCALATE when the caller passes a MASOrchestrator object.
@@ -172,6 +177,8 @@ def run_pipeline(
         mas_tokens=mas_tokens,
         gate_decision=decision,
         mas_strategy=mas_strategy,
+        # Probe latency is measured when the probe runs, even if its result was cached.
+        latency_ms=(probe.latency_ms or 0.0) + mas_latency_ms,
     )
 
 
@@ -225,3 +232,14 @@ def run_batch(
 
 
 _exact_match = exact_match
+
+
+def _accepts_threshold(gate: object) -> bool:
+    """Whether ``gate.predict`` takes a ``threshold`` keyword."""
+    try:
+        parameters = inspect.signature(gate.predict).parameters  # type: ignore[attr-defined]
+    except (TypeError, ValueError):
+        return False
+    return "threshold" in parameters or any(
+        p.kind is inspect.Parameter.VAR_KEYWORD for p in parameters.values()
+    )

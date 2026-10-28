@@ -4,14 +4,19 @@ agents/orchestrator/orchestrator.py
 Multi-Agent System (MAS) Orchestrator for GateOrchestra (Person 2).
 
 Satisfies OrchestratorFn = Callable[[Task, int], tuple[str, int]].
-Dynamically routes sub-tasks across the sub-agent pool (ReAct, Multi-Agent Debate, Reflexion)
-using either heuristic rule routing or an online Contextual Bandit (LinUCB) router,
-while strictly enforcing the token budget cap (`k * probe_tokens`).
+Routes each task to one sub-agent (ReAct, Multi-Agent Debate, Reflexion) using
+either a text heuristic ('auto', the default) or an online LinUCB contextual
+bandit ('bandit'). Both routers use only features computable from the task
+text; neither reads the dataset's depth/parallel labels.
+
+The token budget (`k * probe_tokens`) is enforced before each LLM call, and
+the returned token count is the true spend (see sub_agents.py).
 """
 
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Callable
 from pathlib import Path
 
@@ -21,12 +26,21 @@ from agents.orchestrator.sub_agents import (
     ReActAgent,
     ReflexionAgent,
 )
+from gate.feature_extractor import estimate_task_structure
 from shared.config import MODEL_NAME
 from shared.schemas import Task
 
 logger = logging.getLogger(__name__)
 
 LLMCallerFn = Callable[[str, float, int], tuple[str, int]]
+
+_COMPARISON_CUES = re.compile(
+    r"\b(?:compare|comparison|versus|vs)\b"  # explicit comparison
+    r"|:\s*[^?]+\bor\b[^?]+\?",  # "Which is X: A or B?"
+    flags=re.IGNORECASE,
+)
+AUTO_DEPTH_THRESHOLD = 3.0
+AUTO_PARALLEL_THRESHOLD = 2.5
 
 
 class MASOrchestrator:
@@ -115,14 +129,12 @@ class MASOrchestrator:
         if self.default_strategy in ("react", "debate", "reflexion"):
             return self.default_strategy
 
-        # Heuristic routing based on task axes and context ('auto')
-        if task.depth_score is not None and task.depth_score >= 3:
-            return "react"
-        if task.parallel_score is not None and task.parallel_score >= 2:
+        # 'auto': text-only heuristic (no dataset labels).
+        estimated_depth, estimated_parallel = estimate_task_structure(task)
+        if _COMPARISON_CUES.search(task.question) or estimated_parallel >= AUTO_PARALLEL_THRESHOLD:
             return "debate"
-        if task.context and len(task.context) > 200:
+        if task.context or estimated_depth >= AUTO_DEPTH_THRESHOLD:
             return "react"
-
         return "reflexion"
 
     def run(self, task: Task, token_budget: int) -> tuple[str, int]:
@@ -133,7 +145,12 @@ class MASOrchestrator:
         the result is evaluated.
 
         Returns:
-            tuple of (answer_string, actual_tokens_used).
+            tuple of (answer_string, actual_tokens_used). The token count is the
+            true spend and can exceed ``token_budget`` by at most one call's
+            prompt-size estimation error.
+
+        Raises:
+            SubAgentError: If an LLM call fails.
         """
         strategy = self.select_strategy(task)
         # Cache the chosen arm so the pipeline can retrieve it for the bandit update.
@@ -149,11 +166,13 @@ class MASOrchestrator:
         else:
             ans, tokens = self.reflexion_agent.run(task, token_budget)
 
-        # Emergency Fallback & Strict Budget Cap enforcement
-        safe_tokens = min(tokens, token_budget) if token_budget > 0 else tokens
+        if tokens > token_budget:
+            logger.warning(
+                f"[MASOrchestrator] task={task.task_id} spent {tokens} tokens, "
+                f"over its budget of {token_budget}"
+            )
         safe_ans = ans.strip() if ans and ans.strip() else "Unknown"
-
-        return safe_ans, safe_tokens
+        return safe_ans, tokens
 
     def update_bandit_reward(
         self, task: Task, chosen_strategy: str, is_correct: bool, tokens_spent: int, budget: int

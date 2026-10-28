@@ -12,6 +12,7 @@ import pytest
 
 from agents.probe_agent import (
     ProbeAgent,
+    ProbeError,
     build_cot_prompt,
     extract_answer,
     normalize_answer,
@@ -151,19 +152,47 @@ class TestProbeAgentExecution:
         assert result.consistency_score == 1.0
         assert result.tokens_used == 45
 
-    def test_error_handling_resilience(self):
+    def test_all_samples_failing_raises(self):
         task = Task(task_id="t_err", question="Test resilience")
 
         def failing_caller(prompt: str, temp: float, max_tok: int) -> tuple[str, int]:
             raise RuntimeError("Network timeout")
 
         agent = ProbeAgent(n_samples=3, llm_caller=failing_caller)
-        result = agent.run(task)
+        with pytest.raises(ProbeError, match="Network timeout"):
+            agent.run(task)
 
-        assert isinstance(result, ProbeResult)
-        assert len(result.raw_outputs) == 3
-        # Ensure schema validates non-empty strings
-        assert all(len(s) > 0 for s in result.raw_outputs)
+    def test_failed_samples_lower_consistency_instead_of_voting(self):
+        task = Task(task_id="t_partial", question="What is 2 + 2?")
+        outcomes: list[tuple[str, int] | Exception] = [
+            ("Final Answer: 4", 30),
+            RuntimeError("timeout"),
+            RuntimeError("timeout"),
+        ]
+
+        def flaky_caller(prompt: str, temp: float, max_tok: int) -> tuple[str, int]:
+            outcome = outcomes.pop(0)
+            if isinstance(outcome, Exception):
+                raise outcome
+            return outcome
+
+        result = ProbeAgent(n_samples=3, llm_caller=flaky_caller).run(task)
+
+        assert result.answer == "4"
+        assert result.consistency_score == pytest.approx(1 / 3)
+        assert result.tokens_used == 30
+        assert sum(output.startswith("Error:") for output in result.raw_outputs) == 2
+
+    def test_token_budget_is_split_across_samples(self):
+        task = Task(task_id="t_budget", question="What is 2 + 2?")
+        budgets: list[int] = []
+
+        def recording_caller(prompt: str, temp: float, max_tok: int) -> tuple[str, int]:
+            budgets.append(max_tok)
+            return "Final Answer: 4", 10
+
+        ProbeAgent(n_samples=3, token_budget=900, llm_caller=recording_caller).run(task)
+        assert budgets == [300, 300, 300]
 
     def test_invalid_parameters_raise(self):
         with pytest.raises(ValueError, match="n_samples must be ≥ 1"):

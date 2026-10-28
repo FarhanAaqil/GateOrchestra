@@ -16,7 +16,7 @@ from collections.abc import Callable
 
 from agents.orchestrator.orchestrator import orchestrator as default_orchestrator
 from shared.config import K_DEFAULT, PROBE_TOKEN_BUDGET
-from shared.data_loader import exact_match as _exact_match
+from shared.grading import grade_task
 from shared.schemas import EvalResult, Task
 from shared.token_logger import TokenAccountant
 
@@ -59,9 +59,7 @@ def run_always_mas_baseline(
 
     latency_ms = (time.perf_counter() - start_time) * 1000.0
 
-    is_correct: bool | None = None
-    if task.ground_truth is not None:
-        is_correct = _exact_match(answer, task.ground_truth)
+    is_correct = grade_task(answer, task)
 
     return EvalResult(
         task_id=task.task_id,

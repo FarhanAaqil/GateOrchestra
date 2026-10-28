@@ -3,11 +3,11 @@ import { useState } from 'react'
 const PRESETS = [
   { label: 'Arithmetic ⚡', q: 'Convert 72 kilometers per hour to meters per second.', gt: '20 m/s' },
   { label: 'Multi-Hop Bridge 🌉', q: 'What is the capital of the country where Marie Curie was born?', gt: 'Warsaw' },
-  { label: 'Hard Multi-Hop 🧠', q: 'What is the official name of the country whose highest mountain shares its name with the person who surveyed it?', gt: 'Republic of India' },
+  { label: 'Hard Multi-Hop 🧠', q: "The world's highest mountain is named after a former Surveyor General of India. On the border of which two countries does it lie?", gt: 'Nepal and China' },
   { label: 'Probability 🎲', q: 'A box contains 4 red balls, 3 blue balls, and 5 green balls. What is the probability of randomly picking a blue ball?', gt: '1/4 (or 25%)' },
 ]
 
-function ChatComposer({ onSubmit, loading }) {
+function ChatComposer({ onSubmit, loading, modelLabel }) {
   const [question, setQuestion] = useState('')
   const [selectedStrategy, setSelectedStrategy] = useState('GateOrchestra')
   const [currentGt, setCurrentGt] = useState(null)
@@ -76,7 +76,7 @@ function ChatComposer({ onSubmit, loading }) {
             onChange={(e) => setSelectedStrategy(e.target.value)}
             disabled={loading}
           >
-            <option value="GateOrchestra">⚡ GateOrchestra (Trained GBT)</option>
+            <option value="GateOrchestra">⚡ GateOrchestra (learned gate)</option>
             <option value="CoT-SC">💡 CoT-SC-only (Single Agent)</option>
             <option value="Always-MAS">🤝 Always-MAS (Full Orchestrator)</option>
             <option value="RuleBasedGate">📋 Rule-Based Gate</option>
@@ -84,7 +84,7 @@ function ChatComposer({ onSubmit, loading }) {
           </select>
 
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-            Model: Groq / qwen3.8-27b • k=3
+            {modelLabel ? `Model: ${modelLabel} • ` : ''}k=3
           </span>
         </div>
 

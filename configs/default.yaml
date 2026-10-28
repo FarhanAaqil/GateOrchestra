@@ -1,14 +1,17 @@
 # GateOrchestra — Default Configuration
-# All values here mirror shared/config.py constants.
-# YAML is used so non-Python tools (notebooks, scripts) can load config easily.
+# A read-only mirror of shared/config.py for non-Python tools (notebooks, reports).
+# shared/config.py is the source of truth; tests/test_config_consistency.py
+# fails if the two disagree.
 
 model:
-  name: "Qwen2.5-7B-Instruct"
-  api_base: "http://localhost:11434"   # Ollama local; override via GATE_API_BASE env var
+  provider: "ollama"                 # GATE_LLM_PROVIDER: ollama | groq | mock
+  name: "qwen2.5:7b-instruct"        # GATE_MODEL_NAME (Ollama tag)
+  api_base: "http://localhost:11434" # GATE_API_BASE
+  groq_name: "qwen/qwen3.8-27b"      # GROQ_MODEL_NAME (used when provider is groq)
 
 probe:
-  token_budget: 500      # Max tokens per probe run
-  n_samples: 5           # Number of CoT-SC samples
+  token_budget: 1000     # Completion tokens for the whole probe, split across samples
+  n_samples: 3           # Number of CoT-SC samples
   temperature: 0.7       # Sampling temperature
 
 gate:

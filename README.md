@@ -12,57 +12,51 @@ GateOrchestra places a lightweight, trainable **gate** in front of a Multi-Agent
 - **STOP** → return the inexpensive CoT-SC probe answer (single agent), or
 - **ESCALATE** → invoke the full MAS orchestrator, capped at `k × probe_tokens`.
 
-**Research Goal:** ≥40% token savings vs. Always-MAS while preserving accuracy on complex reasoning tasks.
+**Research Goal:** ≥40% token savings vs. Always-MAS at ≤2 points accuracy cost, measured under equal token budgets (see the [Blueprint](Blueprint) hypotheses H1/RQ1–RQ3).
 
 ---
 
-## Precision Console & Live Demos
+## Results Status
 
-GateOrchestra includes a full-stack **Precision Console** built with React + Vite and FastAPI, implementing an exact **10-Color Visual Design System** created in collaboration with Stitch MCP:
+> **There is no verified real-LLM result yet.** Treat any other figure you find in older reports as simulation.
 
-- **Ice (`#F1FAFF` — 35%):** Primary page background and main surfaces
-- **Soft White (`#F7F7F7` — 20%):** Secondary background and card canvas
-- **Sky Blue (`#A8DBFE` — 15%):** Border highlights, badges, and card accents
-- **Deep Navy (`#1B263B` — 10%):** Sidebar, command cards, and structural framing
-- **Ink (`#1B1B1F` — 7%):** High-contrast typography and icon accents
-- **Ember (`#FF6B35` — 5%):** Primary action buttons, active tabs, and escalation metrics
-- **Tangerine (`#FF8C42` — 3%):** Secondary CTAs and notification badges
-- **Electric Cyan (`#00E5FF` — 2%):** Live telemetry indicators and real-time execution glows
-- **Wine (`#881538` — 2%):** Header accents, STOP badges, and premium pill tags
-- **Lemon (`#FFF66B` — 1%):** High-priority focus highlights and token savings tags
+| Evidence | What it shows |
+| :--- | :--- |
+| **Simulation** (`results/simulated/`, `mode: mock`) | Not evidence. The simulator builds probe samples from the ground truth and models Always-MAS as always correct. Figures such as "78.37% savings / 82.29% accuracy" come from here. |
+| **Real-LLM smoke run** (`results/real/final/master_results.json`, Groq `qwen/qwen3.8-27b`, **5 test tasks, 1 seed**) | No method is distinguishable: every 95% Wilson interval spans about 12–77%, so "40% vs 20%" is a difference of one task. The learned gate stopped on 100% of tasks, so its row is identical to CoT-SC-only. It was recorded before the measurement fixes below and **fails** `scripts/verify_final_results.py`. |
+| **Final benchmark** (32 test tasks × seeds 42, 123, 999) | **Not run yet.** Run `python scripts/final_benchmark.py`, then `python scripts/verify_final_results.py`. |
 
-### 1. Orchestration Studio (Live Console Overview)
-The primary execution console providing real-time telemetry, model status, decision latency, and interactive prompt testing.
+Smoke-run numbers, kept for transparency only:
 
-![Orchestration Studio](docs/screenshots/console_overview.png)
+| Method | Accuracy | Wilson 95% CI | Avg Tokens / Task | STOP Rate |
+| :--- | :--- | :--- | :--- | :--- |
+| CoT-SC-only | 40.0% (2/5) | [11.8%, 76.9%] | 782.4 | — |
+| Always-MAS | 20.0% (1/5) | [3.6%, 62.4%] | 788.2 | — |
+| RandomGate | 20.0% (1/5) | [3.6%, 62.4%] | 1,354.2 | 40.0% |
+| RuleBasedGate | 40.0% (2/5) | [11.8%, 76.9%] | 935.8 | 80.0% |
+| GateOrchestra | 40.0% (2/5) | [11.8%, 76.9%] | 782.4 | 100.0% |
 
----
+Two things to know before reading any future result:
+- **The savings premise needs MAS to be much more expensive than the probe.** In the smoke run, Always-MAS (788 tokens) cost about the same as the probe (782), so no gate could save much.
+- **"The gate learned to always stop" is a legitimate, reportable negative result.** Calibration reports a degenerate constant gate rather than substituting another one.
 
-### 2. Execution Details & 8-Feature Signal Breakdown
-Deep-dive inspection panel displaying the 8 pre-execution feature vectors, confidence intervals, lifecycle traces, and token accounting savings.
+### Fixes made before the final benchmark
 
-![Execution Details](docs/screenshots/execution_details.png)
-
----
-
-### 3. Empirical Benchmarks & Pareto Evaluation
-Live benchmark matrix comparing GateOrchestra against CoT-SC, Always-MAS, RandomGate, and RuleBasedGate across `val`, `train`, and `test` splits.
-
-![Empirical Benchmarks](docs/screenshots/benchmarks_matrix.png)
-
----
-
-### 4. Swarm Health & LinUCB Bandit Allocation
-Multi-agent strategy distribution tracking selection percentages, UCB exploration bonuses, and reward trajectories for ReAct, Debate, and Reflexion sub-agents.
-
-![Swarm Health](docs/screenshots/swarm_telemetry.png)
-
----
-
-### 5. Budget Policies & Multiplier Sweep
-Interactive configuration and monitoring for token budget caps ($k \in \{0, 2, 3, 5\}$) and hard-cap enforcement telemetry.
-
-![Budget Policies](docs/screenshots/budget_policies.png)
+| Area | Before | Now |
+| :--- | :--- | :--- |
+| Token accounting | Spend clipped with `min(tokens, budget)`, hiding prompt tokens | True provider totals recorded; budget enforced *before* each call |
+| Failed LLM calls | Sub-agents returned a fake answer with 0 tokens; failed probe samples voted with consistency 1.0 | `SubAgentError` / `ProbeError` are raised; failed samples lower consistency |
+| Majority vote | Jaccard ≥ 0.5 merged "30 / 60 / 45 square centimeters" | Uses the grader's equivalence (numbers compared by value) |
+| Grading | Two graders; "$500" correct for "$5.00", "15" correct for "5" | One grader (`shared/grading.py`) with numeric/unit handling and curated aliases |
+| Dataset | 14 tasks wrong, stale or unanswerable (e.g. the U.S. Capitol dome is not gold) | Corrected by `scripts/apply_dataset_corrections.py`; 82 tasks have answer aliases |
+| MAS prompts | Debate/Reflexion dropped the context and previous draft after round 1 | Context and previous draft carried through every step |
+| Routing | "auto" router read dataset depth/parallel labels | Text-only heuristic (LinUCB optional), no labels |
+| Budgets | Always-MAS capped at 1,500; escalations at k × probe tokens | Every MAS call capped at k × the paired probe's tokens |
+| RandomGate | Fixed 50%; the API rebuilt it per request, so it always stopped | Matched to the learned gate's validation escalation rate; one persistent gate in the API |
+| Gate training | Single-class labels → loaded a gate trained on *simulated* data and reported hardcoded metrics | Degenerate constant gate, scored on real validation data and flagged |
+| Verifier | Hashed no files; seed and "no mock" checks missing | Checks seeds, dataset SHA-256, per-task records, mock markers, and recomputes aggregates |
+| Statistics | Accuracy only | Wilson CIs per method, exact McNemar tests vs CoT-SC-only and Always-MAS |
+| API / UI | Mock numbers served as verified; simulator returned the ground truth; dummy-trained gates; fabricated telemetry | Results read from disk with verification status; simulation never sees the answer and is ungraded; UI shows only returned values |
 
 ---
 
@@ -72,19 +66,21 @@ Interactive configuration and monitoring for token budget caps ($k \in \{0, 2, 3
 Task
  │
  ▼
-[Probe Agent]  ──── CoT-SC (N samples) ────► ProbeResult
+[Probe Agent]  ──── CoT-SC (3 samples) ────► ProbeResult
  │                                          (consistency_score, tokens_used)
  ▼
-[Feature Extractor]  ────► GateFeatures
- │                        (entity_count, clause_count, consistency, ...)
- ▼
-[Gate Classifier]  ────► GateDecision (STOP | ESCALATE)
+[Feature Extractor]  ────► GateFeatures (8 features, question + context)
  │
- ├── STOP     ────► return probe answer         ──┐
- │                                                ├──► EvalResult ───► TokenLog
- └── ESCALATE ────► [MAS Orchestrator]           ──┘
-                   (budget = k × probe_tokens)
+ ▼
+[Gate]  ────► GateDecision (STOP | ESCALATE)
+ │
+ ├── STOP     ────► return probe answer                       ──┐
+ │                                                             ├──► EvalResult ───► TokenAccountant
+ └── ESCALATE ────► [MAS Orchestrator: ReAct | Debate | Reflexion] ──┘
+                   (budget = k × probe_tokens, true spend recorded)
 ```
+
+The gate is one of: the calibrated learned gate (logistic regression, GBT or MLP, selected on validation over τ_acc ∈ {0.03, 0.05, 0.08} and k ∈ {2, 3, 5}), the rule-based gate, or the random gate. Escalated tasks are routed by a text-only heuristic (comparisons → Debate, context or deep tasks → ReAct, otherwise Reflexion); a LinUCB bandit router is available with `MASOrchestrator(default_strategy="bandit")` but is not used in the benchmark.
 
 ---
 
@@ -92,21 +88,18 @@ Task
 
 ```text
 gateorchestra/
-├── shared/          # Contract layer (schemas, config, token logging)
-│   ├── schemas.py   # Pydantic models: Task, ProbeResult, GateFeatures, GateDecision, EvalResult
-│   ├── config.py    # All hyperparameters — single source of truth
-│   └── token_logger.py  # Thread-safe token accounting
-│
-├── dataset/         # MASBench-Mini repository, cleaning, validation, and leakage auditor
-├── agents/          # Probe agent, sub-agents (ReAct, Debate, Reflexion), Groq/Ollama providers
-├── gate/            # Classifier (LogReg, GBT, MLP), rule-based gate, random gate, feature extraction
-├── evaluation/      # Canonical correctness evaluator (NFKC normalization, Wilson 95% CIs)
-├── integration/     # Pipeline orchestrator wiring Probe → Gate → MAS
-├── frontend-react/  # 10-Color Precision Console (React, Vite, Lucide)
-├── api/             # FastAPI backend server (/solve, /health, /evaluate)
-├── tests/           # 498 unit and integration tests (87%+ test coverage)
-├── scripts/         # Canonical benchmarks, demo runners, dataset tools
-└── configs/         # YAML configurations (token budgets, seeds, model paths)
+├── shared/          # Contract layer: schemas, config, grading, token accounting, data loading
+├── dataset/         # MASBench-mini (161 tasks: 97/32/32), aliases, cleaning, validation, leakage audit
+├── agents/          # Probe agent, sub-agents (ReAct, Debate, Reflexion), orchestrator, Groq/Ollama providers
+├── gate/            # Classifiers (LogReg, GBT, MLP, Constant), rule-based gate, random gate, features
+├── evaluation/      # Metrics, Wilson CIs, exact McNemar test
+├── integration/     # Pipeline wiring Probe → Gate → MAS
+├── api/             # FastAPI backend (/run, /tasks, /models, /history, /demo/summary)
+├── frontend-react/  # React + Vite console
+├── tests/           # pytest suite (network calls blocked; see tests/conftest.py)
+├── scripts/         # Final benchmark, verifier, dataset tools; weekN_* scripts are the simulated dev pipeline
+├── results/         # real/final (benchmark output), simulated/ (simulation only)
+└── configs/         # default.yaml (mirror of shared/config.py) and trained gates (configs/models/)
 ```
 
 ---
@@ -118,79 +111,66 @@ gateorchestra/
 git clone https://github.com/FarhanAaqil/GateOrchestra.git
 cd GateOrchestra
 pip install -e ".[dev]"
+python -m spacy download en_core_web_sm
 ```
 
-### 2. Run Test Suite (498 Tests, >80% Coverage)
+### 2. Tests and checks
 ```bash
-pytest --cov --cov-fail-under=80
+pytest --cov=shared --cov=gate --cov=integration --cov=agents --cov=evaluation --cov=api --cov=dataset --cov-fail-under=80
+ruff check . && black --check . && mypy shared/ gate/ integration/
 ```
+The suite (542 tests, ~87% coverage over those packages) never calls a real LLM.
 
-### 3. Launch Web Application (Backend API + Precision Console)
+### 3. Web application
 ```bash
-# Terminal 1: FastAPI Backend
+# Terminal 1: FastAPI backend
 uvicorn api.main:app --host 127.0.0.1 --port 8000
 
-# Terminal 2: Vite React Frontend
+# Terminal 2: React console
 cd frontend-react
 npm install
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173) in your browser.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173). `GateOrchestra` needs a trained gate in `configs/models/` (written by the final benchmark); without one the API returns HTTP 503. Simulated runs (`force_simulation: true`) show routing only and are returned ungraded.
 
-### 4. Canonical CLI Demonstration Runner
+---
+
+## Final Benchmark
+
 ```bash
-# Live mode querying Groq with real-time token accounting
-python scripts/demo.py --mode live --scenario easy
-python scripts/demo.py --mode live --scenario hard
-python scripts/demo.py --mode live --scenario recovery
+# 1. Full benchmark: 32 test tasks × seeds 42, 123, 999 (real LLM calls; long-running, resumable)
+python scripts/final_benchmark.py            # add --resume to continue after an interruption
+python scripts/final_benchmark.py --n 5      # smoke test on a subset
 
-# Fail-safe deterministic offline simulation mode
-python scripts/demo.py --mode simulation
+# 2. Verify integrity (dataset hash, seeds, per-task records, no mock data)
+python scripts/verify_final_results.py       # --allow-partial accepts a smoke run as PARTIAL
+
+# 3. Audit dataset leakage
+python scripts/audit_leakage.py
 ```
+Each seed writes `results/real/final/final_eval_seed_<seed>_n_all.json` with per-method accuracy and Wilson CIs, per-task outcomes, the selected gate (flagged if degenerate), and McNemar tests; `master_results.json` aggregates them.
 
 ---
 
-## Empirical Benchmark Results (Real LLM Inference)
+## Hyperparameters
 
-Canonical empirical evaluation executed against live Groq LLM inference on the held-out `masbench_mini` test partition (`n=5`, seed 42) and recorded in `results/real/final/master_results.json`:
-
-| Method | Type | Accuracy (%) | Token Savings vs Always-MAS | Avg Tokens / Task | STOP Rate (%) |
-| :--- | :--- | :--- | :--- | :--- | :--- |
-| **GateOrchestra** | **Learned GBT Gate** | **40.0%** | **+0.74%** | **782.4** | **100.0%** |
-| CoT-SC-only | Single-Agent Baseline | 40.0% | +0.74% | 782.4 | 100.0% |
-| RuleBasedGate | Heuristic Gate | 40.0% | -18.73% | 935.8 | 80.0% |
-| Always-MAS | Full Multi-Agent System | 20.0% | 0.00% | 788.2 | 0.0% |
-| RandomGate | Random Baseline ($p=0.5$) | 20.0% | -71.81% | 1,354.2 | 40.0% |
-
-- **Empirical Pareto Efficiency:** GateOrchestra achieves the highest accuracy (40.0%) at the lowest token footprint (782.4 tokens/task), outperforming un-gated MAS (20.0% accuracy, 788.2 tokens/task) by avoiding multi-agent error cascade.
-- **Statistical Grounding:** All metrics are verified using `scripts/verify_final_results.py` and calculated with exact token accounting logs.
-
----
-
-## Hyperparameter Configuration
-
-All parameters are configured in `shared/config.py` and `configs/default.yaml`:
+All parameters live in `shared/config.py`; `configs/default.yaml` mirrors them and a test fails if they drift.
 
 | Parameter | Value | Description |
 | :--- | :--- | :--- |
-| `TAU_ACC` | 0.05 | Accuracy improvement threshold for ESCALATE labeling |
-| `K` | 3 | MAS token budget multiplier ($k \times \text{probe\_tokens}$) |
-| `PROBE_TOKEN_BUDGET` | 500 | Maximum tokens allocated per CoT-SC probe sample |
-| `COT_SC_N_SAMPLES` | 3 | Number of self-consistency reasoning paths sampled |
-| `GATE_MODEL` | GBT | Primary gating classifier (Gradient Boosted Trees) |
+| `TAU_ACC` | 0.05 (swept 0.03 / 0.05 / 0.08) | Accuracy gap over repeats needed to label a task ESCALATE |
+| `K_DEFAULT` | 3 (swept 2 / 3 / 5) | MAS budget = k × the task's probe tokens |
+| `PROBE_TOKEN_BUDGET` | 1000 | Completion tokens for the whole probe, split across samples (333 each) |
+| `COT_SC_N_SAMPLES` | 3 | Self-consistency samples per probe |
+| `N_REPEATS` | 3 | Repeated train/val runs per task for label stability |
 
 ---
 
 ## LLM Provider Setup
 
-### Cloud Groq API (Default)
-```powershell
-$env:GROQ_API_KEY = "gsk_your_groq_api_key_here"
-$env:GATE_LLM_PROVIDER = "groq"
-$env:GROQ_MODEL_NAME = "qwen/qwen3.8-27b"
-```
+`shared/config.py` defaults to local Ollama; `.env.example` shows a Groq setup.
 
-### Local Ollama
+### Local Ollama (default)
 ```bash
 ollama serve
 ollama pull qwen2.5:7b-instruct
@@ -199,17 +179,9 @@ export GATE_MODEL_NAME=qwen2.5:7b-instruct
 export GATE_API_BASE=http://localhost:11434
 ```
 
----
-
-## Canonical Audit & Verification Commands
-
-```bash
-# 1. Run final empirical benchmark
-python scripts/final_benchmark.py --n 5
-
-# 2. Verify result integrity and dataset hash
-python scripts/verify_final_results.py
-
-# 3. Audit dataset leakage
-python scripts/audit_leakage.py
+### Groq cloud
+```powershell
+$env:GROQ_API_KEY = "gsk_your_groq_api_key_here"
+$env:GATE_LLM_PROVIDER = "groq"
+$env:GROQ_MODEL_NAME = "qwen/qwen3.8-27b"
 ```

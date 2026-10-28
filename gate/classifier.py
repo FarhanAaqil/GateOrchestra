@@ -22,11 +22,13 @@ from pathlib import Path
 from typing import Literal, cast
 
 import numpy as np
+import sklearn
 from sklearn.ensemble import GradientBoostingClassifier
 from sklearn.linear_model import LogisticRegression
 from sklearn.neural_network import MLPClassifier
 from sklearn.preprocessing import StandardScaler
 
+from gate.feature_extractor import feature_backend
 from shared.schemas import GateDecision, GateFeatures
 
 logger = logging.getLogger(__name__)
@@ -105,19 +107,42 @@ class GateClassifier(ABC):
         ...
 
     def save(self, path: str | Path) -> None:
-        """Serialize the classifier to disk."""
+        """Serialize the classifier to disk, recording how it was built.
+
+        The pickle records the feature backend (spaCy or regex) and the
+        scikit-learn version, which :meth:`load` checks against the current
+        environment.
+        """
+        self.build_info = {
+            "feature_backend": feature_backend(),
+            "sklearn_version": sklearn.__version__,
+        }
         target_path = Path(path)
         target_path.parent.mkdir(parents=True, exist_ok=True)
         with target_path.open("wb") as f:
             pickle.dump(self, f)
-        logger.info(f"Saved {self.name} to {path}")
+        logger.info(f"Saved {self.name} to {path} ({self.build_info})")
 
     @classmethod
     def load(cls, path: str | Path) -> GateClassifier:
-        """Deserialize a classifier from disk."""
+        """Deserialize a classifier and warn if it was built in a different environment."""
         target_path = Path(path)
         with target_path.open("rb") as f:
             obj = pickle.load(f)
+        build_info = getattr(obj, "build_info", None)
+        if build_info is None:
+            logger.warning(
+                f"Gate at {path} has no build info; its feature backend and "
+                "scikit-learn version are unknown."
+            )
+        else:
+            current = {"feature_backend": feature_backend(), "sklearn_version": sklearn.__version__}
+            for key, value in current.items():
+                if build_info.get(key) != value:
+                    logger.warning(
+                        f"Gate at {path} was built with {key}={build_info.get(key)!r} "
+                        f"but this environment has {value!r}; predictions may differ."
+                    )
         logger.info(f"Loaded gate classifier from {path}")
         return cast(GateClassifier, obj)
 
@@ -305,6 +330,39 @@ class MLPGate(GateClassifier):
         proba = self._model.predict_proba(x_scaled)[0]
         confidence = float(proba[int_pred])
         return self._make_decision(features.task_id, label, confidence, k, probe_tokens)
+
+
+class ConstantGate(GateClassifier):
+    """Always predicts one label.
+
+    Produced by calibration when every training label is the same class, so
+    there is nothing to learn. Reporting this gate (rather than substituting a
+    gate trained elsewhere) keeps a "the gate always stops" result visible.
+    """
+
+    def __init__(self, label: str = "STOP") -> None:
+        super().__init__("ConstantGate")
+        if label not in ("STOP", "ESCALATE"):
+            raise ValueError(f"label must be 'STOP' or 'ESCALATE', got {label!r}")
+        self.label = label
+
+    def train(self, features: list[GateFeatures], labels: list[str]) -> None:
+        unique = set(labels)
+        if len(unique) != 1:
+            raise ValueError(f"ConstantGate needs single-class labels, got {sorted(unique)}")
+        self.label = unique.pop()
+        self._is_trained = True
+
+    def predict(
+        self,
+        features: GateFeatures,
+        k: int,
+        probe_tokens: int,
+        threshold: float | None = None,
+    ) -> GateDecision:
+        if not self._is_trained:
+            raise RuntimeError("Call train() before predict()")
+        return self._make_decision(features.task_id, self.label, 1.0, k, probe_tokens)
 
 
 # Factory

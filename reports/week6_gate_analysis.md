@@ -3,6 +3,10 @@
 > **System:** GateOrchestra | **Role:** Person 3 (Architecture, Gate, Integration)
 > **Generated at:** 2026-09-22 15:58:10 UTC
 
+> **SIMULATION RESULTS.** Produced with `SimulatedProbe` and a simulated MAS, whose
+> outcomes are drawn from fixed rates using the ground truth. These numbers describe the
+> simulator, not real LLM behaviour, and must not be cited as results.
+
 ---
 
 ## 1. Gate Failure Taxonomy & Diagnostic Analysis

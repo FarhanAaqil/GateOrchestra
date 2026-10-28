@@ -47,6 +47,30 @@ def _get_nlp():
 # Public API
 
 
+def feature_backend(use_spacy: bool | None = None) -> str:
+    """Return which extractor backs entity/clause counts: 'spacy' or 'regex'.
+
+    Gates record this at training time so a model trained on one backend is
+    never silently served features from the other.
+    """
+    _use_spacy = USE_SPACY if use_spacy is None else use_spacy
+    if _use_spacy and _get_nlp() is not None:
+        return "spacy"
+    return "regex"
+
+
+def estimate_task_structure(task: Task) -> tuple[float, float]:
+    """Label-free (estimated_depth, estimated_parallel) from the task text alone.
+
+    Uses only the regex extractor so it is deterministic and dependency-free.
+    Used by the MAS router, which must not read dataset depth/parallel labels.
+    """
+    full_text = f"{task.question} {task.context or ''}".strip()
+    entity_count, clause_count = _regex_features(full_text)
+    depth = _estimate_depth(entity_count, clause_count, len(task.question.split()))
+    return depth, _estimate_parallel(task.question)
+
+
 def extract_features(
     task: Task,
     probe: ProbeResult,
@@ -71,14 +95,12 @@ def extract_features(
     context_text = task.context or ""
     full_text = f"{text} {context_text}".strip()
 
-    if _use_spacy:
-        nlp = _get_nlp()
-        if nlp is not None:
-            entity_count, clause_count = _spacy_features(full_text, nlp)
-        else:
-            entity_count, clause_count = _regex_features(text)
+    # Both backends read question + context so their features mean the same thing.
+    nlp = _get_nlp() if _use_spacy else None
+    if nlp is not None:
+        entity_count, clause_count = _spacy_features(full_text, nlp)
     else:
-        entity_count, clause_count = _regex_features(text)
+        entity_count, clause_count = _regex_features(full_text)
 
     question_word_count = len(text.split())
     has_context = bool(task.context and task.context.strip())
