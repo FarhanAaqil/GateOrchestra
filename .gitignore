@@ -41,6 +41,8 @@ htmlcov/
 
 # Data & Models (large files — use DVC or manual storage)
 dataset/masbench_mini/**/*.json
+# Small curated grading data: part of the dataset, so it must be versioned.
+!dataset/masbench_mini/answer_aliases.json
 logs/*.json
 logs/*.jsonl
 configs/**/*.pkl
