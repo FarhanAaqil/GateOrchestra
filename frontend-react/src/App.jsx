@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import Benchmarks from './components/Benchmarks'
 import ChatComposer from './components/ChatComposer'
@@ -9,6 +9,9 @@ import Schedules from './components/Schedules'
 import Sidebar from './components/Sidebar'
 import StatCard from './components/StatCard'
 import { checkHealth, fetchBenchmarkSummary, fetchModels, runGateOrchestra } from './services/api'
+
+// Live escalations can take minutes (rate limits, several LLM calls); give up after 5.
+const RUN_TIMEOUT_MS = 5 * 60 * 1000
 
 function createConversation(initialTitle = 'New task trace') {
   const now = new Date().toISOString()
@@ -34,6 +37,9 @@ function App() {
   const [view, setView] = useState('chat')
   const [modelLabel, setModelLabel] = useState('')
   const [gateInfo, setGateInfo] = useState(undefined)
+  const [runStartedAt, setRunStartedAt] = useState(null)
+  const [now, setNow] = useState(() => Date.now())
+  const abortRef = useRef(null)
   const [benchmark, setBenchmark] = useState(null)
 
   const activeConversation = conversations.find((c) => c.id === activeId)
@@ -85,6 +91,12 @@ function App() {
 
     setLoading(true)
     setError('')
+    const controller = new AbortController()
+    abortRef.current = controller
+    const timeout = setTimeout(() => controller.abort('timeout'), RUN_TIMEOUT_MS)
+    const startedAt = Date.now()
+    setRunStartedAt(startedAt)
+    setNow(startedAt)
 
     try {
       const data = await runGateOrchestra({
@@ -95,7 +107,7 @@ function App() {
         method,
         k: 3,
         force_simulation: simulate,
-      })
+      }, { signal: controller.signal })
 
       updateConversation(conversation.id, (current) => ({
         ...current,
@@ -111,18 +123,38 @@ function App() {
         ],
       }))
     } catch (err) {
-      setError(err.message || 'Could not connect to GateOrchestra backend.')
+      if (controller.signal.aborted) {
+        const why = controller.signal.reason === 'timeout' ? 'Run timed out after 5 minutes' : 'Run cancelled'
+        setError(
+          `${why}. The server may still finish it; it will then appear under Benchmarks › Recent Executions.`,
+        )
+      } else {
+        setError(err.message || 'Could not connect to GateOrchestra backend.')
+      }
     } finally {
+      clearTimeout(timeout)
+      abortRef.current = null
+      setRunStartedAt(null)
       setLoading(false)
     }
   }
+
+  const handleCancel = () => abortRef.current?.abort('cancelled')
+
+  useEffect(() => {
+    if (runStartedAt === null) return undefined
+    const tick = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(tick)
+  }, [runStartedAt])
+  const elapsedSeconds = runStartedAt === null ? 0 : Math.max(0, Math.round((now - runStartedAt) / 1000))
 
   const handleSelectBenchmarkTask = (task) => {
     setView('chat')
     const conversation = createConversation(`Task: ${task.task_id}`)
     setConversations((current) => [conversation, ...current])
     setActiveId(conversation.id)
-    handleSubmit(task.question, 'GateOrchestra', task.context, task.ground_truth, task.task_id)
+    const method = gateInfo === null ? 'CoT-SC' : 'GateOrchestra'
+    handleSubmit(task.question, method, task.context, task.ground_truth, task.task_id)
   }
 
   const handleNewChat = () => {
@@ -241,6 +273,8 @@ function App() {
                 loading={loading}
                 modelLabel={modelLabel}
                 gateInfo={gateInfo}
+                elapsedSeconds={elapsedSeconds}
+                onCancel={handleCancel}
               />
             </div>
           ) : (

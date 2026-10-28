@@ -52,9 +52,10 @@ export async function clearHistory() {
   return response.json()
 }
 
-export async function runGateOrchestra(payload) {
+export async function runGateOrchestra(payload, { signal } = {}) {
   const response = await fetch(`${API_BASE_URL}/run`, {
     method: 'POST',
+    signal,
     headers: {
       'Content-Type': 'application/json',
     },

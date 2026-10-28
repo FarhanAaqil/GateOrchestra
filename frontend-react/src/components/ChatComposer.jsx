@@ -7,7 +7,7 @@ const PRESETS = [
   { label: 'Probability 🎲', q: 'A box contains 4 red balls, 3 blue balls, and 5 green balls. What is the probability of randomly picking a blue ball?', gt: '1/4 (or 25%)' },
 ]
 
-function ChatComposer({ onSubmit, loading, modelLabel, gateInfo }) {
+function ChatComposer({ onSubmit, loading, modelLabel, gateInfo, elapsedSeconds = 0, onCancel }) {
   const [question, setQuestion] = useState('')
   const [selectedStrategy, setSelectedStrategy] = useState('GateOrchestra')
   const [currentGt, setCurrentGt] = useState(null)
@@ -113,8 +113,13 @@ function ChatComposer({ onSubmit, loading, modelLabel, gateInfo }) {
           disabled={loading || !question.trim()}
         >
           <span>{loading ? '⏳' : '▶'}</span>
-          <span>{loading ? 'Evaluating...' : 'Run Execution'}</span>
+          <span>{loading ? `Evaluating… ${elapsedSeconds}s` : 'Run Execution'}</span>
         </button>
+        {loading && onCancel ? (
+          <button type="button" className="outline-button" onClick={onCancel}>
+            Cancel
+          </button>
+        ) : null}
       </div>
     </div>
   )
