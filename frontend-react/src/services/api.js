@@ -1,4 +1,5 @@
-const API_BASE_URL = 'http://127.0.0.1:8000'
+// Override with VITE_API_BASE_URL (e.g. in frontend-react/.env.local).
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 
 export async function checkHealth() {
   const response = await fetch(`${API_BASE_URL}/health`)
@@ -12,6 +13,14 @@ export async function fetchModels() {
   const response = await fetch(`${API_BASE_URL}/models`)
   if (!response.ok) {
     throw new Error('Failed to fetch available models and gates.')
+  }
+  return response.json()
+}
+
+export async function fetchBenchmarkSummary() {
+  const response = await fetch(`${API_BASE_URL}/demo/summary`)
+  if (!response.ok) {
+    throw new Error('Failed to load benchmark results.')
   }
   return response.json()
 }
@@ -44,9 +53,10 @@ export async function clearHistory() {
   return response.json()
 }
 
-export async function runGateOrchestra(payload) {
+export async function runGateOrchestra(payload, { signal } = {}) {
   const response = await fetch(`${API_BASE_URL}/run`, {
     method: 'POST',
+    signal,
     headers: {
       'Content-Type': 'application/json',
     },

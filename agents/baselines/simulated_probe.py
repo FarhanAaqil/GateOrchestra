@@ -15,6 +15,11 @@ But the behavior is calibrated to match real CoT-SC patterns:
 
 Calibration source: MASBench paper Table 3, approximated.
 
+WARNING: when a task carries a ground truth, the simulated samples are built
+from it, so any accuracy computed from simulated runs is synthetic. Simulated
+results belong in results/simulated/ and must never be reported as model
+results. The API strips the ground truth before simulating.
+
 Usage:
     from agents.baselines.simulated_probe import SimulatedProbe
 
@@ -166,7 +171,7 @@ class SimulatedProbe:
         tokens = self._rng.randint(profile.token_min, profile.token_max)
 
         # --- Answer ---
-        correct = task.ground_truth or "Unknown"
+        correct = task.ground_truth or "[simulated answer]"
 
         # Probe gets it right if consistency >= 0.5 (majority vote)
         probe_is_correct = consistency >= 0.5

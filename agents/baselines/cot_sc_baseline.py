@@ -15,7 +15,7 @@ import time
 from collections.abc import Callable
 
 from agents.probe_agent import probe_agent as default_probe_agent
-from shared.data_loader import exact_match as _exact_match
+from shared.grading import grade_task
 from shared.schemas import EvalResult, ProbeResult, Task
 from shared.token_logger import TokenAccountant
 
@@ -53,11 +53,12 @@ def run_cot_sc_baseline(
             path="N/A",
         )
 
-    latency_ms = (time.perf_counter() - start_time) * 1000.0
+    # Probes may be cached and shared across methods; use the probe's own timing.
+    latency_ms = probe.latency_ms
+    if latency_ms is None:
+        latency_ms = (time.perf_counter() - start_time) * 1000.0
 
-    is_correct: bool | None = None
-    if task.ground_truth is not None:
-        is_correct = _exact_match(probe.answer, task.ground_truth)
+    is_correct = grade_task(probe.answer, task)
 
     return EvalResult(
         task_id=task.task_id,

@@ -90,3 +90,21 @@ repo = JSONLTaskRepository()
 val_tasks = repo.list_by_split("val")
 task = repo.get_by_id("hp_001")
 ```
+
+## 6. Answer Grading & Corrections (October 2026)
+
+- **Grading.** Every evaluation path uses `shared/grading.py`. Numeric answers are compared by
+  value at the gold answer's precision (so `$5` matches `$5.00`, but `$500` and `15`-for-`5` do
+  not). Text answers must equal the gold answer or begin with it as whole words without a negation.
+- **Aliases.** Many gold answers are full sentences ("Venus is closer to the Sun than Mars").
+  `dataset/masbench_mini/answer_aliases.json` lists short acceptable forms for 82 tasks; the
+  loaders attach them as `Task.answer_aliases`. A value such as `"Bush && Republican"` requires
+  every part. Aliases may only restate the gold answer, never add a different one.
+- **Corrections.** 14 tasks had a wrong, stale or ill-posed answer (for example, the U.S. Capitol
+  dome is not gold-covered, Greece's head of state changed in 2025, and no element is named after
+  Switzerland). They were rewritten to have one verifiable answer by
+  `scripts/apply_dataset_corrections.py`, which patches the task pool, raw, processed, split and
+  export files consistently. Task ids, splits and axis labels are unchanged.
+- **Integrity.** `shared.data_loader.dataset_sha256()` hashes the three split files and the
+  alias file; every benchmark result records it, and `scripts/verify_final_results.py` rejects
+  results computed on a different dataset.

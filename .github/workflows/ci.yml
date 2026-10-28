@@ -36,4 +36,4 @@ jobs:
         run: mypy shared/ gate/ integration/
 
       - name: Run tests with coverage
-        run: pytest --cov=shared --cov=gate --cov=integration --cov-report=term-missing --cov-fail-under=80
+        run: pytest --cov=shared --cov=gate --cov=integration --cov=agents --cov=evaluation --cov=api --cov=dataset --cov-report=term-missing --cov-fail-under=80

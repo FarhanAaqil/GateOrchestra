@@ -3,14 +3,17 @@ import { useState } from 'react'
 const PRESETS = [
   { label: 'Arithmetic ⚡', q: 'Convert 72 kilometers per hour to meters per second.', gt: '20 m/s' },
   { label: 'Multi-Hop Bridge 🌉', q: 'What is the capital of the country where Marie Curie was born?', gt: 'Warsaw' },
-  { label: 'Hard Multi-Hop 🧠', q: 'What is the official name of the country whose highest mountain shares its name with the person who surveyed it?', gt: 'Republic of India' },
+  { label: 'Hard Multi-Hop 🧠', q: "The world's highest mountain is named after a former Surveyor General of India. On the border of which two countries does it lie?", gt: 'Nepal and China' },
   { label: 'Probability 🎲', q: 'A box contains 4 red balls, 3 blue balls, and 5 green balls. What is the probability of randomly picking a blue ball?', gt: '1/4 (or 25%)' },
 ]
 
-function ChatComposer({ onSubmit, loading }) {
+function ChatComposer({ onSubmit, loading, modelLabel, gateInfo, elapsedSeconds = 0, onCancel }) {
   const [question, setQuestion] = useState('')
   const [selectedStrategy, setSelectedStrategy] = useState('GateOrchestra')
   const [currentGt, setCurrentGt] = useState(null)
+  const [simulate, setSimulate] = useState(false)
+  // Without a trained gate the GateOrchestra option is disabled; fall back to CoT-SC.
+  const strategy = gateInfo === null && selectedStrategy === 'GateOrchestra' ? 'CoT-SC' : selectedStrategy
 
   const handlePreset = (preset) => {
     setQuestion(preset.q)
@@ -20,7 +23,7 @@ function ChatComposer({ onSubmit, loading }) {
   const submit = () => {
     const value = question.trim()
     if (!value || loading) return
-    onSubmit(value, selectedStrategy, null, currentGt)
+    onSubmit(value, strategy, null, currentGt, null, simulate)
     setQuestion('')
     setCurrentGt(null)
   }
@@ -72,11 +75,13 @@ function ChatComposer({ onSubmit, loading }) {
           </label>
           <select
             className="method-select-input"
-            value={selectedStrategy}
+            value={strategy}
             onChange={(e) => setSelectedStrategy(e.target.value)}
             disabled={loading}
           >
-            <option value="GateOrchestra">⚡ GateOrchestra (Trained GBT)</option>
+            <option value="GateOrchestra" disabled={gateInfo === null}>
+              ⚡ GateOrchestra {gateInfo === null ? '(no trained gate yet)' : '(learned gate)'}
+            </option>
             <option value="CoT-SC">💡 CoT-SC-only (Single Agent)</option>
             <option value="Always-MAS">🤝 Always-MAS (Full Orchestrator)</option>
             <option value="RuleBasedGate">📋 Rule-Based Gate</option>
@@ -84,8 +89,21 @@ function ChatComposer({ onSubmit, loading }) {
           </select>
 
           <span style={{ fontSize: '0.72rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-            Model: Groq / qwen3.8-27b • k=3
+            {simulate ? 'Offline simulation (no LLM, ungraded) • ' : modelLabel ? `Model: ${modelLabel} • ` : ''}k=3
           </span>
+
+          <label
+            style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.75rem', color: 'var(--c-navy)', cursor: 'pointer' }}
+            title="Exercise the routing without calling an LLM. The simulator never sees the answer, so runs are not graded."
+          >
+            <input
+              type="checkbox"
+              checked={simulate}
+              onChange={(e) => setSimulate(e.target.checked)}
+              disabled={loading}
+            />
+            Offline simulation
+          </label>
         </div>
 
         <button
@@ -95,8 +113,13 @@ function ChatComposer({ onSubmit, loading }) {
           disabled={loading || !question.trim()}
         >
           <span>{loading ? '⏳' : '▶'}</span>
-          <span>{loading ? 'Evaluating...' : 'Run Execution'}</span>
+          <span>{loading ? `Evaluating… ${elapsedSeconds}s` : 'Run Execution'}</span>
         </button>
+        {loading && onCancel ? (
+          <button type="button" className="outline-button" onClick={onCancel}>
+            Cancel
+          </button>
+        ) : null}
       </div>
     </div>
   )

@@ -13,6 +13,7 @@ from agents.orchestrator import (
     ReflexionAgent,
     orchestrator,
 )
+from agents.orchestrator.sub_agents import SubAgentError
 from shared.schemas import Task
 
 
@@ -91,15 +92,49 @@ class TestMASOrchestrator:
             return "Final Answer: Paris", 45
 
         orch = MASOrchestrator(llm_caller=mock_caller)
-        ans, tokens = orch.run(react_task, token_budget=100)
+        ans, tokens = orch.run(react_task, token_budget=300)
         assert ans == "Paris"
-        assert tokens <= 100
+        assert tokens == 45
 
-    def test_functional_orchestrator_callable(self, reflexion_task):
-        # Default functional orchestrator should be callable and return tuple[str, int]
-        ans, tokens = orchestrator(reflexion_task, token_budget=100)
-        assert isinstance(ans, str)
-        assert isinstance(tokens, int)
+    def test_reported_tokens_are_true_spend_not_clipped(self, reflexion_task):
+        # Providers count prompt tokens too, so a call can overshoot its cap.
+        def expensive_caller(prompt: str, temp: float, budget: int) -> tuple[str, int]:
+            return "Final Answer: 120", budget + 250
+
+        orch = MASOrchestrator(llm_caller=expensive_caller)
+        _, tokens = orch.run(reflexion_task, token_budget=300)
+        assert tokens > 300
+
+    def test_budget_too_small_for_any_call_spends_nothing(self, reflexion_task):
+        calls = []
+
+        def caller(prompt: str, temp: float, budget: int) -> tuple[str, int]:
+            calls.append(budget)
+            return "Final Answer: 120", 10
+
+        ans, tokens = MASOrchestrator(llm_caller=caller).run(reflexion_task, token_budget=20)
+        assert calls == []
+        assert (ans, tokens) == ("Unknown", 0)
+
+    def test_provider_failure_raises_instead_of_fake_answer(self, reflexion_task):
+        # Unmocked network calls fail in tests (see conftest.py).
+        with pytest.raises(SubAgentError):
+            orchestrator(reflexion_task, token_budget=300)
+
+    def test_debate_and_reflexion_prompts_carry_context_and_draft(self, react_task):
+        prompts: list[str] = []
+
+        def recording_caller(prompt: str, temp: float, budget: int) -> tuple[str, int]:
+            prompts.append(prompt)
+            return f"Draft number {len(prompts)}. Final Answer: Euro", 20
+
+        DebateAgent(num_rounds=1, llm_caller=recording_caller).run(react_task, 2000)
+        ReflexionAgent(llm_caller=recording_caller).run(react_task, 2000)
+
+        assert len(prompts) == 6
+        assert all(react_task.context in prompt for prompt in prompts)
+        assert "Draft number 1." in prompts[2]  # debate revision sees its previous solution
+        assert "Draft number 4." in prompts[5]  # reflexion refine step sees the draft
 
 
 # Week 8 — _last_strategy caching

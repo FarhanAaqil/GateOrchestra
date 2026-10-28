@@ -69,7 +69,7 @@ def collect_real_traces(
         probe_res: ProbeResult = probe.run(task)
         is_cot_correct = None
         if task.ground_truth is not None:
-            is_cot_correct = _exact_match(probe_res.answer, task.ground_truth)
+            is_cot_correct = _exact_match(probe_res.answer, task.ground_truth, task.answer_aliases)
 
         cot_eval = EvalResult(
             task_id=task.task_id,
@@ -85,7 +85,7 @@ def collect_real_traces(
         mas_answer, mas_tokens = orchestrator.run(task, token_budget=budget)
         is_mas_correct = None
         if task.ground_truth is not None:
-            is_mas_correct = _exact_match(mas_answer, task.ground_truth)
+            is_mas_correct = _exact_match(mas_answer, task.ground_truth, task.answer_aliases)
 
         mas_eval = EvalResult(
             task_id=task.task_id,

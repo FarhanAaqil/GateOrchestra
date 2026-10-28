@@ -1,4 +1,4 @@
-function Navbar({ apiOnline, onNewExecution }) {
+function Navbar({ apiOnline, modelLabel, onNewExecution }) {
   return (
     <header className="top-nav">
       <div className="top-nav-left">
@@ -6,14 +6,10 @@ function Navbar({ apiOnline, onNewExecution }) {
           <div className="brand-icon">GO</div>
           <div className="brand-text-col">
             <span className="brand-title">GateOrchestra</span>
-            <span className="brand-sub">Telemetry &amp; Adaptive Gate Engine</span>
+            <span className="brand-sub">Pre-execution gate for multi-agent orchestration</span>
           </div>
         </div>
 
-        <div className="gate-active-badge">
-          <span>⚡</span>
-          <span>AI GATE ACTIVE</span>
-        </div>
       </div>
 
       <div className="top-nav-right">
@@ -23,16 +19,13 @@ function Navbar({ apiOnline, onNewExecution }) {
               apiOnline === true ? 'pulse' : apiOnline === false ? 'offline' : ''
             }`}
           />
-          <span>{apiOnline === true ? 'Groq (qwen3.8-27b)' : apiOnline === false ? 'Backend Offline' : 'Connecting...'}</span>
-          <span style={{ color: 'var(--text-muted)' }}>• 12ms</span>
-        </div>
-
-        <div className="metric-pill-dark">
-          <span className="label">α:</span>
-          <span className="val-lemon">1.42</span>
-          <span style={{ color: '#545E76' }}>|</span>
-          <span className="label">Swarms:</span>
-          <span className="val-cyan">16 Active</span>
+          <span>
+            {apiOnline === true
+              ? modelLabel || 'Backend online'
+              : apiOnline === false
+                ? 'Backend Offline'
+                : 'Connecting...'}
+          </span>
         </div>
 
         <button

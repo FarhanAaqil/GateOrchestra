@@ -8,11 +8,13 @@ function Sidebar({
   onOpenConversation,
   onDelete,
   onNavigate,
+  modelLabel,
+  gateInfo,
 }) {
   const navItems = [
     { id: 'chat', label: 'Orchestration Studio', icon: '⚡', badge: 'LIVE' },
-    { id: 'benchmarks', label: 'Empirical Benchmarks', icon: '📊', badge: 'REAL' },
-    { id: 'evolution', label: 'Agent Health & Swarm', icon: '🧬', badge: null },
+    { id: 'benchmarks', label: 'Benchmarks', icon: '📊', badge: null },
+    { id: 'evolution', label: 'MAS Routing', icon: '🧬', badge: null },
     { id: 'schedules', label: 'Budget Policies (k)', icon: '⏱️', badge: null },
   ]
 
@@ -26,7 +28,7 @@ function Sidebar({
               <div>
                 <p style={{ fontWeight: 800, fontSize: '0.85rem', color: 'var(--c-navy)' }}>Console Rail</p>
                 <p style={{ fontSize: '0.65rem', color: 'var(--text-muted)', fontFamily: 'var(--font-mono)' }}>
-                  GateOrchestra v4.2
+                  GateOrchestra
                 </p>
               </div>
             </div>
@@ -114,19 +116,19 @@ function Sidebar({
         ) : null}
       </div>
 
-      {!collapsed ? (
+      {!collapsed && modelLabel ? (
         <div className="sidebar-resource-card">
           <div className="resource-row">
-            <span>Groq Engine</span>
-            <span className="resource-val">qwen3.8-27b</span>
+            <span>Model</span>
+            <span className="resource-val">{modelLabel}</span>
           </div>
           <div className="resource-row">
-            <span>Swarm QPS</span>
-            <span className="resource-val">1,840 req/s</span>
-          </div>
-          <div className="resource-row">
-            <span>Bandit α</span>
-            <span className="resource-val" style={{ color: 'var(--c-lemon)' }}>1.42 (Active)</span>
+            <span>Gate</span>
+            <span className="resource-val" title={gateInfo?.path || ''}>
+              {gateInfo
+                ? `${gateInfo.classifier}${gateInfo.seed != null ? ` · seed ${gateInfo.seed}` : ''}${gateInfo.degenerate ? ' · degenerate' : ''}`
+                : 'none trained'}
+            </span>
           </div>
         </div>
       ) : null}

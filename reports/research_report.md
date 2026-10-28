@@ -3,13 +3,19 @@
 **Authors:** Farhan Aaqil Durrani, Team GateOrchestra  
 **Date:** September 2026  
 **Artifact:** Research Report & Technical Whitepaper  
-**Repository:** `d:/Projects/ss/GateOrchestra`  
+**Repository:** `github.com/FarhanAaqil/GateOrchestra`  
+
+> **Results status (October 2026).** Sections 8.1–8.4 report a *simulation* (`mode: mock`): the simulator
+> builds probe samples from the ground truth and its Always-MAS is right 100% of the time by construction,
+> so those numbers are not evidence about GateOrchestra. The only real-LLM run (Section 8.5) used 5 test
+> tasks and 1 seed, and was made before the measurement fixes described in Section 8.6; it shows no
+> detectable difference between methods. The final benchmark (32 test tasks × 3 seeds) has not been run yet.
 
 ---
 
 ## Abstract
 
-Multi-Agent Systems (MAS) composed of specialized Large Language Model (LLM) agents—employing iterative reasoning (ReAct), multi-agent dialectic debate, and verbal reflection (Reflexion)—achieve state-of-the-art problem-solving accuracy on complex multi-hop reasoning tasks. However, these systems incur severe token expenditures, frequently consuming $5\times$ to $20\times$ more tokens than single-agent approaches. When applied indiscriminately to all incoming queries, static multi-agent pipelines waste massive compute on simple and moderate tasks that a single agent could resolve easily. In this work, we present **GateOrchestra**, an adaptive, learned pre-execution gating and dynamic token-budgeting framework for multi-agent LLM systems. GateOrchestra deploys a lightweight Chain-of-Thought Self-Consistency (CoT-SC) probe ($N=3$), extracts an 8-dimensional structural and consensus feature vector before any multi-agent execution, and classifies whether to terminate early (**STOP**) or escalate to a specialized Multi-Agent Orchestrator (**ESCALATE**) under an explicit budget cap $B = k \times \text{tokens}_{\text{probe}}$. For escalated tasks, a contextual multi-armed bandit (LinUCB) dynamically assigns the task to the optimal multi-agent strategy (ReAct, Debate, or Reflexion). On the curated **MASBench-mini** benchmark (161 tasks, 32 held-out test tasks), GateOrchestra achieves **93.8% test accuracy** while delivering a **+78.8% token reduction** relative to an un-gated Always-MAS baseline (slashing average token spend from 1,017.2 to 216.2 tokens/task) with an average gating latency overhead of only **1.80 ms**.
+Multi-Agent Systems (MAS) composed of specialized Large Language Model (LLM) agents—employing iterative reasoning (ReAct), multi-agent dialectic debate, and verbal reflection (Reflexion)—achieve state-of-the-art problem-solving accuracy on complex multi-hop reasoning tasks. However, these systems incur severe token expenditures, frequently consuming $5\times$ to $20\times$ more tokens than single-agent approaches. When applied indiscriminately to all incoming queries, static multi-agent pipelines waste massive compute on simple and moderate tasks that a single agent could resolve easily. In this work, we present **GateOrchestra**, an adaptive, learned pre-execution gating and dynamic token-budgeting framework for multi-agent LLM systems. GateOrchestra deploys a lightweight Chain-of-Thought Self-Consistency (CoT-SC) probe ($N=3$), extracts an 8-dimensional structural and consensus feature vector before any multi-agent execution, and classifies whether to terminate early (**STOP**) or escalate to a specialized Multi-Agent Orchestrator (**ESCALATE**) under an explicit budget cap $B = k \times \text{tokens}_{\text{probe}}$. Escalated tasks are assigned to one sub-agent strategy (ReAct, Debate, or Reflexion) by a text-only routing heuristic; a LinUCB contextual bandit router is available as an option. We evaluate on the curated **MASBench-mini** benchmark (161 tasks, 32 held-out test tasks). The real-LLM evaluation completed so far (5 test tasks, 1 seed) cannot distinguish the methods: every method's 95% Wilson interval spans roughly 12–77%, and the learned gate stopped on every task, making it identical to CoT-SC-only. Results under the corrected, equal-budget protocol (32 tasks × 3 seeds, paired McNemar tests) are pending. Simulation results are reported separately and are not evidence for the research questions.
 
 ---
 
@@ -144,25 +150,26 @@ $$L(t_i) = \begin{cases} \text{ESCALATE}, & \text{if } \text{MAS is correct and 
 This label rule guarantees that the gate is penalized for escalating when MAS cannot fix the error or when Probe was already correct.
 
 ### 5.3 Contextual Bandit MAS Strategy Routing (LinUCB)
-When a task escalates, the orchestrator selects among strategies $a \in \{\text{ReAct}, \text{Debate}, \text{Reflexion}\}$ via a disjoint LinUCB bandit with parameter $\alpha = 1.0$:
+By default an escalated task is routed by a text-only heuristic: comparison questions go to Debate, tasks with context (or high estimated depth) to ReAct, and the rest to Reflexion. Routing never reads the dataset's depth/parallel labels. Optionally (`default_strategy='bandit'`), the orchestrator selects among strategies $a \in \{\text{ReAct}, \text{Debate}, \text{Reflexion}\}$ via a disjoint LinUCB bandit with parameter $\alpha = 0.5$:
 
 $$a^* = \arg\max_{a} \left( \hat{\theta}_a^\top \mathbf{x} + \alpha \sqrt{\mathbf{x}^\top \mathbf{A}_a^{-1} \mathbf{x}} \right)$$
 
-where $\mathbf{A}_a \in \mathbb{R}^{d \times d}$ is initialized to the identity matrix $\mathbf{I}$, and $\mathbf{b}_a \in \mathbb{R}^d$ accumulates observed rewards. Reward updates are normalized by efficiency:
+where $\mathbf{A}_a \in \mathbb{R}^{d \times d}$ is initialized to the identity matrix $\mathbf{I}$, and $\mathbf{b}_a \in \mathbb{R}^d$ accumulates observed rewards. The reward penalises the fraction of the budget spent:
 
-$$r = \frac{\mathbf{1}(\text{correct})}{\log(1 + \text{tokens\_spent})}$$
+$$r = \mathbf{1}(\text{correct}) - 0.2 \cdot \frac{\text{tokens\_spent}}{B}$$
 
-Parameters are updated online using Sherman-Morrison rank-1 matrix inversion, persisting state atomically to disk.
+$\mathbf{A}_a^{-1}$ is recomputed on each selection, and state is persisted atomically to disk. The final benchmark uses the heuristic router.
 
 ---
 
 ## 6. Implementation Details
 
-- **Language & Runtime:** Python 3.14 on Windows 64-bit platform.
+- **Language & Runtime:** Python 3.10+ (CI runs 3.10 and 3.11).
 - **Machine Learning Core:** scikit-learn GradientBoostingClassifier (`n_estimators=100`, `max_depth=3`, `learning_rate=0.1`).
 - **Concurrency & Accounting:** Thread-safe `TokenAccountant` leveraging reentrant locks (`threading.Lock`) for concurrent batch evaluation and REST API calls.
-- **REST API:** FastAPI application (`api/main.py`) exposing `/api/route`, `/api/batch`, `/api/metrics`, `/api/demo/summary`, and `/api/tasks`.
-- **Testing & Quality Assurance:** Comprehensive test suite containing 28 test modules and **498 automated unit and integration tests** passing with 100% success rate under `pytest`, zero warnings, strict MyPy type checking, and Ruff/Black PEP 8 compliance.
+- **REST API:** FastAPI application (`api/main.py`) exposing `/run`, `/tasks`, `/models`, `/history`, and `/demo/summary` (which serves the recorded real results and their verification status).
+- **Grading:** One canonical grader (`shared/grading.py`) compares numeric answers by value at the gold answer's precision and text answers by normalised equality or leading whole-word match; curated aliases live in `dataset/masbench_mini/answer_aliases.json`.
+- **Testing & Quality Assurance:** `pytest` suite (network calls are blocked in tests), MyPy on `shared/`, `gate/`, `integration/`, and Ruff/Black.
 
 ---
 
@@ -180,17 +187,23 @@ Task categories span HotpotQA-style multi-hop question answering, MuSiQue-style 
 We evaluate GateOrchestra against four definitive baselines:
 1. **CoT-SC-only:** Single-agent Chain-of-Thought with Self-Consistency ($N=3$), representing the minimal token cost floor.
 2. **Always-MAS:** Un-gated execution routing every query directly to the multi-agent orchestrator, representing the expressive accuracy ceiling.
-3. **RandomGate:** Stochastic routing baseline escalating exactly 50% of tasks at random.
-4. **RuleBasedGate:** Heuristic baseline escalating if $\text{depth} \ge 3$, $\text{parallel} \ge 2$, or $\text{consistency} < 0.70$.
-5. **GateOrchestra:** The full learned GBT gate with LinUCB adaptive strategy routing.
+3. **RandomGate:** Coin-flip routing at the learned gate's validation escalation rate, isolating whether the gate's decisions are informative.
+4. **RuleBasedGate:** STOP if consistency $\ge 0.8$ and fewer than 3 entities; otherwise ESCALATE if estimated depth $\ge 3$ or estimated parallelism $\ge 2$; otherwise STOP.
+5. **GateOrchestra:** The gate selected by validation calibration (logistic regression, GBT or MLP over $\tau_{acc}$ and $k$).
+
+All MAS calls, for Always-MAS and gated escalations alike, are capped at $k \times$ the paired probe's tokens for the same task.
 
 ---
 
 ## 8. Results & Findings
 
-### 8.1 Primary Benchmark Comparison ($k=3$)
+> **Sections 8.1–8.4 are SIMULATION results (`mode: mock`, `results/simulated/`).** The simulator draws probe
+> samples from the ground truth and models Always-MAS as always correct, so accuracy and savings here are
+> properties of the simulator, not of GateOrchestra. They are kept only to document the development pipeline.
 
-Evaluating all five methods across the 32 held-out test tasks produces the primary empirical results:
+### 8.1 Simulated Benchmark Comparison ($k=3$)
+
+The simulated run over the 32 held-out test tasks gives:
 
 | System | Accuracy | Token Savings vs Always-MAS | Avg Tokens / Task | Total Tokens | Gating Overhead Latency | STOP Rate | ESCALATE Rate | Gate F1 |
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -200,12 +213,10 @@ Evaluating all five methods across the 32 held-out test tasks produces the prima
 | **RuleBasedGate** | 84.4% | +68.3% | 322.1 | 10,307 | 0.54 ms | 81.2% | 18.8% | 0.0% |
 | **GateOrchestra** | **93.8%** | **+78.8%** | **216.2** | **6,917** | **1.80 ms** | **100.0%** | **0.0%** | **0.0%** |
 
-### 8.2 Analysis of Results
-1. **Token Efficiency:** GateOrchestra achieves **+78.8% token savings** over Always-MAS, exceeding the project's target milestone of $\ge 40\%$ by nearly double.
-2. **Accuracy Retention:** GateOrchestra preserves **93.8% accuracy**, significantly outperforming CoT-SC-only (+9.4 percentage points) and RuleBasedGate (+9.4 percentage points).
-3. **Inference Latency:** The gradient-boosted decision tree introduces only **1.80 ms** of latency overhead, which is orders of magnitude smaller than the hundreds of milliseconds required for live LLM network generation.
+### 8.2 Reading the Simulation
+The simulated gate stops on every task, so its "savings" are those of CoT-SC-only. Because the simulator's Always-MAS is correct by construction, the simulation cannot test whether escalation helps. The one measurement that does transfer is the gate's own inference cost (about 1.8 ms on CPU), which is negligible next to LLM calls.
 
-### 8.3 Pareto Analysis Across Multipliers ($k \in \{2, 3, 5\}$)
+### 8.3 Simulated Sweep Across Multipliers ($k \in \{2, 3, 5\}$)
 
 | Multiplier ($k$) | Always-MAS Tokens | Always-MAS Acc | GateOrchestra Tokens | GateOrchestra Acc | GateOrchestra Savings |
 |:---:|:---:|:---:|:---:|:---:|:---:|
@@ -213,9 +224,9 @@ Evaluating all five methods across the 32 held-out test tasks produces the prima
 | **$k=3$** | 1,019.8 | 100.0% | 221.1 | **87.5%** | **+78.3%** |
 | **$k=5$** | 1,699.8 | 100.0% | 220.7 | 84.4% | **+87.0%** |
 
-As $k$ increases from 2 to 5, Always-MAS token consumption inflates by 150.8% with zero accuracy improvement. In contrast, GateOrchestra at $k=3$ forms the optimal knee of the Pareto frontier.
+In the simulation, Always-MAS cost grows with $k$ while its (assumed) accuracy stays at 100%; GateOrchestra's cost barely moves because it almost never escalates.
 
-### 8.4 Feature Sensitivity & Ablation Analysis
+### 8.4 Simulated Feature Ablations
 
 | Ablated Feature | Test Accuracy | Average Tokens | Token Savings | Accuracy Impact ($\Delta$) |
 |:---|:---:|:---:|:---:|:---:|
@@ -229,31 +240,43 @@ As $k$ increases from 2 to 5, Always-MAS token consumption inflates by 150.8% wi
 | Without `has_context` | 90.6% | 216.2 | +78.7% | -3.1% |
 | Without `estimated_parallel` | 93.8% | 214.5 | +78.9% | 0.0% |
 
-The ablation study confirms that internal sample agreement (`consistency_score`) and relational density (`entity_count`) are the two most critical predictive signals for gating decisions.
+These ablations describe which features the simulated gate relied on; they say nothing about real-LLM behaviour.
 
-### 8.5 Canonical Empirical Benchmark on Real Provider (Groq / Qwen-27B)
+### 8.5 Real-LLM Smoke Run (Groq / qwen3.8-27b, 5 test tasks, seed 42)
 
-> **[CANONICAL REAL LLM BENCHMARK]**: Generated via `python scripts/final_benchmark.py` running live against Groq (`qwen/qwen3.8-27b`). Stored in `results/real/final/master_results.json` and verified with `scripts/verify_final_results.py`.
+> Recorded in `results/real/final/master_results.json`. It was produced **before** the fixes in Section 8.6 and
+> does not pass `scripts/verify_final_results.py` (one seed, 5 of 32 test tasks, no per-task records).
 
-| System | Live Accuracy | Wilson 95% CI | Avg Tokens / Task | Token Savings vs MAS | STOP % | ESCALATE % |
+| System | Accuracy | Wilson 95% CI | Avg Tokens / Task | Token Savings vs MAS | STOP % | ESCALATE % |
 |:---|:---:|:---:|:---:|:---:|:---:|:---:|
-| **CoT-SC-only** | 40.0% (2/5) | [11.8%, 76.9%] | 782.4 | +0.7% | 0.0% | 0.0% |
-| **Always-MAS** | 20.0% (1/5) | [3.6%, 62.4%] | 788.2 | +0.0% | 0.0% | 100.0% |
-| **RandomGate** | 20.0% (1/5) | [3.6%, 62.4%] | 1,354.2 | -71.8% | 40.0% | 60.0% |
-| **RuleBasedGate** | 40.0% (2/5) | [11.8%, 76.9%] | 935.8 | -18.7% | 80.0% | 20.0% |
-| **GateOrchestra** | **40.0%** (2/5) | [11.8%, 76.9%] | **782.4** | **+0.7%** | 100.0% | 0.0% |
+| CoT-SC-only | 40.0% (2/5) | [11.8%, 76.9%] | 782.4 | +0.7% | — | — |
+| Always-MAS | 20.0% (1/5) | [3.6%, 62.4%] | 788.2 | +0.0% | — | 100.0% |
+| RandomGate | 20.0% (1/5) | [3.6%, 62.4%] | 1,354.2 | -71.8% | 40.0% | 60.0% |
+| RuleBasedGate | 40.0% (2/5) | [11.8%, 76.9%] | 935.8 | -18.7% | 80.0% | 20.0% |
+| GateOrchestra | 40.0% (2/5) | [11.8%, 76.9%] | 782.4 | +0.7% | 100.0% | 0.0% |
 
-**Key Empirical Findings:**
-1. **Pareto Optimality:** GateOrchestra tied for highest accuracy (40.0%) while achieving the minimal token consumption (782.4 tokens/task), outperforming RandomGate (1,354.2 tokens) and RuleBasedGate (935.8 tokens).
-2. **Multi-Agent Dilution on Simple Prompts:** Direct arithmetic queries revealed that unrestrained multi-agent interaction can introduce compounding errors in simple tasks, validating the necessity of an early STOP gate.
-3. **Verified Empirical Provenance:** Every datapoint traces directly to real execution traces with 0 mock contamination.
+What this run does and does not show:
+1. **No method is distinguishable.** All intervals overlap almost entirely; "40% vs 20%" is a difference of one task.
+2. **The learned gate never escalated,** so its row is identical to CoT-SC-only. With 5 training tasks the training labels were very likely single-class; the calibration code at the time then substituted a gate trained on simulated data and reported fixed placeholder metrics (that fallback has been removed).
+3. **Savings could not be measured.** Always-MAS was capped at 1,500 tokens and cost about the same as the probe, while gated escalations received $k \times$ probe tokens, so the methods did not have equal budgets.
 
+### 8.6 Measurement Fixes Before the Final Benchmark
+
+The following defects affected every number above and are fixed in the current code:
+- **Token accounting:** spend was clipped to the budget (`min(tokens, budget)`) although prompt tokens are not capped by `max_tokens`; true spend is now recorded and the budget is enforced before each call.
+- **Failures:** a failed sub-agent call returned a fake answer with 0 tokens, and failed probe samples ("Error: timeout") voted together with consistency 1.0; failures now raise or count against consistency.
+- **Voting:** a Jaccard ≥ 0.5 rule merged "30 / 60 / 45 square centimeters" into one cluster; voting now uses the grader's equivalence.
+- **Grading:** two graders disagreed ("$500" was correct for "$5.00"; "15" for "5"); one grader now handles numbers and units, and 82 tasks have curated answer aliases. 14 tasks with wrong, stale or ill-posed answers were corrected (`scripts/apply_dataset_corrections.py`).
+- **MAS prompts:** Debate's revision and Reflexion's refine steps dropped the context and the previous draft; both now carry them.
+- **Budgets:** all MAS calls are capped at $k \times$ the paired probe's tokens; RandomGate matches the learned gate's escalation rate.
+
+The final benchmark is `python scripts/final_benchmark.py` (32 test tasks × seeds 42, 123, 999), verified with `python scripts/verify_final_results.py`. If the gate again learns to always stop, that is a legitimate negative result and will be reported as such.
 
 ---
 
 ## 9. Error Analysis & Failure Modes
 
-Across 160 evaluations on the test split, 13 total errors were observed (8.12% error rate). Categorization reveals:
+*Simulation-derived; see the note at the start of Section 8.* Across 160 simulated evaluations on the test split, 13 errors were observed. Categorization:
 - **False STOP (61.5%, 8 occurrences):** The probe generated confident agreement ($C \ge 0.80$) on an incorrect answer (e.g. `bridge_009`), causing the gate to terminate prematurely without escalating to MAS.
 - **Other Incorrect Answers (23.1%, 3 occurrences):** Multi-hop reasoning failure where incorrect intermediate assumptions persisted.
 - **Empty / Unparsed Outputs (15.4%, 2 occurrences):** Tasks where the model emitted defeatist statements ("Unable to determine") due to context ambiguity.
@@ -264,14 +287,15 @@ Across 160 evaluations on the test split, 13 total errors were observed (8.12% e
 ## 10. Limitations
 
 1. **Benchmark Scale:** MASBench-mini contains 161 verified tasks. While rigorously balanced across depth and parallel categories, evaluations on larger suites (such as full GAIA or SWE-bench) are necessary to study extreme long-horizon tasks.
-2. **Simulated Token Noise:** In mock evaluation mode, token pacing is modeled deterministically. Live provider calls (Groq/Ollama) introduce token consumption variance depending on prompt formatting and temperature.
-3. **Bandit Strategy Homogeneity:** Under tight token budgets ($k \le 5$), LinUCB predominantly selects ReAct due to its favorable token-normalized reward. Evaluating high-token debate regimes requires relaxing $k \ge 8$.
+2. **Statistical power:** with 32 test tasks, accuracy differences below roughly 5–7 points are directional at best; Wilson intervals and paired McNemar tests are reported, and pooling seeds does not add independent tasks.
+3. **Cost premise:** the gate can only save tokens if MAS is substantially more expensive than the probe. In the smoke run the two cost about the same.
+4. **Single model and provider:** all real runs use one model through one provider.
 
 ---
 
 ## 11. Conclusion
 
-**GateOrchestra** demonstrates that multi-agent systems do not require unconstrained, indiscriminate token expenditure to achieve high reasoning accuracy. By introducing an 8-dimensional pre-execution gating classifier trained on consensus and structural cues, coupled with dynamic token budget clamping and contextual bandit routing, GateOrchestra captures the reasoning power of multi-agent collaboration while reducing token consumption by **78.8%** with negligible gating overhead (1.80 ms).
+**GateOrchestra** provides a working, tested pipeline for asking whether a cheap pre-execution gate can decide when multi-agent orchestration is worth its cost under equal token budgets: a CoT-SC probe, an 8-feature gate, budget-capped escalation, and a paired evaluation harness with honest token accounting. The evidence so far does not answer the research questions: the only real run is too small to separate the methods, and its learned gate never escalated. The final 32-task, 3-seed benchmark under the corrected protocol will decide whether the gate helps, or whether, as IlluMAS and Tran & Kiela suggest, a strong single agent is already sufficient on this benchmark.
 
 ---
 

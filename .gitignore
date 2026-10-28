@@ -41,6 +41,8 @@ htmlcov/
 
 # Data & Models (large files — use DVC or manual storage)
 dataset/masbench_mini/**/*.json
+# Small curated grading data: part of the dataset, so it must be versioned.
+!dataset/masbench_mini/answer_aliases.json
 logs/*.json
 logs/*.jsonl
 configs/**/*.pkl
@@ -64,6 +66,7 @@ implementation_plan_farhan
 GateOrchestra_Architecture_and_Roles.md
 GateOrchestra_Master_Blueprint_FarhanAaqilDurrani.pdf
 GateOrchestra_FINAL_RESCUE_PLAN.md
+GateOrchestra review.docx
 
 # Evaluation outputs
 logs/results/

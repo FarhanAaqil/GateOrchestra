@@ -6,7 +6,8 @@ Validates that:
 1. `reports/capstone_technical_report_person3.md` exists and is non-empty.
 2. All 5 core architectural and empirical sections are present.
 3. Referenced figure files (e.g. Pareto frontier curve) exist on disk.
-4. Numerical claims and evaluation tables match the verified JSON artifacts:
+4. Numerical claims and evaluation tables match the SIMULATION artifacts they
+   quote (consistency only; these are not real-LLM results):
    - `logs/results/week5_evaluation.json`
    - `logs/results/week6_ablations.json`
    - `logs/results/week6_pareto.json`

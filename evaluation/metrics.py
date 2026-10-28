@@ -9,9 +9,11 @@ breakdowns (ReAct %, Debate %, Reflexion %) for evaluation runs and Pareto front
 
 from __future__ import annotations
 
-import re
+import math
+from collections.abc import Iterable
 from typing import Any
 
+from shared.grading import is_correct, normalize_text
 from shared.schemas import EvalResult
 
 
@@ -140,54 +142,20 @@ def compute_evaluation_metrics(
 
 
 def normalize_answer_for_eval(text: str) -> str:
-    """Normalise a raw answer string for deterministic correctness comparison.
-
-    Rules (applied in order):
-    1. Lower-case.
-    2. Strip surrounding whitespace.
-    3. Remove markdown formatting (bold, italic, code, quotes).
-    4. Remove leading articles (a, an, the) followed by a space.
-    5. Collapse internal whitespace.
-    6. Strip trailing punctuation.
-
-    The function is intentionally conservative: it does NOT expand contractions,
-    resolve abbreviations, or perform numeric normalisation.  It should not be
-    made so permissive that wrong answers are accepted.
-    """
-    if not text:
-        return ""
-    text = text.lower().strip()
-    text = re.sub(r"[*_`'\"]", "", text)
-    text = re.sub(r"^(a|an|the)\s+", "", text)
-    text = re.sub(r"[^\w\s]", " ", text)
-    text = " ".join(text.split())
-    return text
+    """Normalise an answer string the same way the canonical grader does."""
+    return normalize_text(text)
 
 
-def evaluate_answer(predicted: str, ground_truth: str) -> bool:
+def evaluate_answer(predicted: str, ground_truth: str, aliases: Iterable[str] = ()) -> bool:
     """Canonical correctness function used by all evaluation methods.
 
-    Args:
-        predicted: The model's answer string (may be raw LLM output).
-        ground_truth: The ground-truth answer from the dataset.
-
-    Returns:
-        True if the normalised predicted answer exactly matches or contains
-        the normalised ground-truth string.  Returns False for empty inputs.
-
-    Note:
-        Containment (rather than exact-match only) is used because LLMs often
-        wrap the answer in a sentence ("The answer is Paris.").  The denominator
-        is the ground-truth token, so a very short ground-truth like "yes"
-        cannot accidentally match a long wrong answer.
+    Thin wrapper over :func:`shared.grading.is_correct`: numeric answers are
+    compared by value at the gold answer's precision, text answers must equal
+    the gold answer (or begin with it as whole words without a negation).
+    Plain substring containment is never used, so "15" is not correct for
+    "5" and "Unknown" is not correct for "no".
     """
-    if not predicted or not ground_truth:
-        return False
-    norm_pred = normalize_answer_for_eval(predicted)
-    norm_gt = normalize_answer_for_eval(ground_truth)
-    if not norm_gt:
-        return False
-    return norm_gt in norm_pred or norm_pred == norm_gt
+    return is_correct(predicted, ground_truth, aliases)
 
 
 def wilson_confidence_interval(
@@ -210,3 +178,29 @@ def wilson_confidence_interval(
     centre = (p + z**2 / (2 * n_total)) / denominator
     margin = (z * (p * (1 - p) / n_total + z**2 / (4 * n_total**2)) ** 0.5) / denominator
     return max(0.0, centre - margin), min(1.0, centre + margin)
+
+
+def mcnemar_exact(
+    correct_a: list[bool],
+    correct_b: list[bool],
+) -> dict[str, float | int]:
+    """Exact (binomial) McNemar test for two methods graded on the same tasks.
+
+    Args:
+        correct_a: Per-task correctness of method A.
+        correct_b: Per-task correctness of method B, in the same task order.
+
+    Returns:
+        Dict with ``a_only`` (A right, B wrong), ``b_only`` (B right, A wrong)
+        and the two-sided ``p_value``. With no discordant pairs p_value is 1.0.
+    """
+    if len(correct_a) != len(correct_b):
+        raise ValueError("McNemar needs the same tasks for both methods")
+    a_only = sum(1 for a, b in zip(correct_a, correct_b, strict=True) if a and not b)
+    b_only = sum(1 for a, b in zip(correct_a, correct_b, strict=True) if b and not a)
+    n = a_only + b_only
+    if n == 0:
+        return {"a_only": 0, "b_only": 0, "p_value": 1.0}
+    k = min(a_only, b_only)
+    tail = sum(math.comb(n, i) for i in range(k + 1)) / 2**n
+    return {"a_only": a_only, "b_only": b_only, "p_value": min(1.0, 2 * tail)}

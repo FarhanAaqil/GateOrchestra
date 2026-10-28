@@ -45,7 +45,14 @@ GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL_NAME: str = os.getenv("GROQ_MODEL_NAME", "qwen/qwen3.8-27b")
 GROQ_API_BASE: str = os.getenv("GROQ_API_BASE", "https://api.groq.com/openai/v1")
 LLM_REQUEST_TIMEOUT_SECONDS: float = float(os.getenv("GATE_LLM_TIMEOUT", "300"))
-PROBE_TOKEN_BUDGET: int = 500  # Max tokens the probe may spend per task
+PROBE_TOKEN_BUDGET: int = 1000
+"""Completion-token budget for one whole CoT-SC probe (all samples together).
+
+Split evenly across samples: 1000 // 3 = 333 completion tokens per sample,
+which is what every recorded real run used. Reported probe tokens are the
+provider's true totals (prompt + completion), so they exceed this figure.
+"""
+
 COT_SC_N_SAMPLES: int = 3  # Number of CoT-SC samples per probe run
 COT_SC_TEMPERATURE: float = 0.7  # Sampling temperature for CoT-SC
 

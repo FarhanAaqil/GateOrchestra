@@ -13,7 +13,9 @@ pytest.importorskip("httpx")
 
 from fastapi.testclient import TestClient
 
+import api.main as api_main
 from api.main import app
+from gate.classifier import ConstantGate
 from shared.data_loader import load_split
 
 
@@ -21,6 +23,15 @@ from shared.data_loader import load_split
 def client() -> TestClient:
     """Create a test client for the FastAPI app."""
     return TestClient(app)
+
+
+@pytest.fixture
+def trained_gate(monkeypatch: pytest.MonkeyPatch) -> ConstantGate:
+    """Provide a trained gate without touching configs/models/."""
+    gate = ConstantGate("STOP")
+    gate.train([], ["STOP"])
+    monkeypatch.setattr(api_main, "_CACHED_LEARNED_GATE", gate)
+    return gate
 
 
 class TestDiscoveryAndHealth:
@@ -43,8 +54,16 @@ class TestDiscoveryAndHealth:
         assert response.status_code == 200
         data = response.json()
         assert "methods" in data
-        assert len(data["methods"]) >= 7
         method_ids = [m["id"] for m in data["methods"]]
+        # Only methods the evaluation can produce; no dummy-trained gates.
+        assert set(method_ids) == {
+            "GateOrchestra",
+            "RuleBasedGate",
+            "RandomGate",
+            "Always-MAS",
+            "CoT-SC",
+        }
+        assert all(m["name"].isascii() for m in data["methods"])
         assert "GateOrchestra" in method_ids
         assert "RuleBasedGate" in method_ids
         assert "RandomGate" in method_ids
@@ -113,7 +132,7 @@ class TestExecutionAndHistory:
         assert "gate_decision" in data
         assert data["gate_decision"]["decision"] in ("STOP", "ESCALATE")
 
-    def test_run_gateorchestra_trained(self, client: TestClient) -> None:
+    def test_run_gateorchestra_trained(self, client: TestClient, trained_gate) -> None:
         payload = {
             "task_id": "test-gto-01",
             "question": "In what year was Python released?",
@@ -160,12 +179,61 @@ class TestExecutionAndHistory:
         assert data["probe_tokens"] is None
         assert data["mas_tokens"] is not None
 
+    def test_simulation_never_sees_or_grades_the_ground_truth(self, client: TestClient) -> None:
+        for method in ("CoT-SC", "Always-MAS", "RuleBasedGate", "RandomGate"):
+            payload = {
+                "task_id": f"test-leak-{method}",
+                "question": "What is the capital of Tanzania's semi-autonomous archipelago?",
+                "ground_truth": "Zanzibar",
+                "method": method,
+                "force_simulation": True,
+            }
+            data = client.post("/run", json=payload).json()
+            assert data["simulated"] is True
+            assert data["is_correct"] is None
+            assert "zanzibar" not in data["predicted_answer"].lower()
+
+    def test_random_gate_varies_across_requests(self, client: TestClient) -> None:
+        decisions = set()
+        for i in range(12):
+            payload = {
+                "task_id": f"test-rand-{i}",
+                "question": "Which is larger: the Moon or Mars?",
+                "method": "RandomGate",
+                "force_simulation": True,
+            }
+            decisions.add(client.post("/run", json=payload).json()["gate_decision"]["decision"])
+        assert decisions == {"STOP", "ESCALATE"}
+
+    def test_gateorchestra_without_trained_gate_returns_503(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path
+    ) -> None:
+        monkeypatch.setattr(api_main, "_CACHED_LEARNED_GATE", None)
+        monkeypatch.setattr(api_main, "_gate_model_candidates", lambda: [tmp_path / "none.pkl"])
+        payload = {
+            "task_id": "test-no-gate",
+            "question": "Question?",
+            "method": "GateOrchestra",
+            "force_simulation": True,
+        }
+        response = client.post("/run", json=payload)
+        assert response.status_code == 503
+        assert "No trained gate" in response.json()["detail"]
+
+    def test_demo_summary_has_no_hardcoded_numbers(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path
+    ) -> None:
+        monkeypatch.setattr(api_main, "MASTER_RESULTS_PATH", tmp_path / "missing.json")
+        data = client.get("/demo/summary").json()
+        assert data["status"] == "no_results"
+        assert data["aggregated"] == []
+
     def test_history_contains_executed_runs(self, client: TestClient) -> None:
         hist_resp = client.get("/history")
         assert hist_resp.status_code == 200
         history_data = hist_resp.json()
         assert history_data["count"] >= 4
-        assert history_data["history"][0]["task_id"] == "test-mas-01"
+        assert any(run["task_id"] == "test-mas-01" for run in history_data["history"])
 
     def test_run_unknown_method_raises_400(self, client: TestClient) -> None:
         payload = {
@@ -177,3 +245,53 @@ class TestExecutionAndHistory:
         response = client.post("/run", json=payload)
         assert response.status_code == 400
         assert "Unknown method" in response.json()["detail"]
+
+
+class TestGateProvenance:
+    def _isolate(self, monkeypatch: pytest.MonkeyPatch, paths) -> None:
+        monkeypatch.setattr(api_main, "_CACHED_LEARNED_GATE", None)
+        monkeypatch.setattr(api_main, "_CACHED_GATE_INFO", None)
+        monkeypatch.setattr(api_main, "_CACHED_GATE_KEY", None)
+        monkeypatch.setattr(api_main, "_gate_model_candidates", lambda: paths)
+
+    def test_gate_without_build_info_is_never_served(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path
+    ) -> None:
+        import pickle
+
+        legacy = ConstantGate("STOP")
+        legacy.train([], ["STOP"])
+        path = tmp_path / "best_gate.pkl"
+        path.write_bytes(pickle.dumps(legacy))  # written without save(): no build_info
+        self._isolate(monkeypatch, [path])
+
+        assert client.get("/models").json()["trained_gate"] is None
+        payload = {
+            "task_id": "t",
+            "question": "Q?",
+            "method": "GateOrchestra",
+            "force_simulation": True,
+        }
+        assert client.post("/run", json=payload).status_code == 503
+
+    def test_newest_benchmark_gate_is_served_with_provenance(
+        self, client: TestClient, monkeypatch: pytest.MonkeyPatch, tmp_path
+    ) -> None:
+        gate = ConstantGate("STOP")
+        gate.train([], ["STOP"])
+        path = tmp_path / "best_gate_seed_123.pkl"
+        gate.save(path)
+        self._isolate(monkeypatch, [path])
+
+        info = client.get("/models").json()["trained_gate"]
+        assert info["seed"] == 123
+        assert info["classifier"] == "ConstantGate"
+        assert info["degenerate"] is True
+        assert info["build_info"]["sklearn_version"]
+        payload = {
+            "task_id": "t2",
+            "question": "Q?",
+            "method": "GateOrchestra",
+            "force_simulation": True,
+        }
+        assert client.post("/run", json=payload).status_code == 200

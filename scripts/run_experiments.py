@@ -59,6 +59,7 @@ from gate.classifier import (
     GateClassifier,
     GBTGate,
     features_to_array,
+    load_benchmark_gate,
 )
 from gate.feature_extractor import extract_features
 from gate.random_gate import RandomGate
@@ -68,7 +69,7 @@ from integration.pipeline import run_pipeline
 from shared.config import (
     K_DEFAULT,
     K_VALUES,
-    LOGS_DIR,
+    MODELS_DIR,
     PROBE_TOKEN_BUDGET,
 )
 from shared.data_loader import load_split
@@ -603,22 +604,12 @@ def run_experiments(
         ans, tok = sim_mas(t, b)
         return ans, tok
 
-    # Load trained Gate
-    gate_model_path = LOGS_DIR / "week7_real_gbt_gate.pkl"
-    if not gate_model_path.exists():
-        gate_model_path = LOGS_DIR / "week2_best_gate.pkl"
-
-    learned_gate = None
-    if gate_model_path.exists():
-        try:
-            logger.info(f"[*] Loading learned GBT gate from {gate_model_path}")
-            learned_gate = GateClassifier.load(gate_model_path)
-        except Exception as e:
-            logger.warning(
-                f"[!] Failed to load learned GBT gate from {gate_model_path} ({e}); "
-                "falling back to dynamically training a fallback GBT gate."
-            )
-            learned_gate = None
+    # Learned gate: the benchmark-calibrated one if it exists, else a gate trained
+    # below on simulated features (this whole script is a simulation).
+    found = load_benchmark_gate(MODELS_DIR)
+    learned_gate = found[0] if found is not None else None
+    if found is not None:
+        logger.info(f"[*] Using benchmark gate {found[1]['path']}")
 
     if learned_gate is None:
         logger.info("[*] Training fallback GBT gate on dataset features")

@@ -21,6 +21,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
+from shared.grading import is_correct
 from shared.schemas import Task
 
 logger = logging.getLogger(__name__)
@@ -144,10 +145,8 @@ class ErrorAnalyzer:
 
     @staticmethod
     def is_exact_match(prediction: str, ground_truth: str) -> bool:
-        """Check if normalized prediction matches normalized ground truth."""
-        norm_pred = prediction.strip().lower().rstrip(".").strip("'\"")
-        norm_gt = ground_truth.strip().lower().rstrip(".").strip("'\"")
-        return norm_pred == norm_gt
+        """Grade with the canonical grader (see shared/grading.py)."""
+        return is_correct(prediction, ground_truth)
 
     def diagnose_error(
         self,
@@ -279,7 +278,7 @@ class ErrorAnalyzer:
 
         for task in tasks:
             pred = predictions.get(task.task_id, "")
-            if not self.is_exact_match(pred, str(task.ground_truth)):
+            if not is_correct(pred, str(task.ground_truth), task.answer_aliases):
                 annotation = self.diagnose_error(task, pred)
                 annotations.append(annotation)
 

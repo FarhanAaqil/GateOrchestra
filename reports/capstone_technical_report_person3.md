@@ -7,6 +7,12 @@
 > **Scope:** `shared/`, `gate/`, `integration/`, `api/`, `tests/`, `scripts/`  
 > **Status:** Final Capstone Technical Deliverable (Week 7)
 
+> **Results status (October 2026): every number in this document comes from the SIMULATED pipeline**
+> (`mode: mock`, `logs/results/week5_evaluation.json`, `logs/results/week6_*.json`). The simulator
+> builds probe samples from the ground truth and decides MAS correctness from fixed rates, so these
+> figures describe the simulator, not GateOrchestra, and must not be cited as results. The real-LLM
+> status is in `README.md` and `reports/research_report.md` (Sections 8.5–8.6).
+
 ---
 
 ## Executive Summary
@@ -15,10 +21,12 @@ Multi-Agent Systems (MAS) composed of decomposing, debating, or self-reflecting 
 
 **GateOrchestra** resolves this fundamental efficiency bottleneck by placing a lightweight, trainable pre-execution decision gate directly ahead of the MAS orchestrator. Using only early single-agent signals (extracted from a cheap Chain-of-Thought Self-Consistency probe) and structural query characteristics, GateOrchestra dynamically predicts whether the task can be safely answered immediately (**STOP**) or genuinely requires expensive multi-agent escalation (**ESCALATE**), while enforcing an explicit budget ceiling capped at $k \times \text{probe\_tokens}$.
 
-This report documents the end-to-end architecture, mathematical formulation, empirical ablation suite, Pareto optimality frontiers, failure taxonomies, and sub-agent bandit routing policies designed and implemented by Person 3. Across extensive 3-seed evaluations on the held-out `masbench_mini` test split, GateOrchestra achieves:
-1. **Token Savings (RQ1):** **78.37% ± 1.79%** average token savings compared to an un-gated Always-MAS baseline, dramatically exceeding the capstone target threshold of $\ge 40\%$.
-2. **Accuracy Preservation (RQ2):** Test accuracy of **82.29% ± 7.86%** (and up to **87.5%** with calibrated GBT gating), outperforming Always-MAS (67.71% ± 9.55%) by +14.58 percentage points due to the elimination of multi-agent overthinking and distraction.
-3. **Pareto Dominance (RQ3):** Complete Pareto frontier dominance across budget multipliers $k \in \{2, 3, 5\}$ and sample sensitivities $N \in \{3, 5, 7\}$.
+This report documents the end-to-end architecture, mathematical formulation, empirical ablation suite, Pareto optimality frontiers, failure taxonomies, and sub-agent bandit routing policies designed and implemented by Person 3. In the 3-seed *simulated* evaluation on the held-out `masbench_mini` test split (not real LLM results):
+1. **RQ1 (simulated):** 78.37% ± 1.79% token savings versus the simulated Always-MAS baseline. The simulated gate almost never escalates, so this matches CoT-SC-only (78.20%).
+2. **RQ2 (simulated):** 82.29% ± 7.86% accuracy versus 67.71% ± 9.55% for the simulated Always-MAS. Both accuracies are set by the simulator's assumed rates and say nothing about real multi-agent behaviour.
+3. **RQ3 (simulated):** a Pareto sweep over $k \in \{2, 3, 5\}$ and $N \in \{3, 5, 7\}$, again inside the simulator.
+
+The only real-LLM run so far (5 test tasks, 1 seed) cannot distinguish any of the methods.
 
 ---
 
@@ -90,8 +98,8 @@ To support live demonstrations (Week 4 & Week 8), Person 3 authored the FastAPI 
   - `GET /models`: Lists available local (Ollama) and cloud (Groq) LLM backends.
   - `GET /tasks`: Paginated explorer for the `masbench_mini` dataset.
   - `POST /run`: End-to-end execution of a single task through `run_pipeline()`, returning full token traces, intermediate probe decisions, and final predictions.
-  - `POST /batch`: Batch evaluation endpoint with aggregate token savings and accuracy metrics.
-- Seamless fallback: Automatically transitions from live LLM backends to simulated inference agents if external API keys or local Ollama servers are offline.
+  - `GET /demo/summary`: The recorded real benchmark results with their verification status.
+- Simulation is opt-in only (`force_simulation` or `GATE_LLM_PROVIDER=mock`). A live failure returns HTTP 503; it never falls back to the simulator silently. Simulated runs never see the ground truth and are returned ungraded.
 
 ---
 
@@ -197,14 +205,14 @@ Five gating methodologies were evaluated under identical conditions:
 1. **CoT-SC-only:** Bypasses MAS completely; always returns probe answer.
 2. **Always-MAS:** Unconditional multi-agent orchestration for 100% of tasks.
 3. **RandomGate:** Random uniform escalation ($p = 0.5$).
-4. **RuleBasedGate:** Deterministic heuristic routing (ESCALATE if `consistency < 0.6` or `estimated_depth >= 3`).
+4. **RuleBasedGate:** STOP if `consistency >= 0.8` and `entity_count < 3`; otherwise ESCALATE if `estimated_depth >= 3` or `estimated_parallel >= 2`; otherwise STOP.
 5. **GateOrchestra (Learned GBT Gate):** Full 8-feature machine-learned gate.
 
 ### 4.2 Research Question 1 (RQ1): Token Efficiency
 
 > **RQ1:** Does GateOrchestra achieve at least **40% token savings** compared to Always-MAS?
 
-**Empirical Finding: YES. GateOrchestra achieves 78.37% ± 1.79% token savings.**
+**Simulation result (not evidence): 78.37% ± 1.79% token savings.**
 
 | Method | Mean Accuracy (%) | Mean Token Savings vs Always-MAS (%) | Avg Tokens per Task |
 |---|---|---|---|
@@ -216,22 +224,20 @@ Five gating methodologies were evaluated under identical conditions:
 
 *Source: `logs/results/week5_evaluation.json` aggregate 3-seed benchmark.*
 
-GateOrchestra achieves almost quadruple the token reduction target ($\ge 40\%$). By selectively stopping 96.9%–98.0% of tasks that single-agent CoT-SC solves accurately, GateOrchestra conserves thousands of expensive agent-to-agent reasoning tokens.
+The simulated gate stops on 96.9%–98.0% of tasks, so its cost is essentially CoT-SC-only's. Whether escalation is ever worth its cost has to be measured with a real LLM.
 
 ### 4.3 Research Question 2 (RQ2): Accuracy Preservation & Anti-Overthinking
 
 > **RQ2:** Does GateOrchestra maintain competitive accuracy within **2 percentage points** of Always-MAS?
 
-**Empirical Finding: YES. In fact, GateOrchestra OUTPERFORMS Always-MAS by +14.58 percentage points.**
+**Simulation result (not evidence): +14.58 points over the simulated Always-MAS.**
 
 - **Always-MAS Accuracy:** 67.71% ± 9.55%
 - **GateOrchestra Accuracy:** 82.29% ± 7.86%
 - **Delta:** **+14.58%** in favor of GateOrchestra.
 
 #### The "Overthinking" Phenomenon in Multi-Agent Systems
-In un-gated multi-agent frameworks, simple or moderately complex tasks are subjected to multi-agent debate, decomposition, or iterative reflection. Our error analysis demonstrates that during multi-agent deliberation on factual or direct arithmetic queries, sub-agents frequently introduce hallucinations, semantic drift, and conversational noise that overturns already-correct initial answers. 
-
-By confidently issuing a **STOP** decision when probe agreement is high, GateOrchestra shields correct single-agent deductions from multi-agent corruption.
+The "overthinking" explanation (multi-agent deliberation overturning correct single-agent answers) is a hypothesis from the literature (IlluMAS; Tran & Kiela). It cannot be tested in a simulator whose MAS accuracy is an input. Note also that the original Debate and Reflexion prompts dropped the task context and the previous draft after the first round, which alone would make MAS look worse; that defect has been fixed.
 
 ### 4.4 Research Question 3 (RQ3): Multi-Objective Pareto Frontier Optimality
 
@@ -355,7 +361,7 @@ Mapping the 2 failed test cases to the repository error taxonomy identifies spec
 
 GateOrchestra includes three production-grade safety mechanisms:
 1. **Deterministic Budget Clamping:** Dynamic budget capping at $k \times \text{probe\_tokens}$ prevents runaway token consumption or recursive multi-agent infinite loops.
-2. **Probe Answer Caching:** The probe's majority-voted answer is permanently cached in memory. If any network timeout, rate limit (HTTP 429), or MAS crash occurs, the pipeline falls back to the probe answer without failing the user request.
+2. **Failures are failures:** a failed LLM call raises (`SubAgentError`, `ProbeError`) instead of producing an answer, so the evaluation retries it and never records a provider error as a cheap answer. Groq HTTP 429 responses are retried with backoff.
 3. **Graceful Dependency Degradation:** All plotting and visualization dependencies (e.g., `matplotlib`) degrade gracefully in headless cloud runners, ensuring zero test or execution failures in minimal container environments.
 
 ---
@@ -363,9 +369,9 @@ GateOrchestra includes three production-grade safety mechanisms:
 ## 6. Conclusion & Roadmap to Week 8
 
 ### 6.1 Capstone Research Objectives Summary
-- **RQ1 (Token Reduction):** Target $\ge 40\%$ $\to$ **Achieved 78.37%**.
-- **RQ2 (Accuracy Preservation):** Target $\le 2\text{ pt}$ loss $\to$ **Achieved +14.58 pt accuracy gain**.
-- **RQ3 (Pareto Optimality):** Target Frontier Dominance $\to$ **Dominated across all $k \in \{2, 3, 5\}$ and $N \in \{3, 5, 7\}$**.
+- **RQ1 (Token Reduction):** Target $\ge 40\%$. Simulated 78.37%; real result pending the 32-task, 3-seed benchmark.
+- **RQ2 (Accuracy Preservation):** Target $\le 2$ pt loss. Simulated +14.58 pt; real result pending.
+- **RQ3 (Pareto Optimality):** Simulated sweep over $k \in \{2, 3, 5\}$ and $N \in \{3, 5, 7\}$; real result pending.
 
 ### 6.2 Week 8 Handoff
 With architectural contracts, gating models, ablation diagnostics, and capstone report authoring completed for Person 3, the final sprint (Week 8) focuses on:

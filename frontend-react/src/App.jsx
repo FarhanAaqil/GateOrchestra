@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import './App.css'
 import Benchmarks from './components/Benchmarks'
 import ChatComposer from './components/ChatComposer'
@@ -8,7 +8,10 @@ import Navbar from './components/Navbar'
 import Schedules from './components/Schedules'
 import Sidebar from './components/Sidebar'
 import StatCard from './components/StatCard'
-import { checkHealth, runGateOrchestra } from './services/api'
+import { checkHealth, fetchBenchmarkSummary, fetchModels, runGateOrchestra } from './services/api'
+
+// Live escalations can take minutes (rate limits, several LLM calls); give up after 5.
+const RUN_TIMEOUT_MS = 5 * 60 * 1000
 
 function createConversation(initialTitle = 'New task trace') {
   const now = new Date().toISOString()
@@ -32,6 +35,12 @@ function App() {
   const [apiOnline, setApiOnline] = useState(null)
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
   const [view, setView] = useState('chat')
+  const [modelLabel, setModelLabel] = useState('')
+  const [gateInfo, setGateInfo] = useState(undefined)
+  const [runStartedAt, setRunStartedAt] = useState(null)
+  const [now, setNow] = useState(() => Date.now())
+  const abortRef = useRef(null)
+  const [benchmark, setBenchmark] = useState(null)
 
   const activeConversation = conversations.find((c) => c.id === activeId)
   const latestResult = [...(activeConversation?.messages || [])].reverse().find((m) => m.result)?.result || null
@@ -45,9 +54,25 @@ function App() {
     checkHealth()
       .then(() => setApiOnline(true))
       .catch(() => setApiOnline(false))
+    fetchModels()
+      .then((data) => {
+        setModelLabel(`${data.current_provider} / ${data.default_model}`)
+        setGateInfo(data.trained_gate ?? null)
+      })
+      .catch(() => setModelLabel(''))
+    fetchBenchmarkSummary()
+      .then(setBenchmark)
+      .catch(() => setBenchmark(null))
   }, [])
 
-  const handleSubmit = async (question, selectedStrategy, taskContext = null, groundTruth = null, taskIdOverride = null) => {
+  const handleSubmit = async (
+    question,
+    selectedStrategy,
+    taskContext = null,
+    groundTruth = null,
+    taskIdOverride = null,
+    simulate = false,
+  ) => {
     const conversation = activeConversation || createConversation()
     if (!activeConversation) {
       setConversations((current) => [conversation, ...current])
@@ -66,6 +91,12 @@ function App() {
 
     setLoading(true)
     setError('')
+    const controller = new AbortController()
+    abortRef.current = controller
+    const timeout = setTimeout(() => controller.abort('timeout'), RUN_TIMEOUT_MS)
+    const startedAt = Date.now()
+    setRunStartedAt(startedAt)
+    setNow(startedAt)
 
     try {
       const data = await runGateOrchestra({
@@ -75,7 +106,8 @@ function App() {
         ground_truth: groundTruth,
         method,
         k: 3,
-      })
+        force_simulation: simulate,
+      }, { signal: controller.signal })
 
       updateConversation(conversation.id, (current) => ({
         ...current,
@@ -91,18 +123,38 @@ function App() {
         ],
       }))
     } catch (err) {
-      setError(err.message || 'Could not connect to GateOrchestra backend.')
+      if (controller.signal.aborted) {
+        const why = controller.signal.reason === 'timeout' ? 'Run timed out after 5 minutes' : 'Run cancelled'
+        setError(
+          `${why}. The server may still finish it; it will then appear under Benchmarks › Recent Executions.`,
+        )
+      } else {
+        setError(err.message || 'Could not connect to GateOrchestra backend.')
+      }
     } finally {
+      clearTimeout(timeout)
+      abortRef.current = null
+      setRunStartedAt(null)
       setLoading(false)
     }
   }
+
+  const handleCancel = () => abortRef.current?.abort('cancelled')
+
+  useEffect(() => {
+    if (runStartedAt === null) return undefined
+    const tick = setInterval(() => setNow(Date.now()), 1000)
+    return () => clearInterval(tick)
+  }, [runStartedAt])
+  const elapsedSeconds = runStartedAt === null ? 0 : Math.max(0, Math.round((now - runStartedAt) / 1000))
 
   const handleSelectBenchmarkTask = (task) => {
     setView('chat')
     const conversation = createConversation(`Task: ${task.task_id}`)
     setConversations((current) => [conversation, ...current])
     setActiveId(conversation.id)
-    handleSubmit(task.question, 'GateOrchestra', task.context, task.ground_truth, task.task_id)
+    const method = gateInfo === null ? 'CoT-SC' : 'GateOrchestra'
+    handleSubmit(task.question, method, task.context, task.ground_truth, task.task_id)
   }
 
   const handleNewChat = () => {
@@ -124,17 +176,33 @@ function App() {
     if (activeId === id) setActiveId(null)
   }
 
-  // Dynamic KPI calculations
-  const totalTokens = latestResult?.tokens_spent ?? 170
-  const alwaysMasTokens = Math.max(totalTokens, Math.round(totalTokens * 2.8) || 650)
-  const savingsPct = latestResult?.gate_decision?.decision === 'STOP'
-    ? Math.round(((alwaysMasTokens - totalTokens) / alwaysMasTokens) * 100)
-    : 0
+  // KPI cards show only values the backend actually returned.
+  const decision = latestResult?.gate_decision
+  const gradeLabel = !latestResult
+    ? '—'
+    : latestResult.is_correct === true
+      ? 'Correct'
+      : latestResult.is_correct === false
+        ? 'Incorrect'
+        : 'Ungraded'
+  const gradeDetail = !latestResult
+    ? 'Run a task to see its result'
+    : latestResult.simulated
+      ? 'Simulated run: no LLM, not graded'
+      : latestResult.is_correct === null
+        ? 'No ground truth supplied'
+        : 'Graded against the ground truth'
+  const gateRow = benchmark?.aggregated?.find((row) => row.method === 'GateOrchestra')
+  const benchmarkValue = gateRow ? `${gateRow.accuracy_mean.toFixed(1)}%` : '—'
+  const benchmarkDetail = gateRow
+    ? `GateOrchestra accuracy, ${gateRow.n_seeds} seed(s), n=${benchmark.n_per_split ?? 'full'}`
+    : 'No benchmark results recorded'
 
   return (
     <div className="app-shell">
       <Navbar
         apiOnline={apiOnline}
+        modelLabel={modelLabel}
         onNewExecution={handleNewChat}
       />
 
@@ -149,38 +217,42 @@ function App() {
           onOpenConversation={openConversation}
           onDelete={deleteConversation}
           onNavigate={(nextView) => setView(nextView)}
+          modelLabel={modelLabel}
+          gateInfo={gateInfo}
         />
 
         <main className="workspace-shell">
           {/* Top KPI Stat Cards */}
           <div className="kpi-grid">
             <StatCard
-              label="Token Savings"
-              value={savingsPct > 0 ? `+${savingsPct}%` : '+74.0%'}
-              detail="vs un-gated Always-MAS ceiling"
-              type="savings"
-              badge="PARETO KNEE"
-            />
-            <StatCard
               label="Gate Decision"
-              value={latestResult?.gate_decision?.decision || 'STOP (Fast Path)'}
-              detail={`Confidence: ${Math.round((latestResult?.gate_decision?.confidence ?? 0.99) * 100)}% • GBT Gate`}
+              value={decision?.decision || (latestResult ? 'No gate' : '—')}
+              detail={
+                decision
+                  ? `Confidence ${Math.round(decision.confidence * 100)}% • ${decision.gate_type} gate`
+                  : latestResult
+                    ? `${latestResult.method} does not use a gate`
+                    : 'Run a task to see the routing decision'
+              }
               type="cyan"
-              badge="ADAPTIVE"
             />
             <StatCard
-              label="Total Tokens Spent"
-              value={`${totalTokens}`}
-              detail={`Probe: ${latestResult?.probe_tokens ?? totalTokens} | MAS: ${latestResult?.mas_tokens ?? 0}`}
+              label="Tokens Spent"
+              value={latestResult ? `${latestResult.tokens_spent}` : '—'}
+              detail={
+                latestResult
+                  ? `Probe: ${latestResult.probe_tokens ?? 0} | MAS: ${latestResult.mas_tokens ?? 0}`
+                  : 'Prompt + completion, as reported by the provider'
+              }
               type="default"
-              badge="k=3 BUDGET"
             />
+            <StatCard label="Answer" value={gradeLabel} detail={gradeDetail} type="default" />
             <StatCard
-              label="Accuracy Retention"
-              value="40.0%"
-              detail="Wilson 95% CI: [11.8%, 76.9%] on test split"
+              label="Benchmark"
+              value={benchmarkValue}
+              detail={benchmarkDetail}
               type="default"
-              badge="EMPIRICAL"
+              badge={benchmark ? benchmark.status.replace('_', ' ').toUpperCase() : null}
             />
           </div>
 
@@ -199,10 +271,14 @@ function App() {
               <ChatComposer
                 onSubmit={handleSubmit}
                 loading={loading}
+                modelLabel={modelLabel}
+                gateInfo={gateInfo}
+                elapsedSeconds={elapsedSeconds}
+                onCancel={handleCancel}
               />
             </div>
           ) : (
-            <ViewComponent view={view} onSelectTask={handleSelectBenchmarkTask} />
+            <ViewComponent view={view} onSelectTask={handleSelectBenchmarkTask} benchmark={benchmark} />
           )}
         </main>
       </div>
@@ -210,9 +286,9 @@ function App() {
   )
 }
 
-function ViewComponent({ view, onSelectTask }) {
+function ViewComponent({ view, onSelectTask, benchmark }) {
   if (view === 'evolution') return <Evolution />
-  if (view === 'benchmarks') return <Benchmarks onSelectTask={onSelectTask} />
+  if (view === 'benchmarks') return <Benchmarks onSelectTask={onSelectTask} benchmark={benchmark} />
   if (view === 'schedules') return <Schedules />
   return (
     <div className="welcome-box">

@@ -55,6 +55,11 @@ class Task(BaseModel):
         default=None,
         description="Gold answer for evaluation. May be absent at inference time.",
     )
+    answer_aliases: tuple[str, ...] = Field(
+        default=(),
+        description="Other acceptable answers, graded by shared.grading.is_correct. "
+        "A value like 'Bush && Republican' requires every part to appear.",
+    )
     source_dataset: str | None = Field(
         default=None,
         description="Origin dataset: 'hotpotqa', 'musique', 'template_arithmetic', etc.",

@@ -3,11 +3,21 @@ agents/probe_agent.py
 =====================
 CoT-SC (Chain-of-Thought with Self-Consistency) Probe Agent.
 
-Advanced capabilities:
-  - Sequential Early-Exit SPRT (stops sampling early if high unanimity reached, saving up to 60% tokens).
-  - Semantic Soft Majority Voting (robust clustering for phrasing variations).
+Capabilities:
+  - Majority-locked early exit (optional): stops sampling once the leading
+    answer already holds a strict majority of n_samples, so the remaining
+    samples cannot change the vote.
+  - Majority voting with the canonical grader's equivalence
+    (shared.grading.answers_equivalent): "Paris" and "Paris, France" agree,
+    "30 cm" and "60 cm" do not.
+  - Failed LLM calls are failures, not votes: they lower consistency and, if
+    every sample fails, ProbeError is raised.
   - Pluggable LLM callers and zero-shot CoT prompting.
   - Generates validated ProbeResult conforming to shared/schemas.py.
+
+Token budget: ``token_budget`` is the completion-token budget for the whole
+probe, split evenly across samples. ``ProbeResult.tokens_used`` reports the
+provider's true total (prompt + completion) for every sample.
 
 Usage::
 
@@ -40,6 +50,7 @@ from shared.config import (
     MODEL_NAME,
     PROBE_TOKEN_BUDGET,
 )
+from shared.grading import answers_equivalent
 from shared.schemas import ProbeResult, Task
 
 logger = logging.getLogger(__name__)
@@ -125,13 +136,8 @@ def build_cot_prompt(task: Task) -> str:
     return "\n\n".join(parts)
 
 
-def _token_jaccard_similarity(s1: str, s2: str) -> float:
-    """Compute token-level Jaccard similarity between two candidate strings."""
-    tokens1 = set(s1.split())
-    tokens2 = set(s2.split())
-    if not tokens1 or not tokens2:
-        return 1.0 if tokens1 == tokens2 else 0.0
-    return len(tokens1 & tokens2) / len(tokens1 | tokens2)
+class ProbeError(RuntimeError):
+    """Raised when no probe sample produced a usable response."""
 
 
 # ProbeAgent Class
@@ -140,19 +146,20 @@ def _token_jaccard_similarity(s1: str, s2: str) -> float:
 class ProbeAgent:
     """Chain-of-Thought Self-Consistency (CoT-SC) Probe Agent.
 
-    Advanced features:
-      - Multi-Provider Support: Works seamlessly with local Ollama or Groq Cloud.
-      - Sequential Early-Exit SPRT: If early samples show overwhelming agreement,
-        terminates sampling early to conserve token budget.
-      - Semantic Soft Clustering: Groups semantically equivalent answers.
+    Features:
+      - Multi-Provider Support: Works with local Ollama or Groq Cloud.
+      - Majority-locked early exit: once the leading answer holds a strict
+        majority of n_samples, the remaining samples are skipped.
+      - Equivalence-based voting via shared.grading.answers_equivalent.
 
     Args:
         model_name: Name of the LLM (defaults to config.MODEL_NAME or GROQ_MODEL_NAME).
         api_base: Base URL for LLM API (defaults to config.MODEL_API_BASE or GROQ_API_BASE).
         n_samples: Number of CoT samples for self-consistency (defaults to config.COT_SC_N_SAMPLES).
         temperature: Sampling temperature (defaults to config.COT_SC_TEMPERATURE).
-        token_budget: Max token budget for the probe run (defaults to config.PROBE_TOKEN_BUDGET).
-        early_exit: Enable sequential early stopping on unanimous confidence (saves tokens).
+        token_budget: Completion-token budget for the whole probe, split evenly across
+            samples (defaults to config.PROBE_TOKEN_BUDGET).
+        early_exit: Stop sampling once the majority answer can no longer change.
         provider: 'ollama' | 'groq' (defaults to config.LLM_PROVIDER).
         api_key: Optional Groq API key (defaults to config.GROQ_API_KEY).
         llm_caller: Optional custom callable (prompt, temp, budget) -> (text, tokens).
@@ -211,13 +218,17 @@ class ProbeAgent:
 
         Returns:
             ProbeResult with majority answer, consistency_score, tokens_used, etc.
+
+        Raises:
+            ProbeError: If every sample failed.
         """
         start_time = time.perf_counter()
         prompt = build_cot_prompt(task)
-        sample_budget = min(self.token_budget, max(300, (self.token_budget * 2) // self.n_samples))
+        sample_budget = max(1, self.token_budget // self.n_samples)
 
         raw_outputs: list[str] = []
-        extracted_answers: list[str] = []
+        extracted_answers: list[str] = []  # successful samples only
+        failures: list[str] = []
         total_tokens = 0
 
         for i in range(self.n_samples):
@@ -225,27 +236,33 @@ class ProbeAgent:
                 response_text, tokens = self._call(prompt, sample_budget)
             except Exception as err:
                 logger.error(f"[ProbeAgent] Sample {i+1}/{self.n_samples} failed: {err}")
-                response_text = f"Error: {err}"
-                tokens = 0
+                failures.append(f"{type(err).__name__}: {err}")
+                raw_outputs.append(f"Error: {type(err).__name__}: {err}")
+                continue
 
-            # Ensure non-empty output to satisfy schema validation
-            safe_output = response_text.strip() if response_text.strip() else "No response"
-            raw_outputs.append(safe_output)
-            extracted_answers.append(extract_answer(safe_output))
             total_tokens += tokens
+            if not response_text.strip():
+                raw_outputs.append("No response")
+                continue
+            raw_outputs.append(response_text.strip())
+            extracted_answers.append(extract_answer(response_text))
 
-            # Sequential Early-Exit Check (SPRT)
-            if self.early_exit and i >= 2:  # at least 3 samples collected
-                majority_candidate, current_consistency = self._majority_vote(extracted_answers)
-                # If unanimous across 3 samples, early-stop to save tokens
-                if current_consistency == 1.0:
-                    logger.debug(
-                        f"[ProbeAgent] Early-exit triggered at sample {i+1}/{self.n_samples} with 100% agreement"
-                    )
-                    break
+            if self.early_exit and self._majority_locked(extracted_answers):
+                logger.debug(
+                    f"[ProbeAgent] Early exit after {i+1}/{self.n_samples} samples: "
+                    "majority can no longer change"
+                )
+                break
 
-        # Majority voting with normalization & semantic clustering
-        majority_answer, consistency_score = self._majority_vote(extracted_answers)
+        if not extracted_answers:
+            raise ProbeError(
+                f"All {len(raw_outputs)} probe samples failed for task_id={task.task_id!r}: "
+                f"{failures[-1] if failures else 'empty responses'}"
+            )
+
+        # Failed or empty samples count against agreement (denominator = samples drawn).
+        majority_answer, agreeing = self._majority_cluster(extracted_answers)
+        consistency_score = agreeing / len(raw_outputs)
 
         latency_ms = (time.perf_counter() - start_time) * 1000.0
 
@@ -259,54 +276,41 @@ class ProbeAgent:
             model_name=self.model_name,
         )
 
+    def _majority_locked(self, answers: list[str]) -> bool:
+        """True once the leading answer holds a strict majority of n_samples."""
+        if len(answers) < 2:
+            return False
+        _, leading = self._majority_cluster(answers)
+        return leading * 2 > self.n_samples
+
     def __call__(self, task: Task) -> ProbeResult:
         """Allow ProbeAgent instance to be used directly as a Callable[[Task], ProbeResult]."""
         return self.run(task)
 
+    @staticmethod
+    def _majority_cluster(answers: list[str]) -> tuple[str, int]:
+        """Group equivalent answers; return (representative answer, cluster size).
+
+        Ties go to the cluster seen first.
+        """
+        clusters: list[list[str]] = []
+        for answer in answers:
+            for cluster in clusters:
+                if answers_equivalent(answer, cluster[0]):
+                    cluster.append(answer)
+                    break
+            else:
+                clusters.append([answer])
+        largest = max(clusters, key=len)
+        return largest[0], len(largest)
+
     @classmethod
     def _majority_vote(cls, answers: list[str]) -> tuple[str, float]:
-        """Aggregate candidate answers and compute consistency score with soft semantic grouping.
-
-        Returns:
-            tuple of (majority_answer, consistency_score).
-        """
+        """Return (majority_answer, fraction of answers that agree with it)."""
         if not answers:
             return "Unknown", 0.0
-
-        normalized_answers = [normalize_answer(a) for a in answers]
-
-        # Group by exact normalized match first
-        clusters: list[list[int]] = []  # list of index lists
-        for i, norm in enumerate(normalized_answers):
-            assigned = False
-            for cluster in clusters:
-                rep_norm = normalized_answers[cluster[0]]
-                # Match if identical or token Jaccard >= 0.5 or token subset overlap
-                tokens_a = set(norm.split())
-                tokens_b = set(rep_norm.split())
-                is_subset = bool(
-                    tokens_a
-                    and tokens_b
-                    and (tokens_a.issubset(tokens_b) or tokens_b.issubset(tokens_a))
-                )
-                if (
-                    norm == rep_norm
-                    or is_subset
-                    or _token_jaccard_similarity(norm, rep_norm) >= 0.5
-                ):
-                    cluster.append(i)
-                    assigned = True
-                    break
-            if not assigned:
-                clusters.append([i])
-
-        # Pick largest cluster
-        largest_cluster = max(clusters, key=len)
-        majority_idx = largest_cluster[0]
-        majority_ans = answers[majority_idx]
-        consistency = len(largest_cluster) / len(answers)
-
-        return majority_ans, consistency
+        answer, size = cls._majority_cluster(answers)
+        return answer, size / len(answers)
 
 
 # Module-level convenience function (satisfies ProbeAgentFn interface)

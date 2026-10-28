@@ -6,7 +6,7 @@ Week 7 Execution: End-to-end evaluation using REAL LLMs (Groq API).
 Runs real tasks through:
   - Real ProbeAgent (CoT-SC with Early-Exit on Groq)
   - Real MASOrchestrator (LinUCB Routing -> ReAct / Debate / Reflexion on Groq)
-  - GBTGate & RuleBasedGate classifiers
+  - The benchmark-calibrated gate (or RuleBasedGate if none exists)
   - Real TokenAccountant logging
 
 Usage:
@@ -30,10 +30,10 @@ sys.path.insert(0, str(ROOT))
 from agents.orchestrator import MASOrchestrator
 from agents.probe_agent import ProbeAgent
 from evaluation.metrics import compute_mas_strategy_allocation
-from gate.classifier import GBTGate
+from gate.classifier import load_benchmark_gate
 from gate.rule_based_gate import RuleBasedGate
 from integration.pipeline import run_pipeline
-from shared.config import K_DEFAULT, LOGS_DIR, WEEK8_BANDIT_STATE_PATH
+from shared.config import K_DEFAULT, LOGS_DIR, MODELS_DIR, WEEK8_BANDIT_STATE_PATH
 from shared.data_loader import load_split
 from shared.schemas import EvalResult
 from shared.token_logger import TokenAccountant
@@ -88,18 +88,14 @@ def main():
     else:
         print(f"[2] No existing bandit state found at {bandit_state_path.name}; starting fresh.")
 
-    # 3. Load or initialize Gate
-    gate_model_path = LOGS_DIR / "week2_best_gate.pkl"
-    if gate_model_path.exists():
-        try:
-            gate = GBTGate.load(gate_model_path)
-            print(f"[3] Loaded trained GBTGate from {gate_model_path.name}")
-        except Exception:
-            gate = RuleBasedGate()
-            print("[3] Using RuleBasedGate fallback")
+    # 3. Load the benchmark-calibrated gate (known provenance only)
+    found = load_benchmark_gate(MODELS_DIR)
+    if found is not None:
+        gate = found[0]
+        print(f"[3] Loaded {found[1]['classifier']} from {Path(found[1]['path']).name}")
     else:
         gate = RuleBasedGate()
-        print("[3] Using RuleBasedGate fallback")
+        print("[3] No benchmark-calibrated gate found; using RuleBasedGate")
 
     # 4. Run Live Batch
     print(f"\n[4] Executing Real Pipeline on {len(tasks)} tasks (Querying Groq Cloud)...")

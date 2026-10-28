@@ -89,15 +89,20 @@ Open your browser to:
 
 ## 3. Web Dashboard
 
-The frontend interface is served from `dashboard/src/`.
+The frontend is the React console in `frontend-react/`.
 
 ### Running Locally
-To run the dashboard web UI locally:
 
 ```bash
-python -m http.server 3000 --directory dashboard/src
+cd frontend-react
+npm install
+npm run dev -- --host 127.0.0.1 --port 5173
 ```
-Then navigate to [http://localhost:3000](http://localhost:3000) in your browser with the FastAPI backend running on port 8000.
+Then open [http://127.0.0.1:5173](http://127.0.0.1:5173) with the FastAPI backend running on port 8000.
+
+Simulated runs (`force_simulation: true`) exercise the routing only: the simulator never
+sees the ground truth, so these runs are returned with `is_correct: null` and
+`simulated: true`.
 
 ---
 
@@ -108,7 +113,7 @@ Then navigate to [http://localhost:3000](http://localhost:3000) in your browser 
 | **[1] User Task** | `Prompt`, `Context`, `Ground Truth` | Ingestion of raw query and ground-truth answer. |
 | **[2] Probe Agent** | `Probe Tokens`, `Consistency Score` | $N=3$ Chain-of-Thought paths sampled; majority agreement calculated. |
 | **[3] Features** | `8 Feature Vector` | Structural complexity (depth, parallel, words, entities, clauses, context). |
-| **[4] Gate Decision** | `STOP` or `ESCALATE` | GBT classifier evaluation with confidence and dynamic budget ceiling. |
-| **[5] Routing & MAS** | `Action` & `LinUCB Strategy` | Fast early exit (STOP) or LinUCB multi-agent routing (ReAct, Debate, Reflexion). |
-| **[6] Final Answer** | `Output` & `Evaluation` | Exact-match validation against ground truth. |
+| **[4] Gate Decision** | `STOP` or `ESCALATE` | Calibrated gate (or rule/random baseline) with confidence and budget cap. |
+| **[5] Routing & MAS** | `Action` & `Strategy` | STOP returns the probe answer; ESCALATE routes to ReAct, Debate or Reflexion (text heuristic by default, LinUCB optional). |
+| **[6] Final Answer** | `Output` & `Evaluation` | Graded by `shared/grading.py` against the ground truth and its aliases (live runs only). |
 | **[7] Telemetry** | `Tokens`, `Savings %`, `Latency` | Real-time token accountant comparison against Always-MAS. |

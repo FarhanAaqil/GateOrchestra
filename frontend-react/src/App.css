@@ -1017,3 +1017,79 @@
   font-size: 0.82rem;
   font-weight: 600;
 }
+
+/* ==========================================================================
+   Phone & small tablet (<= 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .top-nav {
+    padding: 0 16px;
+  }
+
+  .brand-sub,
+  .status-pill-telemetry {
+    display: none;
+  }
+
+  .main-wrapper {
+    flex-direction: column;
+    height: auto;
+    overflow: visible;
+  }
+
+  /* The rail becomes a horizontal tab strip; history and resources are hidden. */
+  .sidebar-rail,
+  .sidebar-rail.collapsed {
+    width: 100%;
+    padding: 10px 16px;
+    border-right: none;
+    border-bottom: 1px solid var(--c-sky);
+    overflow: visible;
+  }
+
+  .sidebar-toggle-row,
+  .sidebar-history,
+  .sidebar-resource-card {
+    display: none;
+  }
+
+  .nav-group {
+    flex-direction: row;
+    overflow-x: auto;
+    gap: 6px;
+  }
+
+  .nav-tab-btn {
+    flex-shrink: 0;
+    width: auto;
+  }
+
+  .workspace-shell {
+    padding: 16px;
+    overflow: visible;
+    min-width: 0;
+  }
+
+  .kpi-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  /* Wide tables scroll inside their own box instead of widening the page. */
+  .benchmark-table {
+    overflow-x: auto;
+  }
+
+  .benchmark-row {
+    min-width: 640px;
+  }
+
+  .lifecycle-stepper {
+    overflow-x: auto;
+    gap: 12px;
+  }
+
+  .composer-controls-left {
+    flex-wrap: wrap;
+  }
+}
