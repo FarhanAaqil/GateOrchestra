@@ -95,7 +95,7 @@ gateorchestra/
 ├── evaluation/      # Metrics, Wilson CIs, exact McNemar test
 ├── integration/     # Pipeline wiring Probe → Gate → MAS
 ├── api/             # FastAPI backend (/run, /tasks, /models, /history, /demo/summary)
-├── frontend-react/  # React + Vite console
+├── frontend-react/  # React + TypeScript console with three.js scenes (see frontend-react/README.md)
 ├── tests/           # pytest suite (network calls blocked; see tests/conftest.py)
 ├── scripts/         # Final benchmark, verifier, dataset tools; weekN_* scripts are the simulated dev pipeline
 ├── results/         # real/final (benchmark output), simulated/ (simulation only)
@@ -126,12 +126,12 @@ The suite (542 tests, ~87% coverage over those packages) never calls a real LLM.
 # Terminal 1: FastAPI backend
 uvicorn api.main:app --host 127.0.0.1 --port 8000
 
-# Terminal 2: React console
+# Terminal 2: React console (inside Google Drive, see frontend-react/README.md for npm install)
 cd frontend-react
 npm install
 npm run dev -- --host 127.0.0.1 --port 5173
 ```
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173). The console talks to `http://127.0.0.1:8000` unless `VITE_API_BASE_URL` is set (e.g. in `frontend-react/.env.local`). `GateOrchestra` needs a trained gate in `configs/models/` (written by the final benchmark); without one the API returns HTTP 503. Simulated runs (`force_simulation: true`) show routing only and are returned ungraded.
+Open [http://127.0.0.1:5173](http://127.0.0.1:5173). The console talks to `http://127.0.0.1:8000` unless `VITE_API_BASE_URL` is set (e.g. in `frontend-react/.env.local`). If another app already uses port 8000, start the API on a free port (`uvicorn api.main:app --port 8001`) and put `VITE_API_BASE_URL=http://127.0.0.1:8001` in `frontend-react/.env.local`; the console warns when the server it reaches is not GateOrchestra. `GateOrchestra` needs a trained gate in `configs/models/` (written by the final benchmark); without one the API returns HTTP 503. Simulated runs (`force_simulation: true`) show routing only and are returned ungraded.
 
 ---
 

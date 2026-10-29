@@ -78,6 +78,8 @@ class MASOrchestrator:
 
         # Strategy chosen by the most recent run() call; used for bandit updates.
         self._last_strategy: str | None = None
+        # Sub-agent steps of the most recent run() call (see sub_agents.py).
+        self._last_trace: list[dict] = []
 
         # Sub-agent pool
         self.react_agent = ReActAgent(
@@ -159,12 +161,18 @@ class MASOrchestrator:
             f"[MASOrchestrator] Running task={task.task_id} with strategy={strategy} budget={token_budget}"
         )
 
+        agent: ReActAgent | DebateAgent | ReflexionAgent
         if strategy == "react":
-            ans, tokens = self.react_agent.run(task, token_budget)
+            agent = self.react_agent
         elif strategy == "debate":
-            ans, tokens = self.debate_agent.run(task, token_budget)
+            agent = self.debate_agent
         else:
-            ans, tokens = self.reflexion_agent.run(task, token_budget)
+            agent = self.reflexion_agent
+        self._last_trace = []
+        try:
+            ans, tokens = agent.run(task, token_budget)
+        finally:
+            self._last_trace = list(agent.last_trace)
 
         if tokens > token_budget:
             logger.warning(
