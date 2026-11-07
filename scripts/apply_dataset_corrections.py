@@ -88,6 +88,7 @@ CORRECTIONS: dict[str, dict[str, str]] = {
         "1945. Harry S. Truman was President, and head of government, at the time.",
         "ground_truth": "Harry S. Truman",
     },
+    # The old gold was a note ("This is ambiguous - ..."), not an answer.
     "comp_013": {
         "question": "The founder of the country that launched the first human to space served "
         "as what kind of political leader?",
@@ -112,6 +113,7 @@ CORRECTIONS: dict[str, dict[str, str]] = {
         "Poland.",
         "ground_truth": "Poland",
     },
+    # Marx and Kant were born in different cities, so the old question had no answer.
     "comp_002": {
         "question": "In which city was the co-author of 'The Communist Manifesto' who later "
         "wrote 'Das Kapital' born?",
@@ -122,6 +124,8 @@ CORRECTIONS: dict[str, dict[str, str]] = {
     # --- Second audit (November 2026) ---
     # The answer key contradicted the task's own context.
     "bridge_021": {"ground_truth": "Hinduism"},
+    # The context says Bush presented the medal in 2007, but the key said Obama.
+    # REVIEW: the context also claims a 2016 posthumous award, which looks false.
     "comp_008": {"ground_truth": "George W. Bush"},
     # Skiing was not invented in Switzerland.
     "bridge_015": {
@@ -159,6 +163,7 @@ CORRECTIONS: dict[str, dict[str, str]] = {
         "context": "The 2016 Summer Olympics were hosted in Rio de Janeiro, Brazil. In 2024 the "
         "president of Brazil was Luiz Inácio Lula da Silva.",
     },
+    # Same for the company that owns Instagram.
     "bridge_043": {
         "question": "In 2024, who was the CEO of the company that owns Instagram?",
         "context": "Instagram is owned by Meta Platforms. In 2024 the CEO of Meta Platforms was "

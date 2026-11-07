@@ -11,6 +11,7 @@ from __future__ import annotations
 
 import json
 import logging
+import threading
 from pathlib import Path
 from typing import Any
 
@@ -40,6 +41,9 @@ class LinUCBRouter:
         self.arms = arms or ["react", "debate", "reflexion"]
         self.alpha = alpha
         self.d = feature_dim
+        # Selections and updates may come from several threads (parallel
+        # benchmark workers, API requests sharing one router).
+        self._lock = threading.RLock()
 
         # LinUCB state matrices for each arm
         # A_a = d x d identity matrix, b_a = d-dimensional zero vector
@@ -74,27 +78,28 @@ class LinUCBRouter:
 
     def select_arm(self, task: Task) -> str:
         """Select the best sub-agent arm for the given task using Upper Confidence Bounds."""
-        x = self.extract_context_features(task)
-        best_arm = self.arms[0]
-        max_p = -float("inf")
+        with self._lock:
+            x = self.extract_context_features(task)
+            best_arm = self.arms[0]
+            max_p = -float("inf")
 
-        for arm in self.arms:
-            A_inv = np.linalg.inv(self.A[arm])
-            theta_hat = A_inv @ self.b[arm]
+            for arm in self.arms:
+                A_inv = np.linalg.inv(self.A[arm])
+                theta_hat = A_inv @ self.b[arm]
 
-            # UCB score = expected reward + exploration bonus
-            mean = float((theta_hat.T @ x).item())
-            var = float(np.sqrt((x.T @ A_inv @ x).item()))
-            p = mean + self.alpha * var
+                # UCB score = expected reward + exploration bonus
+                mean = float((theta_hat.T @ x).item())
+                var = float(np.sqrt((x.T @ A_inv @ x).item()))
+                p = mean + self.alpha * var
 
-            if p > max_p:
-                max_p = p
-                best_arm = arm
+                if p > max_p:
+                    max_p = p
+                    best_arm = arm
 
-        logger.debug(
-            f"[LinUCBRouter] task={task.task_id} chosen_arm={best_arm} ucb_score={max_p:.3f}"
-        )
-        return best_arm
+            logger.debug(
+                f"[LinUCBRouter] task={task.task_id} chosen_arm={best_arm} ucb_score={max_p:.3f}"
+            )
+            return best_arm
 
     def update(self, task: Task, arm: str, reward: float) -> None:
         """Update LinUCB state with observed reward for the chosen arm.
@@ -104,12 +109,13 @@ class LinUCBRouter:
             arm: The arm executed ('react', 'debate', 'reflexion').
             reward: Scalar reward signal (e.g. 1.0 for correct answer minus token cost penalty).
         """
-        if arm not in self.A:
-            return
+        with self._lock:
+            if arm not in self.A:
+                return
 
-        x = self.extract_context_features(task)
-        self.A[arm] += x @ x.T
-        self.b[arm] += reward * x
+            x = self.extract_context_features(task)
+            self.A[arm] += x @ x.T
+            self.b[arm] += reward * x
 
     def save(self, path: str | Path) -> None:
         """Persist router weights to disk using an atomic write.
@@ -138,21 +144,23 @@ class LinUCBRouter:
 
     def to_dict(self) -> dict[str, Any]:
         """Serialisable copy of the router state (used for checkpoints)."""
-        return {
-            "arms": list(self.arms),
-            "alpha": self.alpha,
-            "d": self.d,
-            "A": {arm: self.A[arm].tolist() for arm in self.arms},
-            "b": {arm: self.b[arm].tolist() for arm in self.arms},
-        }
+        with self._lock:
+            return {
+                "arms": list(self.arms),
+                "alpha": self.alpha,
+                "d": self.d,
+                "A": {arm: self.A[arm].tolist() for arm in self.arms},
+                "b": {arm: self.b[arm].tolist() for arm in self.arms},
+            }
 
     def from_dict(self, data: dict[str, Any]) -> None:
         """Restore state produced by :meth:`to_dict`."""
-        self.arms = list(data["arms"])
-        self.alpha = data["alpha"]
-        self.d = data["d"]
-        self.A = {arm: np.array(mat, dtype=np.float64) for arm, mat in data["A"].items()}
-        self.b = {arm: np.array(vec, dtype=np.float64) for arm, vec in data["b"].items()}
+        with self._lock:
+            self.arms = list(data["arms"])
+            self.alpha = data["alpha"]
+            self.d = data["d"]
+            self.A = {arm: np.array(mat, dtype=np.float64) for arm, mat in data["A"].items()}
+            self.b = {arm: np.array(vec, dtype=np.float64) for arm, vec in data["b"].items()}
 
     def warmstart_from_traces(
         self,

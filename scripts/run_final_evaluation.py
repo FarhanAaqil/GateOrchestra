@@ -28,10 +28,13 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import random
 import sys
+import threading
 import time
 from collections.abc import Callable
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from typing import Any
 
@@ -78,6 +81,14 @@ CHECKPOINTS_DIR.mkdir(parents=True, exist_ok=True)
 ROOT_DIR = Path(__file__).resolve().parent.parent
 REAL_FINAL_DIR = ROOT_DIR / "results" / "real" / "final"
 REAL_FINAL_DIR.mkdir(parents=True, exist_ok=True)
+
+# Tasks evaluated concurrently. A local Ollama serves parallel requests at a
+# higher combined throughput, so 3 workers finish the benchmark much sooner.
+# Results do not depend on it, except that the router learns in completion
+# order. RandomGate always runs in order, since its coin flips are sequential.
+EVAL_WORKERS = max(1, int(os.getenv("GATE_EVAL_WORKERS", "1")))
+# Guards the checkpoint state: workers add results while another serialises it.
+_STATE_LOCK = threading.RLock()
 
 CHECKPOINT_VERSION = 5  # v5: ReAct tools, learned MAS router, audited dataset
 MAX_TASK_ATTEMPTS = 3
@@ -161,7 +172,24 @@ def _atomic_write_json(payload: dict[str, Any], path: Path) -> None:
 
 def _save_checkpoint(state: dict[str, Any], path: Path) -> None:
     """Persist checkpoint state without exposing a partially written JSON file."""
-    _atomic_write_json(state, path)
+    with _STATE_LOCK:
+        _atomic_write_json(state, path)
+
+
+def _store(state: dict[str, Any], section: str, key: str, value: Any, path: Path) -> None:
+    """Add one entry to the checkpoint and save it, atomically with respect to workers."""
+    with _STATE_LOCK:
+        state[section][key] = value
+        _atomic_write_json(state, path)
+
+
+def _map_tasks(fn: Callable[[int, Task], Any], tasks: list[Task]) -> list[Any]:
+    """``fn(index, task)`` for every task, in order, on EVAL_WORKERS threads."""
+    if EVAL_WORKERS == 1 or len(tasks) < 2:
+        return [fn(i, t) for i, t in enumerate(tasks, start=1)]
+    with ThreadPoolExecutor(max_workers=EVAL_WORKERS) as pool:
+        futures = [pool.submit(fn, i, t) for i, t in enumerate(tasks, start=1)]
+        return [f.result() for f in futures]
 
 
 def _load_checkpoint(path: Path, metadata: dict[str, Any]) -> dict[str, Any]:
@@ -239,9 +267,21 @@ def _current_mas() -> MASOrchestrator:
     return _mas
 
 
+def _task_mas() -> MASOrchestrator:
+    """An orchestrator for one task that shares the run's router.
+
+    Each task gets its own sub-agents, so concurrent tasks never overwrite
+    each other's ``_last_strategy`` or trace.
+    """
+    shared = _current_mas()
+    mas = MASOrchestrator(default_strategy=shared.default_strategy, router=shared.bandit_router)
+    mas.learning = shared.learning
+    return mas
+
+
 def _checked_orchestrator(task: Task, token_budget: int) -> tuple[str, int]:
     """Run MAS; sub-agents raise SubAgentError on provider failure, so it is retried."""
-    return _current_mas()(task, token_budget)
+    return _task_mas()(task, token_budget)
 
 
 def _run_learning_mas(
@@ -255,32 +295,28 @@ def _run_learning_mas(
     The router state goes into ``state`` before the caller checkpoints the
     result, so a resumed run continues with exactly the same router.
     """
-    mas = _current_mas()
+    mas = _task_mas()
     result = run_always_mas_baseline(
-        task,
-        orchestrator_fn=_checked_orchestrator,
-        accountant=accountant,
-        token_budget=token_budget,
+        task, orchestrator_fn=mas, accountant=accountant, token_budget=token_budget
     )
     result = result.model_copy(update={"mas_strategy": mas._last_strategy})
     _validate_eval_result(result, task, "Always-MAS")
     if mas.learning and mas._last_strategy is not None:
-        mas.update_bandit_reward(
-            task, mas._last_strategy, result.is_correct, result.mas_tokens or 0, token_budget
-        )
-        state["bandit"] = mas.bandit_router.to_dict()
+        with _STATE_LOCK:
+            mas.update_bandit_reward(
+                task, mas._last_strategy, result.is_correct, result.mas_tokens or 0, token_budget
+            )
+            state["bandit"] = mas.bandit_router.to_dict()
     return result
 
 
 def _run_test_mas(task: Task, token_budget: int, accountant: TokenAccountant) -> EvalResult:
     """Run Always-MAS on a test task with the frozen router, recording its choice."""
+    mas = _task_mas()
     result = run_always_mas_baseline(
-        task,
-        orchestrator_fn=_checked_orchestrator,
-        accountant=accountant,
-        token_budget=token_budget,
+        task, orchestrator_fn=mas, accountant=accountant, token_budget=token_budget
     )
-    return result.model_copy(update={"mas_strategy": _current_mas()._last_strategy})
+    return result.model_copy(update={"mas_strategy": mas._last_strategy})
 
 
 def _routing_summary(results: list[EvalResult]) -> dict[str, dict[str, Any]]:
@@ -327,9 +363,8 @@ def _checkpoint_probe(
         return probe
 
     probe = _validate_probe(probe_fn(task), task)
-    state["probes"][key] = probe.model_dump(mode="json")
     probe_cache[key] = probe
-    _save_checkpoint(state, checkpoint_path)
+    _store(state, "probes", key, probe.model_dump(mode="json"), checkpoint_path)
     return probe
 
 
@@ -344,17 +379,15 @@ def _run_checkpointed_baseline(
     runner: Callable[[Task], EvalResult],
 ) -> list[EvalResult]:
     """Run one baseline task-by-task, checkpointing only successful results."""
-    results: list[EvalResult] = []
-    for index, task in enumerate(tasks, start=1):
+
+    def one(index: int, task: Task) -> EvalResult:
         key = _result_key(phase, method, task.task_id)
         saved_result = state["results"].get(key)
         if saved_result is not None:
-            result = _validate_eval_result(EvalResult.model_validate(saved_result), task, method)
-            results.append(result)
             print(
                 f"[{phase}/{method}] task {index}/{len(tasks)} resumed: {task.task_id}", flush=True
             )
-            continue
+            return _validate_eval_result(EvalResult.model_validate(saved_result), task, method)
 
         for attempt in range(1, MAX_TASK_ATTEMPTS + 1):
             print(
@@ -373,15 +406,15 @@ def _run_checkpointed_baseline(
                 if attempt == MAX_TASK_ATTEMPTS:
                     raise
                 continue
-            state["results"][key] = result.model_dump(mode="json")
-            _save_checkpoint(state, checkpoint_path)
-            results.append(result)
+            _store(state, "results", key, result.model_dump(mode="json"), checkpoint_path)
             print(
                 f"[{phase}/{method}] task {index}/{len(tasks)} completed: {task.task_id}",
                 flush=True,
             )
-            break
-    return results
+            return result
+        raise AssertionError("unreachable")
+
+    return _map_tasks(one, tasks)
 
 
 def _run_repeated_baseline(
@@ -398,8 +431,9 @@ def _run_repeated_baseline(
     """Run and checkpoint independent train/validation repeats per task."""
     if n_repeats < 1:
         raise ValueError(f"n_repeats must be at least 1, got {n_repeats}")
-    results_by_task: dict[str, list[EvalResult]] = {task.task_id: [] for task in tasks}
-    for index, task in enumerate(tasks, start=1):
+
+    def one(index: int, task: Task) -> list[EvalResult]:
+        runs: list[EvalResult] = []
         for repeat_index in range(n_repeats):
             key = _result_key(phase, method, task.task_id, repeat_index)
             saved_result = state["results"].get(key)
@@ -409,7 +443,7 @@ def _run_repeated_baseline(
                 result = _validate_eval_result(
                     EvalResult.model_validate(saved_result["result"]), task, method
                 )
-                results_by_task[task.task_id].append(result)
+                runs.append(result)
                 print(
                     f"[{phase}/{method}] task {index}/{len(tasks)} repeat "
                     f"{repeat_index + 1}/{n_repeats} resumed: {task.task_id}",
@@ -439,19 +473,19 @@ def _run_repeated_baseline(
                     if attempt == MAX_TASK_ATTEMPTS:
                         raise
                     continue
-                state["results"][key] = {
-                    "repeat_index": repeat_index,
-                    "result": result.model_dump(mode="json"),
-                }
-                _save_checkpoint(state, checkpoint_path)
-                results_by_task[task.task_id].append(result)
+                payload = {"repeat_index": repeat_index, "result": result.model_dump(mode="json")}
+                _store(state, "results", key, payload, checkpoint_path)
+                runs.append(result)
                 print(
                     f"[{phase}/{method}] task {index}/{len(tasks)} repeat "
                     f"{repeat_index + 1}/{n_repeats} completed: {task.task_id}",
                     flush=True,
                 )
                 break
-    return results_by_task
+        return runs
+
+    all_runs = _map_tasks(one, tasks)
+    return {task.task_id: runs for task, runs in zip(tasks, all_runs, strict=True)}
 
 
 def _run_checkpointed_pipeline(
@@ -467,8 +501,8 @@ def _run_checkpointed_pipeline(
     k: int = K_DEFAULT,
 ) -> list[EvalResult]:
     """Run one gated method task-by-task while preserving gate ordering/state."""
-    results: list[EvalResult] = []
-    for index, task in enumerate(tasks, start=1):
+
+    def one(index: int, task: Task) -> EvalResult:
         key = _result_key(phase, method, task.task_id)
         saved_result = state["results"].get(key)
         if saved_result is not None:
@@ -483,12 +517,10 @@ def _run_checkpointed_pipeline(
                     raise RuntimeError(
                         f"RandomGate decision mismatch for checkpointed task_id={task.task_id!r}"
                     )
-            result = _validate_eval_result(EvalResult.model_validate(saved_result), task, method)
-            results.append(result)
             print(
                 f"[{phase}/{method}] task {index}/{len(tasks)} resumed: {task.task_id}", flush=True
             )
-            continue
+            return _validate_eval_result(EvalResult.model_validate(saved_result), task, method)
 
         for attempt in range(1, MAX_TASK_ATTEMPTS + 1):
             print(
@@ -503,21 +535,27 @@ def _run_checkpointed_pipeline(
                     pending_decision = state["pending_random_decisions"].get(key)
                     if pending_decision is None:
                         decision = gate.predict(features, k=k, probe_tokens=features.probe_tokens)
-                        state["pending_random_decisions"][key] = decision.model_dump(mode="json")
-                        _save_checkpoint(state, checkpoint_path)
+                        _store(
+                            state,
+                            "pending_random_decisions",
+                            key,
+                            decision.model_dump(mode="json"),
+                            checkpoint_path,
+                        )
                     else:
                         decision = GateDecision.model_validate(pending_decision)
                     pipeline_gate = _FixedGate(decision)
+                mas = _task_mas()
                 result = _validate_eval_result(
                     run_pipeline(
                         task,
                         pipeline_gate,
                         get_probe,
-                        _checked_orchestrator,
+                        mas,
                         accountant,
                         k=k,
                         method=method,
-                        mas_orchestrator=_current_mas(),
+                        mas_orchestrator=mas,
                     ),
                     task,
                     method,
@@ -531,17 +569,20 @@ def _run_checkpointed_pipeline(
                 if attempt == MAX_TASK_ATTEMPTS:
                     raise
                 continue
-            if method == "RandomGate":
-                state["pending_random_decisions"].pop(key, None)
-            state["results"][key] = result.model_dump(mode="json")
-            _save_checkpoint(state, checkpoint_path)
-            results.append(result)
+            with _STATE_LOCK:
+                if method == "RandomGate":
+                    state["pending_random_decisions"].pop(key, None)
+                _store(state, "results", key, result.model_dump(mode="json"), checkpoint_path)
             print(
                 f"[{phase}/{method}] task {index}/{len(tasks)} completed: {task.task_id}",
                 flush=True,
             )
-            break
-    return results
+            return result
+        raise AssertionError("unreachable")
+
+    if method == "RandomGate":  # its coin flips must be drawn in task order
+        return [one(i, t) for i, t in enumerate(tasks, start=1)]
+    return _map_tasks(one, tasks)
 
 
 def _subset_tasks(tasks: list[Task], limit: int | None, seed: int) -> list[Task]:

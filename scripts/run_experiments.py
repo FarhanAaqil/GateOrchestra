@@ -16,8 +16,8 @@ Evaluates:
     and Strategy Allocation (ReAct %, Debate %, Reflexion %)
   - 8-feature leave-one-out ablations
   - Sub-agent performance profiling
-  - Reproducible outputs saved to reports/final_experiments_results.json,
-    reports/final_experiments_summary.md, and reports/figures/final_pareto_frontier.png
+  - Reproducible outputs saved to reports/archive/final_experiments_results_simulation.json,
+    reports/archive/final_experiments_summary_simulation.md and a Pareto plot
 """
 
 from __future__ import annotations
@@ -900,9 +900,15 @@ def run_experiments(
     }
 
     # Save outputs under reports/
-    out_json = output_json or (REPO_ROOT / "reports" / "final_experiments_results.json")
-    out_md = output_md or (REPO_ROOT / "reports" / "final_experiments_summary.md")
-    out_plot = output_plot or (REPO_ROOT / "reports" / "figures" / "final_pareto_frontier.png")
+    out_json = output_json or (
+        REPO_ROOT / "reports" / "archive" / "final_experiments_results_simulation.json"
+    )
+    out_md = output_md or (
+        REPO_ROOT / "reports" / "archive" / "final_experiments_summary_simulation.md"
+    )
+    out_plot = output_plot or (
+        REPO_ROOT / "reports" / "archive" / "final_pareto_frontier_simulation.png"
+    )
 
     out_json.parent.mkdir(parents=True, exist_ok=True)
     out_md.parent.mkdir(parents=True, exist_ok=True)

@@ -54,26 +54,27 @@ GateOrchestra provides a full FastAPI backend for programmatic integration and w
 From the repository root:
 
 ```bash
-uvicorn api.main:app --port 8000
+uvicorn api.main:app --port 8010
 ```
+(Port 8000 is often taken by another local app; any free port works.)
 
 ### Step 2: Open Interactive API Documentation
 Open your browser to:
-- **Swagger UI:** [http://localhost:8000/docs](http://localhost:8000/docs)
-- **ReDoc:** [http://localhost:8000/redoc](http://localhost:8000/redoc)
+- **Swagger UI:** [http://localhost:8010/docs](http://localhost:8010/docs)
+- **ReDoc:** [http://localhost:8010/redoc](http://localhost:8010/redoc)
 
 ### Step 3: Test Key Endpoints
 1. **Health Check:**
    ```bash
-   curl http://localhost:8000/health
+   curl http://localhost:8010/health
    ```
 2. **Demo Summary (Telemetry & Saved Tasks):**
    ```bash
-   curl http://localhost:8000/demo/summary
+   curl http://localhost:8010/demo/summary
    ```
 3. **Run Single Task Through GateOrchestra Pipeline:**
    ```bash
-   curl -X POST http://localhost:8000/run \
+   curl -X POST http://localhost:8010/run \
      -H "Content-Type: application/json" \
      -d '{
        "task_id": "api_test_01",
@@ -93,12 +94,13 @@ The frontend is the React console in `frontend-react/`.
 
 ### Running Locally
 
+From the repository root:
+
 ```bash
-cd frontend-react
-npm install
-npm run dev -- --host 127.0.0.1 --port 5173
+python scripts/dev.py
 ```
-Then open [http://127.0.0.1:5173](http://127.0.0.1:5173) with the FastAPI backend running on port 8000.
+This starts the API on the first free port from 8010 and the console on
+[http://localhost:5173](http://localhost:5173), already pointed at that API.
 
 Simulated runs (`force_simulation: true`) exercise the routing only: the simulator never
 sees the ground truth, so these runs are returned with `is_correct: null` and
