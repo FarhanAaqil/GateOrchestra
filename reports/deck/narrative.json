@@ -1,0 +1,12 @@
+{
+  "subtitle": "Can a cheap probe tell when a question needs a multi-agent system?",
+  "premise_title": "The premise fails: MAS does not beat CoT-SC",
+  "premise_note": "Strict grading, all 387 calibration runs per system. Part of the gap is MAS writing wordy answers: under a lenient check (gold answer stated inside a short answer) the gap shrinks to -3.9 points and is no longer significant (p = 0.26). Either way MAS is never better, so H1 is not supported on Qwen2.5-3B.",
+  "results_title": "The gate keeps accuracy at 39% fewer tokens",
+  "results_note": "The calibrated gate (MLP) escalated 1% of test tasks, so it behaves almost exactly like CoT-SC-only. That is the right call when MAS rarely helps. The rule-based gate escalates 69% of tasks and pays for it in both accuracy and tokens.",
+  "oracle_text": "With these two systems even a perfect gate would escalate only 6% of questions: CoT-SC already answers most of them, and MAS fixes few of the rest. The learned gate found that ceiling's shape, stopping almost always.",
+  "ablation_text": "Consistency carries the logistic gate: removing it costs 3 points and cuts escalations from 9% to 3%. No other single feature changes it. With only 12% ESCALATE labels, the gate has little to learn beyond the probe's own agreement.",
+  "conclusion_title": "What we found",
+  "conclusion": "On Qwen2.5-3B, MAS is less accurate than CoT-SC and costs 26% more, so the gate's best move is to stop. It does: CoT-SC accuracy at 39% fewer tokens than Always-MAS. The next test is a stronger model, where MAS may finally earn its cost.",
+  "conclusion_note": "RQ1: yes against Always-MAS, but only because MAS is not worth running here. RQ2: higher k raises validation savings without changing accuracy. RQ3: probe consistency is the only feature the logistic gate depends on. H1: not supported."
+}

@@ -192,7 +192,8 @@ s.addChart(pres.charts.BAR, [{ name: "Accuracy", labels: rows.map((r) => r.metho
   values: rows.map((r) => r.accuracy_mean) }], {
   x: 0.5, y: 1.15, w: 4.5, h: 3.9, barDir: "bar", chartColors: rows.map((r) => METHOD_HEX[r.method]),
   showValue: true, dataLabelPosition: "outEnd", dataLabelFormatCode: "0.0\"%\"", valAxisMinVal: 0,
-  valAxisMaxVal: 100, showLegend: false, showTitle: true, title: "Accuracy (mean over seeds)", ...AXIS });
+  valAxisMaxVal: 120, valAxisMajorUnit: 20, showLegend: false, showTitle: true,
+  title: "Accuracy (mean over seeds)", ...AXIS });
 const header = ["Method", "95% CI", "Tokens", "Escalate"].map((t) => ({ text: t,
   options: { bold: true, color: "FFFFFF", fill: { color: HEX.navy }, fontSize: 11 } }));
 s.addTable([header, ...rows.map((r) => [
@@ -251,17 +252,20 @@ if (a.axis) {
 // 9. Ablation
 s = content("What the gate relies on", "Results");
 const ab = (a.feature_ablation || {}).rows || [];
-const cls = ab.some((r) => r.classifier === "gbt") ? "gbt" : (ab[0] || {}).classifier;
+const cls = ab.some((r) => r.classifier === "logreg") ? "logreg" : (ab[0] || {}).classifier;
 if (cls) {
   const mine = ab.filter((r) => r.classifier === cls);
   const base = mine.find((r) => r.dropped === "none");
   const drops = mine.filter((r) => r.dropped !== "none");
+  const deltas = drops.map((r) => 100 * (r.accuracy - base.accuracy));
+  const lo = Math.floor(Math.min(0, ...deltas)) - 1;
+  const hi = Math.ceil(Math.max(0, ...deltas)) + 1;
   s.addChart(pres.charts.BAR, [{ name: "Change", labels: drops.map((r) => r.dropped.replace(/_/g, " ")),
-    values: drops.map((r) => 100 * (r.accuracy - base.accuracy)) }], {
+    values: deltas }], {
     x: 0.5, y: 1.15, w: 5.6, h: 3.9, barDir: "bar", chartColors: [HEX.cyan], invertedColors: [HEX.wine],
     showValue: true, catAxisLabelPos: "low", dataLabelPosition: "outEnd", dataLabelFormatCode: "+0.0;-0.0;0.0",
-    showLegend: false, showTitle: true,
-    title: `Validation accuracy change when a feature is removed (${cls})`, ...AXIS });
+    valAxisMinVal: lo, valAxisMaxVal: hi, showLegend: false, showTitle: true,
+    title: `Accuracy change with one feature removed (${cls})`, ...AXIS });
   stat(s, 6.4, 1.2, 3.1, pct(base.accuracy), `${cls} gate with all 8 features (validation)`, HEX.navy);
   text(s, story.ablation_text || "Each feature is set to a constant in training and validation, "
     + "then the gate is retrained on the real labels.",
