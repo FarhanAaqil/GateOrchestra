@@ -176,7 +176,47 @@ class TestAgentMultiProviderIntegration:
             provider="groq",
             api_key="mock_key",
         )
-        ans, tokens = orch.run(task, token_budget=100)
+        ans, tokens = orch.run(task, token_budget=600)
 
         assert ans == "Euro"
-        assert tokens <= 100
+        assert tokens <= 600
+
+
+class TestRateLimitBackoff:
+    def test_uses_the_servers_retry_hint(self) -> None:
+        from agents.providers import rate_limit_delay
+
+        assert rate_limit_delay(None, "Please try again in 420ms.", 0, 4.0) == pytest.approx(0.67)
+        assert rate_limit_delay(None, "Please try again in 1m2.5s.", 0, 4.0) == pytest.approx(62.75)
+        assert rate_limit_delay("7", "", 0, 4.0) == pytest.approx(7.25)
+
+    def test_falls_back_to_linear_backoff_and_caps_the_wait(self) -> None:
+        from agents.providers import MAX_RATE_LIMIT_WAIT_SECONDS, rate_limit_delay
+
+        assert rate_limit_delay(None, "busy", 2, 4.0) == pytest.approx(12.25)
+        assert rate_limit_delay("600", "", 0, 4.0) == MAX_RATE_LIMIT_WAIT_SECONDS
+
+    @patch("agents.providers.time.sleep")
+    @patch("urllib.request.urlopen")
+    def test_retries_a_429_then_succeeds(self, mock_urlopen, mock_sleep) -> None:
+        import io
+        import urllib.error
+
+        from agents.providers import call_groq
+
+        limited = urllib.error.HTTPError(
+            "https://api.groq.com",
+            429,
+            "Too Many Requests",
+            {"Retry-After": "2"},
+            io.BytesIO(b'{"error": {"message": "Rate limit reached. Please try again in 1.5s."}}'),
+        )
+        ok = MagicMock()
+        ok.read.return_value = json.dumps(
+            {"choices": [{"message": {"content": "Final Answer: 4"}}], "usage": {"total_tokens": 9}}
+        ).encode()
+        ok.__enter__.return_value = ok
+        mock_urlopen.side_effect = [limited, ok]
+
+        assert call_groq("2+2?", api_key="k") == ("Final Answer: 4", 9)
+        mock_sleep.assert_called_once_with(pytest.approx(2.25))

@@ -20,8 +20,10 @@ Token accounting rules shared by all sub-agents:
 from __future__ import annotations
 
 import logging
+import re
 from collections.abc import Callable
 
+from agents.orchestrator.tools import ToolError, calculate, lookup
 from agents.probe_agent import extract_answer
 from agents.providers import default_llm_caller
 from shared.config import (
@@ -126,16 +128,41 @@ class _SubAgentBase:
 
 # 1. ReAct Agent (Decomposition & Multi-Hop Reasoning)
 
+REACT_INSTRUCTIONS = (
+    "Answer the question by alternating Thought and Action lines.\n"
+    "Available actions:\n"
+    "  lookup[term] - returns the sentences of the context that mention the term\n"
+    "  calculate[expression] - evaluates arithmetic, e.g. calculate[20000 * 0.85**2]\n"
+    "  finish[...] - gives the final, concise answer, e.g. finish[Paris]\n"
+    "Write one Thought and one Action per step, then stop and wait for the Observation.\n"
+)
+_ACTION_RE = re.compile(
+    r"Action(?:\s*\d+)?\s*:\s*(lookup|calculate|finish)\s*\[([^\]\n]*)\]", re.IGNORECASE
+)
+
+
+_PLACEHOLDERS = {"", "answer", "the answer", "your answer", "final answer", "...", "<answer>"}
+
+
+def _is_placeholder(argument: str) -> bool:
+    """Whether a finish[...] argument just echoes the instructions."""
+    return argument.strip().strip(".").lower() in _PLACEHOLDERS
+
 
 class ReActAgent(_SubAgentBase):
-    """ReAct (Reasoning + Acting) Agent for multi-hop decomposition."""
+    """ReAct (Yao et al., 2023): Thought -> Action -> Observation with real tools.
+
+    Actions are ``lookup`` (search the task context), ``calculate`` (safe
+    arithmetic) and ``finish``. Tool calls appear in ``last_trace`` with zero
+    tokens, since they make no LLM call.
+    """
 
     temperature = 0.2
 
     def __init__(
         self,
         model_name: str | None = None,
-        max_steps: int = 3,
+        max_steps: int = 4,
         provider: str | None = None,
         api_key: str | None = None,
         llm_caller: LLMCallerFn | None = None,
@@ -143,19 +170,24 @@ class ReActAgent(_SubAgentBase):
         super().__init__(model_name, provider, api_key, llm_caller)
         self.max_steps = max_steps
 
+    def _run_tool(self, action: str, argument: str, task: Task) -> str:
+        try:
+            if action == "calculate":
+                return calculate(argument)
+            return lookup(argument, task.context)
+        except ToolError as err:
+            return f"Error: {err}"
+
     def run(self, task: Task, token_budget: int) -> tuple[str, int]:
-        """Execute the ReAct loop until a final answer, max_steps, or the budget runs out."""
+        """Run the Thought/Action/Observation loop until finish, max_steps or the budget."""
         self.last_trace = []
         total_tokens = 0
-        history = [
-            "Solve the following question step by step using Thought and Action.\n"
-            f"{_context_block(task)}Question: {task.question}\n"
-        ]
+        history = [f"{REACT_INSTRUCTIONS}\n{_context_block(task)}Question: {task.question}\n"]
         step_cap = max(MIN_CALL_TOKENS, token_budget // (self.max_steps + 1))
         response = ""
 
         for step in range(1, self.max_steps + 1):
-            prompt = "\n".join(history) + f"\nStep {step}:\nThought:"
+            prompt = "\n".join(history) + f"\nThought {step}:"
             outcome = self._budgeted_call(
                 prompt, token_budget - total_tokens, step_cap, step=f"Thought {step}"
             )
@@ -163,20 +195,42 @@ class ReActAgent(_SubAgentBase):
                 break
             response, tokens = outcome
             total_tokens += tokens
-            history.append(f"Step {step}:\nThought: {response}")
 
-            if "final answer" in response.lower() or "the answer is" in response.lower():
-                return extract_answer(response), total_tokens
+            match = _ACTION_RE.search(response)
+            # Keep only the model's first action; drop any Observation it invented.
+            history.append(f"Thought {step}: {response[: match.end()] if match else response}")
+            if match is None:
+                if "final answer" in response.lower():
+                    return extract_answer(response), total_tokens
+                history.append(
+                    f"Observation {step}: No valid action. "
+                    "Use lookup[...], calculate[...] or finish[...]."
+                )
+                continue
 
-        # No explicit final answer yet: ask for one if the budget still allows.
-        synthesis_prompt = "\n".join(history) + "\nConclude with: Final Answer: <answer>"
+            action, argument = match.group(1).lower(), match.group(2).strip()
+            if action == "finish" and _is_placeholder(argument):
+                history.append(
+                    f"Observation {step}: finish[] needs the actual answer, not a placeholder."
+                )
+                continue
+            if action == "finish":
+                return argument, total_tokens
+            observation = self._run_tool(action, argument, task)
+            self.last_trace.append(
+                {"step": f"{action}[{argument}]", "output": observation, "tokens": 0}
+            )
+            history.append(f"Observation {step}: {observation}")
+
+        # Out of steps without finishing: ask for the answer if the budget allows.
+        synthesis_prompt = "\n".join(history) + "\nBased on the observations above.\nFinal Answer:"
         outcome = self._budgeted_call(
             synthesis_prompt, token_budget - total_tokens, step="Synthesis"
         )
         if outcome is not None:
             response, fin_tokens = outcome
             total_tokens += fin_tokens
-
+            return extract_answer(f"Final Answer: {response}"), total_tokens
         return extract_answer(response), total_tokens
 
 

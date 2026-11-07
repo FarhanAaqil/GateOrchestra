@@ -15,6 +15,8 @@ from __future__ import annotations
 import json
 import logging
 import os
+import re
+import time
 import urllib.error
 import urllib.request
 from collections.abc import Callable
@@ -98,6 +100,36 @@ def call_ollama(
 
 # 2. Groq Caller (Cloud OpenAI-compatible API)
 
+GROQ_MAX_RETRIES = 10
+MAX_RATE_LIMIT_WAIT_SECONDS = 90.0
+_TRY_AGAIN_RE = re.compile(r"try again in\s+(?:(\d+)m)?\s*(\d+(?:\.\d+)?)\s*(ms|s)", re.IGNORECASE)
+
+
+def rate_limit_delay(
+    retry_after: str | None, message: str, attempt: int, base_delay: float
+) -> float:
+    """Seconds to wait after a 429, preferring what the server says.
+
+    Groq sends a ``Retry-After`` header and a "Please try again in 420ms" /
+    "in 1m2.5s" hint in the body. Fall back to linear backoff when neither is
+    present. A small margin avoids retrying a hair too early.
+    """
+    wait: float | None = None
+    if retry_after:
+        try:
+            wait = float(retry_after)
+        except ValueError:
+            wait = None
+    match = _TRY_AGAIN_RE.search(message or "")
+    if match:
+        minutes, amount, unit = match.groups()
+        hinted = float(amount) / (1000.0 if unit.lower() == "ms" else 1.0)
+        hinted += 60.0 * float(minutes or 0)
+        wait = max(wait or 0.0, hinted)
+    if wait is None:
+        wait = base_delay * (attempt + 1)
+    return min(wait + 0.25, MAX_RATE_LIMIT_WAIT_SECONDS)
+
 
 def call_groq(
     prompt: str,
@@ -132,7 +164,7 @@ def call_groq(
     }
 
     data = json.dumps(payload).encode("utf-8")
-    max_retries = 5
+    max_retries = GROQ_MAX_RETRIES
     base_delay = 4.0
 
     for attempt in range(max_retries + 1):
@@ -178,9 +210,7 @@ def call_groq(
                 err_msg = str(e)
 
             if e.code == 429 and attempt < max_retries:
-                import time
-
-                delay = base_delay * (attempt + 1)
+                delay = rate_limit_delay(e.headers.get("Retry-After"), err_msg, attempt, base_delay)
                 logger.warning(
                     f"[GroqProvider] Rate limited (429). Retrying in {delay:.1f}s (attempt {attempt + 1}/{max_retries})..."
                 )

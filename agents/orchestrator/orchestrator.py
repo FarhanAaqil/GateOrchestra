@@ -5,8 +5,8 @@ Multi-Agent System (MAS) Orchestrator for GateOrchestra (Person 2).
 
 Satisfies OrchestratorFn = Callable[[Task, int], tuple[str, int]].
 Routes each task to one sub-agent (ReAct, Multi-Agent Debate, Reflexion) using
-either a text heuristic ('auto', the default) or an online LinUCB contextual
-bandit ('bandit'). Both routers use only features computable from the task
+either a text heuristic ('auto') or a LinUCB contextual bandit ('bandit'),
+which the final benchmark trains on graded train/val runs. Both routers use only features computable from the task
 text; neither reads the dataset's depth/parallel labels.
 
 The token budget (`k * probe_tokens`) is enforced before each LLM call, and
@@ -27,7 +27,7 @@ from agents.orchestrator.sub_agents import (
     ReflexionAgent,
 )
 from gate.feature_extractor import estimate_task_structure
-from shared.config import MODEL_NAME
+from shared.config import MAS_ROUTER, MODEL_NAME, MODELS_DIR
 from shared.schemas import Task
 
 logger = logging.getLogger(__name__)
@@ -80,6 +80,8 @@ class MASOrchestrator:
         self._last_strategy: str | None = None
         # Sub-agent steps of the most recent run() call (see sub_agents.py).
         self._last_trace: list[dict] = []
+        # When False, update_bandit_reward() is ignored (e.g. on the test split).
+        self.learning = True
 
         # Sub-agent pool
         self.react_agent = ReActAgent(
@@ -185,7 +187,9 @@ class MASOrchestrator:
     def update_bandit_reward(
         self, task: Task, chosen_strategy: str, is_correct: bool, tokens_spent: int, budget: int
     ) -> None:
-        """Update LinUCB bandit with observed reward."""
+        """Update LinUCB bandit with observed reward (no-op while learning is off)."""
+        if not self.learning:
+            return
         # Reward = +1.0 for correct, -0.2 * (tokens_spent / budget) penalty
         token_penalty = 0.2 * (tokens_spent / max(1, budget))
         reward = (1.0 if is_correct else 0.0) - token_penalty
@@ -202,11 +206,35 @@ _default_orchestrator: MASOrchestrator | None = None
 
 
 def get_default_mas_orchestrator() -> MASOrchestrator:
-    """Return the module-level default MASOrchestrator instance."""
+    """Return the module-level default MASOrchestrator instance.
+
+    With ``GATE_MAS_ROUTER=bandit`` (the default) it serves the LinUCB state
+    learned during benchmark calibration, frozen; until one exists it routes
+    with the text heuristic instead.
+    """
     global _default_orchestrator
     if _default_orchestrator is None:
-        _default_orchestrator = MASOrchestrator()
+        bandit_path = trained_bandit_path() if MAS_ROUTER == "bandit" else None
+        if bandit_path is not None:
+            _default_orchestrator = MASOrchestrator(
+                default_strategy="bandit", bandit_state_path=bandit_path
+            )
+            _default_orchestrator.learning = False
+        else:
+            strategy = "auto" if MAS_ROUTER == "bandit" else MAS_ROUTER
+            _default_orchestrator = MASOrchestrator(default_strategy=strategy)
     return _default_orchestrator
+
+
+def bandit_state_path(seed: int) -> Path:
+    """Where benchmark calibration on ``seed`` saves the learned bandit."""
+    return MODELS_DIR / f"bandit_seed_{seed}.json"
+
+
+def trained_bandit_path() -> Path | None:
+    """Newest bandit state saved by benchmark calibration, if any."""
+    paths = sorted(MODELS_DIR.glob("bandit_seed_*.json"), key=lambda p: p.stat().st_mtime)
+    return paths[-1] if paths else None
 
 
 def orchestrator(task: Task, token_budget: int) -> tuple[str, int]:

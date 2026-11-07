@@ -65,7 +65,14 @@ def main() -> None:
         action="store_true",
         help="Resume from existing checkpoints for each seed.",
     )
+    parser.add_argument(
+        "--calibrate-per-seed",
+        action="store_true",
+        help="Retrain the gate for every seed instead of calibrating once on the first seed "
+        "and repeating only the stochastic test evaluation for the others.",
+    )
     args = parser.parse_args()
+    calibration_seed = None if args.calibrate_per_seed else args.seeds[0]
 
     print("=" * 74)
     print("  GateOrchestra -- Final Benchmark")
@@ -88,6 +95,7 @@ def main() -> None:
             seed=seed,
             dry_run=args.dry_run,
             resume=args.resume,
+            calibration_seed=calibration_seed,
         )
         # Collect per-seed result file
         result_path = REAL_FINAL_DIR / f"final_eval_seed_{seed}_n_{args.n or 'all'}.json"

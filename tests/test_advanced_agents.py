@@ -275,7 +275,7 @@ class TestOrchestratorBanditMode:
             return "Final Answer: 12", 25
 
         orch = MASOrchestrator(default_strategy="bandit", llm_caller=mock_caller)
-        ans, tokens = orch.run(sample_task, token_budget=100)
+        ans, tokens = orch.run(sample_task, token_budget=600)
         assert ans == "12"
         assert tokens > 0
 

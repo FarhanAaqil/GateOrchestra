@@ -39,16 +39,11 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from agents.baselines.always_mas_baseline import run_always_mas_baseline
 from agents.baselines.cot_sc_baseline import run_cot_sc_baseline
-from agents.orchestrator.orchestrator import (
-    get_default_mas_orchestrator,
-)
-from agents.orchestrator.orchestrator import (
-    orchestrator as default_orchestrator,
-)
+from agents.orchestrator.orchestrator import MASOrchestrator, bandit_state_path
 from agents.probe_agent import probe_agent as default_probe_agent
 from evaluation.metrics import mcnemar_exact, wilson_confidence_interval
 from gate.classifier import GateClassifier
-from gate.feature_extractor import extract_features
+from gate.feature_extractor import extract_features, feature_backend
 from gate.random_gate import RandomGate
 from gate.rule_based_gate import RuleBasedGate
 from gate.train_gate import calibrate_gate
@@ -61,6 +56,7 @@ from shared.config import (
     LLM_PROVIDER,
     LLM_REQUEST_TIMEOUT_SECONDS,
     LOGS_DIR,
+    MAS_ROUTER,
     MODEL_API_BASE,
     MODEL_NAME,
     MODELS_DIR,
@@ -83,7 +79,7 @@ ROOT_DIR = Path(__file__).resolve().parent.parent
 REAL_FINAL_DIR = ROOT_DIR / "results" / "real" / "final"
 REAL_FINAL_DIR.mkdir(parents=True, exist_ok=True)
 
-CHECKPOINT_VERSION = 4  # v4: equal k x probe-token MAS budgets
+CHECKPOINT_VERSION = 5  # v5: ReAct tools, learned MAS router, audited dataset
 MAX_TASK_ATTEMPTS = 3
 METHOD_ORDER = [
     "CoT-SC-only",
@@ -132,6 +128,8 @@ def _run_metadata(
             "n_repeats": N_REPEATS,
             "tau_acc": TAU_ACC,
             "tau_acc_sweep": TAU_ACC_SWEEP,
+            "mas_router": MAS_ROUTER,
+            "feature_backend": feature_backend(),
         },
         "method_order": METHOD_ORDER,
     }
@@ -146,6 +144,7 @@ def _new_checkpoint(metadata: dict[str, Any]) -> dict[str, Any]:
         "gate_training": None,
         "preflight_complete": False,
         "pending_random_decisions": {},
+        "bandit": None,
     }
 
 
@@ -229,9 +228,73 @@ def _validate_eval_result(result: EvalResult, task: Task, method: str) -> EvalRe
     return result
 
 
+# The MAS used by the current run_evaluation() call (its router state is per run).
+_mas: MASOrchestrator | None = None
+
+
+def _current_mas() -> MASOrchestrator:
+    global _mas
+    if _mas is None:
+        _mas = MASOrchestrator(default_strategy=MAS_ROUTER)
+    return _mas
+
+
 def _checked_orchestrator(task: Task, token_budget: int) -> tuple[str, int]:
     """Run MAS; sub-agents raise SubAgentError on provider failure, so it is retried."""
-    return default_orchestrator(task, token_budget)
+    return _current_mas()(task, token_budget)
+
+
+def _run_learning_mas(
+    task: Task,
+    token_budget: int,
+    accountant: TokenAccountant,
+    state: dict[str, Any],
+) -> EvalResult:
+    """Run Always-MAS on a train/val task and teach the router from its graded outcome.
+
+    The router state goes into ``state`` before the caller checkpoints the
+    result, so a resumed run continues with exactly the same router.
+    """
+    mas = _current_mas()
+    result = run_always_mas_baseline(
+        task,
+        orchestrator_fn=_checked_orchestrator,
+        accountant=accountant,
+        token_budget=token_budget,
+    )
+    result = result.model_copy(update={"mas_strategy": mas._last_strategy})
+    _validate_eval_result(result, task, "Always-MAS")
+    if mas.learning and mas._last_strategy is not None:
+        mas.update_bandit_reward(
+            task, mas._last_strategy, result.is_correct, result.mas_tokens or 0, token_budget
+        )
+        state["bandit"] = mas.bandit_router.to_dict()
+    return result
+
+
+def _run_test_mas(task: Task, token_budget: int, accountant: TokenAccountant) -> EvalResult:
+    """Run Always-MAS on a test task with the frozen router, recording its choice."""
+    result = run_always_mas_baseline(
+        task,
+        orchestrator_fn=_checked_orchestrator,
+        accountant=accountant,
+        token_budget=token_budget,
+    )
+    return result.model_copy(update={"mas_strategy": _current_mas()._last_strategy})
+
+
+def _routing_summary(results: list[EvalResult]) -> dict[str, dict[str, Any]]:
+    """How often the MAS picked each sub-agent and how accurate each was."""
+    summary: dict[str, dict[str, Any]] = {}
+    for result in results:
+        if result.mas_strategy is None:
+            continue
+        arm = summary.setdefault(result.mas_strategy, {"n": 0, "correct": 0})
+        arm["n"] += 1
+        arm["correct"] += int(result.is_correct)
+    for arm in summary.values():
+        arm["accuracy"] = arm["correct"] / arm["n"]
+    return dict(sorted(summary.items()))
 
 
 class _FixedGate:
@@ -454,7 +517,7 @@ def _run_checkpointed_pipeline(
                         accountant,
                         k=k,
                         method=method,
-                        mas_orchestrator=get_default_mas_orchestrator(),
+                        mas_orchestrator=_current_mas(),
                     ),
                     task,
                     method,
@@ -669,10 +732,56 @@ def _save_json(
     _atomic_write_json(payload, output_path)
 
 
-def run_evaluation(
-    *, split_limit: int | None, seed: int, dry_run: bool, resume: bool = False
+CALIBRATION_PHASES = ("train:", "val:", "val-k")
+
+
+def _adopt_calibration(
+    state: dict[str, Any], calibration_seed: int, split_limit: int | None, metadata: dict[str, Any]
 ) -> None:
-    """Run the full evaluation using existing repository APIs."""
+    """Reuse another seed's train/val runs and calibrated gate in this seed's state.
+
+    The gate is trained once; later seeds only repeat the stochastic test
+    evaluation. The source checkpoint must describe the same tasks and config.
+    """
+    source_path = _checkpoint_path(calibration_seed, split_limit)
+    if not source_path.exists():
+        raise RuntimeError(f"Calibration checkpoint not found: {source_path}")
+    source = json.loads(source_path.read_text(encoding="utf-8"))
+    if not source.get("gate_training"):
+        raise RuntimeError(f"Seed {calibration_seed} has not finished gate calibration yet.")
+    theirs = source.get("metadata", {})
+
+    def training_identity(meta: dict[str, Any]) -> tuple:
+        config = {k: v for k, v in meta.get("config", {}).items() if k != "llm_timeout_seconds"}
+        ids = meta.get("task_ids", {})
+        return (ids.get("train"), ids.get("val"), config, meta.get("n"))
+
+    if training_identity(metadata) != training_identity(theirs):
+        raise RuntimeError(
+            f"Seed {calibration_seed}'s checkpoint uses different tasks or configuration."
+        )
+    for section in ("probes", "results"):
+        for key, value in source[section].items():
+            if key.startswith(CALIBRATION_PHASES):
+                state[section].setdefault(key, value)
+    state["gate_training"] = {**source["gate_training"], "calibration_seed": calibration_seed}
+    state["bandit"] = source.get("bandit")
+    state["preflight_complete"] = True
+
+
+def run_evaluation(
+    *,
+    split_limit: int | None,
+    seed: int,
+    dry_run: bool,
+    resume: bool = False,
+    calibration_seed: int | None = None,
+) -> None:
+    """Run the full evaluation using existing repository APIs.
+
+    With ``calibration_seed`` set to another seed, the gate trained by that
+    seed is reused and only the test phase runs again.
+    """
     if dry_run:
         if resume:
             raise ValueError("--resume cannot be combined with --dry-run.")
@@ -682,8 +791,10 @@ def run_evaluation(
         print(f"[DRY-RUN] Wrote placeholder results to {output_path}")
         return
 
-    train_tasks = _subset_tasks(load_split("train"), split_limit, seed)
-    val_tasks = _subset_tasks(load_split("val"), split_limit, seed)
+    # Shared calibration trains on the calibration seed's train/val sample.
+    train_val_seed = calibration_seed if calibration_seed is not None else seed
+    train_tasks = _subset_tasks(load_split("train"), split_limit, train_val_seed)
+    val_tasks = _subset_tasks(load_split("val"), split_limit, train_val_seed)
     test_tasks = _subset_tasks(load_split("test"), split_limit, seed)
 
     if not train_tasks or not val_tasks or not test_tasks:
@@ -697,6 +808,10 @@ def run_evaluation(
         n=split_limit,
     )
     checkpoint_path = _checkpoint_path(seed, split_limit)
+    if resume and not checkpoint_path.exists():
+        # A later seed that has not started yet: begin it fresh.
+        print(f"[RESUME] No checkpoint for seed {seed} yet; starting it.", flush=True)
+        resume = False
     if resume:
         state = _load_checkpoint(checkpoint_path, metadata)
         print(f"[RESUME] Loaded checkpoint: {checkpoint_path}", flush=True)
@@ -719,6 +834,17 @@ def run_evaluation(
                     "Use --resume to continue without repeating completed work."
                 )
         state = _new_checkpoint(metadata)
+
+    if calibration_seed is not None and calibration_seed != seed and not state.get("gate_training"):
+        _adopt_calibration(state, calibration_seed, split_limit, metadata)
+        _save_checkpoint(state, checkpoint_path)
+        print(f"[calibration] reusing the gate calibrated by seed {calibration_seed}", flush=True)
+
+    # Fresh router for this run, restored from the checkpoint when resuming.
+    global _mas
+    _mas = MASOrchestrator(default_strategy=MAS_ROUTER)
+    if state.get("bandit"):
+        _mas.bandit_router.from_dict(state["bandit"])
 
     if state["preflight_complete"]:
         print("[preflight] resumed: previously completed", flush=True)
@@ -781,11 +907,11 @@ def run_evaluation(
         state=state,
         checkpoint_path=checkpoint_path,
         accountant_factory=TokenAccountant,
-        runner=lambda task, repeat_index, accountant: run_always_mas_baseline(
+        runner=lambda task, repeat_index, accountant: _run_learning_mas(
             task,
-            orchestrator_fn=_checked_orchestrator,
-            accountant=accountant,
-            token_budget=K_DEFAULT * get_probe(task, "train", repeat_index).tokens_used,
+            K_DEFAULT * get_probe(task, "train", repeat_index).tokens_used,
+            accountant,
+            state,
         ),
     )
     train_probe_lookup = {task.task_id: get_probe(task, "train", 0) for task in train_tasks}
@@ -815,11 +941,11 @@ def run_evaluation(
         state=state,
         checkpoint_path=checkpoint_path,
         accountant_factory=TokenAccountant,
-        runner=lambda task, repeat_index, accountant: run_always_mas_baseline(
+        runner=lambda task, repeat_index, accountant: _run_learning_mas(
             task,
-            orchestrator_fn=_checked_orchestrator,
-            accountant=accountant,
-            token_budget=K_DEFAULT * get_probe(task, "val", repeat_index).tokens_used,
+            K_DEFAULT * get_probe(task, "val", repeat_index).tokens_used,
+            accountant,
+            state,
         ),
     )
     val_probe_lookup = {task.task_id: get_probe(task, "val", 0) for task in val_tasks}
@@ -853,11 +979,8 @@ def run_evaluation(
             checkpoint_path=checkpoint_path,
             accountant=val_mas_accountant,
             runner=lambda task, k=candidate_k, accountant=val_mas_accountant: (
-                run_always_mas_baseline(
-                    task,
-                    orchestrator_fn=_checked_orchestrator,
-                    accountant=accountant,
-                    token_budget=k * get_probe(task, "val", 0).tokens_used,
+                _run_learning_mas(
+                    task, k * get_probe(task, "val", 0).tokens_used, accountant, state
                 )
             ),
         )
@@ -866,8 +989,12 @@ def run_evaluation(
             result.task_id: result for result in candidate_mas_results
         }
 
-    gate_model_path = MODELS_DIR / f"best_gate_seed_{seed}.pkl"
     saved_gate_training = state.get("gate_training")
+    gate_model_path = (
+        Path(saved_gate_training["model_path"])
+        if saved_gate_training
+        else MODELS_DIR / f"best_gate_seed_{seed}.pkl"
+    )
     if saved_gate_training and gate_model_path.exists():
         best_gate = GateClassifier.load(gate_model_path)
         best_metrics = saved_gate_training["best_metrics"]
@@ -898,6 +1025,12 @@ def run_evaluation(
 
     gate_k = int(best_metrics.get("k", K_DEFAULT))
 
+    # The router has seen every train/val outcome; freeze it so test answers never teach it.
+    _mas.learning = False
+    calibration_seed_used = (state.get("gate_training") or {}).get("calibration_seed", seed)
+    if MAS_ROUTER == "bandit" and state.get("bandit") and calibration_seed_used == seed:
+        _mas.save_bandit_state(bandit_state_path(seed))
+
     # Evaluate the test set across all requested methods.
     start_time = time.perf_counter()
     test_cot_accountant = TokenAccountant()
@@ -920,11 +1053,8 @@ def run_evaluation(
         state=state,
         checkpoint_path=checkpoint_path,
         accountant=test_mas_accountant,
-        runner=lambda task: run_always_mas_baseline(
-            task,
-            orchestrator_fn=_checked_orchestrator,
-            accountant=test_mas_accountant,
-            token_budget=gate_k * get_probe(task).tokens_used,
+        runner=lambda task: _run_test_mas(
+            task, gate_k * get_probe(task).tokens_used, test_mas_accountant
         ),
     )
     baseline_avg_tokens = sum(r.tokens_spent for r in test_mas_results) / len(test_mas_results)
@@ -994,6 +1124,14 @@ def run_evaluation(
         dry_run=False,
         extra={
             "k": gate_k,
+            "calibration_seed": calibration_seed_used,
+            "mas_router": MAS_ROUTER,
+            "feature_backend": feature_backend(),
+            "mas_routing": {
+                "train": _routing_summary([r for runs in train_mas_results.values() for r in runs]),
+                "test_always_mas": _routing_summary(test_mas_results),
+                "test_gateorchestra": _routing_summary(results_by_method["GateOrchestra"]),
+            },
             "dataset_sha256": dataset_sha256(),
             "test_task_ids": [task.task_id for task in test_tasks],
             "gate": {

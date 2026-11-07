@@ -194,3 +194,44 @@ def test_single_class_labels_produce_an_honest_constant_gate(tmp_path: Path) -> 
     assert selected["accuracy"] == 1.0
     assert selected["token_savings_pct"] == pytest.approx(100 * (1 - 100 / 300))
     assert all(candidate["classifier"] == "constant" for candidate in candidates)
+
+
+def _checkpoint(seed: int, train_ids: list[str]) -> dict:
+    return {
+        "metadata": {
+            "seed": seed,
+            "n": None,
+            "task_ids": {"train": train_ids, "val": ["v1"], "test": ["t1"]},
+            "config": {"model_name": "m", "llm_timeout_seconds": 300},
+        },
+        "probes": {"train:probe:a:0": {"x": 1}, "test:probe:t1:0": {"x": 2}},
+        "results": {"val:CoT-SC-only:v1:0": {"y": 1}},
+        "gate_training": {"model_path": "gate.pkl", "best_metrics": {"k": 3}},
+        "preflight_complete": True,
+        "pending_random_decisions": {},
+    }
+
+
+def test_shared_calibration_reuses_train_and_val_only(tmp_path: Path, monkeypatch) -> None:
+    import scripts.run_final_evaluation as rfe
+
+    monkeypatch.setattr(rfe, "CHECKPOINTS_DIR", tmp_path)
+    (tmp_path / "final_eval_seed_42_n_all.json").write_text(json.dumps(_checkpoint(42, ["a"])))
+    target = _checkpoint(123, ["a"])
+    state = {"probes": {}, "results": {}, "gate_training": None, "preflight_complete": False}
+
+    rfe._adopt_calibration(state, 42, None, {**target["metadata"], "config": {"model_name": "m"}})
+
+    assert set(state["probes"]) == {"train:probe:a:0"}  # the test phase is not copied
+    assert set(state["results"]) == {"val:CoT-SC-only:v1:0"}
+    assert state["gate_training"]["calibration_seed"] == 42
+
+
+def test_shared_calibration_refuses_a_different_training_set(tmp_path: Path, monkeypatch) -> None:
+    import scripts.run_final_evaluation as rfe
+
+    monkeypatch.setattr(rfe, "CHECKPOINTS_DIR", tmp_path)
+    (tmp_path / "final_eval_seed_42_n_all.json").write_text(json.dumps(_checkpoint(42, ["a"])))
+    state = {"probes": {}, "results": {}, "gate_training": None, "preflight_complete": False}
+    with pytest.raises(RuntimeError, match="different tasks"):
+        rfe._adopt_calibration(state, 42, None, _checkpoint(123, ["b"])["metadata"])

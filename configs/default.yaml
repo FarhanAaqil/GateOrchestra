@@ -5,7 +5,7 @@
 
 model:
   provider: "ollama"                 # GATE_LLM_PROVIDER: ollama | groq | mock
-  name: "qwen2.5:7b-instruct"        # GATE_MODEL_NAME (Ollama tag)
+  name: "qwen2.5:3b"                 # GATE_MODEL_NAME (Ollama tag; Blueprint: qwen2.5:7b-instruct)
   api_base: "http://localhost:11434" # GATE_API_BASE
   groq_name: "qwen/qwen3.8-27b"      # GROQ_MODEL_NAME (used when provider is groq)
 
