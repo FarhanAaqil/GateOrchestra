@@ -42,7 +42,7 @@ export default function TokenAccountant() {
         </Card>
         <Card>
           <p className="flex items-center gap-2 text-sm text-navy/60"><span className="h-2.5 w-2.5 rounded-full bg-ember" /> MAS tokens</p>
-          <p className="mt-2 font-mono text-5xl font-semibold text-ember">{num(totals.mas)}</p>
+          <p className="mt-2 font-mono text-5xl font-semibold text-wine">{num(totals.mas)}</p>
         </Card>
       </div>
 

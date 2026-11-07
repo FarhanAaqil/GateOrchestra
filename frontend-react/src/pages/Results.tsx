@@ -64,10 +64,10 @@ export default function Results() {
                   <p className="font-bold">{METHOD_LABELS[q.method]}</p>
                   <div className="mt-1 grid grid-cols-2 gap-2 font-mono text-sm">
                     <span>
-                      precision <span className="font-semibold text-ember">{q.precision == null ? '—' : `${(q.precision * 100).toFixed(0)}%`}</span>
+                      precision <span className={`font-semibold ${q.method === 'GateOrchestra' ? 'text-ember' : 'text-wine'}`}>{q.precision == null ? '—' : `${(q.precision * 100).toFixed(0)}%`}</span>
                     </span>
                     <span>
-                      recall <span className="font-semibold text-ember">{q.recall == null ? '—' : `${(q.recall * 100).toFixed(0)}%`}</span>
+                      recall <span className={`font-semibold ${q.method === 'GateOrchestra' ? 'text-ember' : 'text-wine'}`}>{q.recall == null ? '—' : `${(q.recall * 100).toFixed(0)}%`}</span>
                     </span>
                   </div>
                   <p className="mt-1 font-mono text-[11px] opacity-70">

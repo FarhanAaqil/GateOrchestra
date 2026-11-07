@@ -65,7 +65,7 @@ export default function Overview() {
         <motion.div variants={rise} className="card flex flex-col justify-between p-7 md:p-10 lg:col-span-7">
           <div>
             <p className="font-mono text-sm text-navy/60">
-              <span className="text-ember">01</span> — Token-budget-calibrated gating
+              <span className="text-wine">01</span> — Token-budget-calibrated gating
             </p>
             <h1 className="mt-4 text-5xl font-bold leading-[0.98] text-ink md:text-7xl">
               Decide <span className="mark-lemon">whether</span> to orchestrate.
@@ -103,7 +103,7 @@ export default function Overview() {
       <section className="mt-12">
         <motion.div variants={rise} className="mb-4 flex items-center gap-3">
           <h2 className="text-3xl font-bold text-ink">
-            <span className="font-mono text-base text-ember">02 </span>Key results
+            <span className="font-mono text-base text-wine">02 </span>Key results
           </h2>
           {status ? <StatusBadge status={status} /> : null}
         </motion.div>
@@ -118,7 +118,7 @@ export default function Overview() {
             </Card>
             <Card>
               <p className="text-sm text-navy/60">Tokens saved vs Always-MAS</p>
-              <CountUp value={gate.token_savings_pct_mean} decimals={1} suffix="%" className="mt-3 block text-5xl font-semibold text-ember" />
+              <CountUp value={gate.token_savings_pct_mean} decimals={1} suffix="%" className="mt-3 block text-5xl font-semibold text-wine" />
             </Card>
             <Card>
               <p className="text-sm text-navy/60">Accuracy vs Always-MAS</p>
@@ -139,12 +139,13 @@ export default function Overview() {
 
       <section className="mt-12">
         <motion.h2 variants={rise} className="mb-4 text-3xl font-bold text-ink">
-          <span className="font-mono text-base text-ember">03 </span>How a task flows
+          <span className="font-mono text-base text-wine">03 </span>How a task flows
         </motion.h2>
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           {STEPS.map(({ title, text }, i) => (
             <Card key={title} navy={i === 2}>
-              <p className={`font-mono text-5xl font-semibold ${i === 2 ? 'text-cyan' : i === 3 ? 'text-ember' : 'text-sky'}`}>0{i + 1}</p>
+              <span aria-hidden className={`block h-1.5 w-12 rounded-full ${i === 2 ? 'bg-cyan' : i === 3 ? 'bg-ember' : 'bg-sky'}`} />
+              <p className={`mt-3 font-mono text-5xl font-semibold ${i === 2 ? 'text-cyan' : 'text-navy'}`}>0{i + 1}</p>
               <h3 className={`mt-4 text-xl font-bold ${i === 2 ? 'text-ice' : 'text-ink'}`}>{title}</h3>
               <p className={`mt-2 text-sm ${i === 2 ? 'text-sky' : 'text-navy/70'}`}>{text}</p>
             </Card>

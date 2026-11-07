@@ -62,7 +62,7 @@ export default function GateInspector() {
             <div className="mt-2 flex flex-col items-center">
               <ConfidenceGauge escalateProbability={escalateProbability} threshold={learned ? threshold : null} />
               <p className="font-mono text-sm text-ink">
-                <span className={decision.decision === 'STOP' ? 'text-navy' : 'text-ember'}>{decision.decision}</span> · {decision.gate_type} gate
+                <span className={decision.decision === 'STOP' ? 'text-navy' : 'text-wine'}>{decision.decision}</span> · {decision.gate_type} gate
               </p>
               <p className="mt-1 text-center text-xs text-navy/60">
                 {learned
@@ -75,7 +75,7 @@ export default function GateInspector() {
           ) : (
             <p className="mt-4 text-sm text-navy/70">
               Run a gated method on{' '}
-              <Link to="/run" className="font-semibold text-ember underline underline-offset-4">
+              <Link to="/run" className="font-semibold text-wine underline underline-offset-4">
                 Run a Task
               </Link>{' '}
               to inspect its decision here.

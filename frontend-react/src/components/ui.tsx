@@ -92,7 +92,7 @@ export function PageHeader({
   return (
     <motion.header variants={rise} className="mb-8">
       <p className="font-mono text-sm text-navy/60">
-        <span className="text-ember">{number}</span> — {kicker}
+        <span className="text-wine">{number}</span> — {kicker}
       </p>
       <h1 className="mt-2 text-4xl font-bold leading-[1.05] text-ink md:text-5xl">{title}</h1>
       {children ? <div className="mt-3 max-w-3xl text-base text-navy/70">{children}</div> : null}
