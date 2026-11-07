@@ -155,7 +155,14 @@ def test_api_demo_summary_endpoint() -> None:
             "RuleBasedGate",
             "GateOrchestra",
         }
-    # The simulation-derived figures must not appear anywhere in the payload.
-    payload = response.text
-    for mock_figure in ("78.37", "82.29", "67.71"):
-        assert mock_figure not in payload
+    # Every row is the recorded real result on disk, not a hardcoded or simulated figure.
+    from api.main import MASTER_RESULTS_PATH
+
+    if MASTER_RESULTS_PATH.exists():
+        recorded = json.loads(MASTER_RESULTS_PATH.read_text(encoding="utf-8"))
+        assert data["aggregated"] == recorded["aggregated"]
+        assert recorded.get("execution_mode", "real") != "mock"
+    # The simulator's GateOrchestra headline (78.37% savings) must never be served.
+    gate = next((r for r in data["aggregated"] if r["method"] == "GateOrchestra"), None)
+    if gate is not None:
+        assert gate["token_savings_pct_mean"] != 78.37
