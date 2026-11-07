@@ -142,46 +142,53 @@ All features are extractable *before* executing the multi-agent system, ensuring
 7. `estimated_depth` ($x_7 \in [1.0, 5.0]$): Structural reasoning chain depth heuristic.
 8. `estimated_parallel` ($x_8 \in [1.0, 4.0]$): Multi-branch decomposition heuristic.
 
-### 5.2 Gate Training Policy & Optimal Ground-Truth Labeling
-A training instance $(t_i, y^*)$ is assigned optimal ground-truth gating label $L(t_i) \in \{\text{STOP}, \text{ESCALATE}\}$ according to the strict cost-accuracy rule:
+### 5.2 Gate Training Policy & Labels
+Each training task is run **three times** through both CoT-SC and Always-MAS. With $\bar a_{\text{cot}}$ and $\bar a_{\text{mas}}$ the per-task accuracies over those repeats, the label is
 
-$$L(t_i) = \begin{cases} \text{ESCALATE}, & \text{if } \text{MAS is correct and Probe is incorrect} \\ \text{STOP}, & \text{otherwise (Probe correct, both wrong, or both right)} \end{cases}$$
+$$L(t_i) = \begin{cases} \text{ESCALATE}, & \text{if } \bar a_{\text{mas}}(t_i) - \bar a_{\text{cot}}(t_i) > \tau_{acc} \\ \text{STOP}, & \text{otherwise} \end{cases}$$
 
-This label rule guarantees that the gate is penalized for escalating when MAS cannot fix the error or when Probe was already correct.
+so the gate is only taught to escalate where MAS reliably beats the probe. Calibration sweeps $\tau_{acc} \in \{0.03, 0.05, 0.08\}$, $k \in \{2, 3, 5\}$ and three classifiers (logistic regression, GBT, MLP), scores every candidate by routed accuracy and token savings on the validation split, and keeps the most accurate within a small tolerance, preferring savings. When the labels contain one class only, calibration reports a constant gate and flags it as degenerate instead of substituting another model.
 
-### 5.3 Contextual Bandit MAS Strategy Routing (LinUCB)
-By default an escalated task is routed by a text-only heuristic: comparison questions go to Debate, tasks with context (or high estimated depth) to ReAct, and the rest to Reflexion. Routing never reads the dataset's depth/parallel labels. Optionally (`default_strategy='bandit'`), the orchestrator selects among strategies $a \in \{\text{ReAct}, \text{Debate}, \text{Reflexion}\}$ via a disjoint LinUCB bandit with parameter $\alpha = 0.5$:
+### 5.3 MAS Strategy Routing (learned LinUCB)
+An escalated task goes to one sub-agent, $a \in \{\text{ReAct}, \text{Debate}, \text{Reflexion}\}$, chosen by a disjoint LinUCB bandit ($\alpha = 0.5$) over six text-only features (question length, context presence and length, estimated depth and parallelism; the dataset's labels are never read):
 
-$$a^* = \arg\max_{a} \left( \hat{\theta}_a^\top \mathbf{x} + \alpha \sqrt{\mathbf{x}^\top \mathbf{A}_a^{-1} \mathbf{x}} \right)$$
+$$a^* = \arg\max_{a} \left( \hat{\theta}_a^\top \mathbf{x} + \alpha \sqrt{\mathbf{x}^\top \mathbf{A}_a^{-1} \mathbf{x}} \right), \qquad r = \mathbf{1}(\text{correct}) - 0.2 \cdot \frac{\text{tokens\_spent}}{B}$$
 
-where $\mathbf{A}_a \in \mathbb{R}^{d \times d}$ is initialized to the identity matrix $\mathbf{I}$, and $\mathbf{b}_a \in \mathbb{R}^d$ accumulates observed rewards. The reward penalises the fraction of the budget spent:
+The bandit **learns during the benchmark**: it picks the sub-agent for every train and validation Always-MAS run and is rewarded by the graded outcome. These runs happen anyway for gate calibration, so learning costs no extra LLM calls. It is frozen before the test split, so test answers never teach it, and its state is checkpointed with every result so a resumed run continues exactly. The API serves the saved state, frozen. A text heuristic (comparisons to Debate, context or deep questions to ReAct, the rest to Reflexion) remains available as `GATE_MAS_ROUTER=auto`.
 
-$$r = \mathbf{1}(\text{correct}) - 0.2 \cdot \frac{\text{tokens\_spent}}{B}$$
+### 5.4 Sub-agents
+- **ReAct** alternates Thought and Action steps with two real tools: `lookup[term]` returns the sentences of the task context that mention the term, and `calculate[expression]` evaluates arithmetic with a whitelisted AST walk (never `eval`). Observations the model invents are discarded and replaced by the tool's output.
+- **Debate**: two agents answer, read each other's answers and revise, then a judge decides.
+- **Reflexion**: draft, critique, revise, carrying the context and previous draft through each step.
 
-$\mathbf{A}_a^{-1}$ is recomputed on each selection, and state is persisted atomically to disk. The final benchmark uses the heuristic router.
+Every sub-agent checks the remaining budget before each call; tool calls cost no tokens.
 
 ---
 
 ## 6. Implementation Details
 
+- **Model:** Qwen2.5-3B-Instruct served locally by Ollama on a 4 GB RTX 3050. The Blueprint names Qwen2.5-7B; the 3B model is the largest that fits the GPU, and the gate is trained and served on the same model because its features come from that model's probe.
 - **Language & Runtime:** Python 3.10+ (CI runs 3.10 and 3.11).
-- **Machine Learning Core:** scikit-learn GradientBoostingClassifier (`n_estimators=100`, `max_depth=3`, `learning_rate=0.1`).
-- **Concurrency & Accounting:** Thread-safe `TokenAccountant` leveraging reentrant locks (`threading.Lock`) for concurrent batch evaluation and REST API calls.
-- **REST API:** FastAPI application (`api/main.py`) exposing `/run`, `/tasks`, `/models`, `/history`, and `/demo/summary` (which serves the recorded real results and their verification status).
-- **Grading:** One canonical grader (`shared/grading.py`) compares numeric answers by value at the gold answer's precision and text answers by normalised equality or leading whole-word match; curated aliases live in `dataset/masbench_mini/answer_aliases.json`.
-- **Testing & Quality Assurance:** `pytest` suite (network calls are blocked in tests), MyPy on `shared/`, `gate/`, `integration/`, and Ruff/Black.
+- **Gate models:** scikit-learn logistic regression, GradientBoostingClassifier (`n_estimators=100`, `max_depth=3`) and MLP.
+- **Features:** spaCy `en_core_web_sm` for entity and clause counts, with a regex fallback; the backend is recorded with every run so a gate is never served with features computed differently from training.
+- **Benchmark runner:** resumable, with every probe and graded answer checkpointed atomically. `GATE_EVAL_WORKERS` evaluates several tasks concurrently against the local server; RandomGate always runs in order. Later seeds reuse the gate and router calibrated on the first seed and repeat only the test split.
+- **Grading:** one grader (`shared/grading.py`) compares numbers by value at the gold answer's precision (within 5% when the gold answer is approximate) and text by normalised equality or leading whole-word match, with curated aliases in `dataset/masbench_mini/answer_aliases.json`.
+- **REST API:** FastAPI (`api/main.py`); each request gets its own orchestrator, responses are gzipped, and run history persists across restarts.
+- **Quality:** pytest (network calls blocked), Ruff, Black and MyPy for the Python code; ESLint, TypeScript, Vitest and a production build for the console, all in CI.
 
 ---
 
 ## 7. Experiments
 
 ### 7.1 Dataset: MASBench-mini
-The benchmark dataset comprises **161 curated, verified multi-hop reasoning tasks** divided into:
-- **Train split:** 97 tasks (used for gate model fitting and bandit warm-starting).
+The benchmark dataset comprises **161 curated multi-hop reasoning tasks** divided into:
+- **Train split:** 97 tasks (used for gate fitting and router learning).
 - **Validation split:** 32 tasks (used for hyperparameter calibration).
 - **Held-out Test split:** 32 tasks (strictly sequestered for final empirical evaluation).
 
-Task categories span HotpotQA-style multi-hop question answering, MuSiQue-style composition, template comparison, and multi-step arithmetic reasoning.
+Task categories span HotpotQA-style multi-hop question answering, MuSiQue-style composition, template comparison, and multi-step arithmetic reasoning. Each task carries heuristic Depth (1–5) and Parallel (1–4) labels used only for analysis.
+
+Two automated audits rewrote 37 tasks whose gold answer was wrong, had gone stale, or admitted more than one answer (`scripts/apply_dataset_corrections.py`), and 81 tasks carry curated answer aliases. The corrections have **not** been checked by a person yet; `docs/dataset/CORRECTIONS_REVIEW.md` lists each one, plus two still-debatable tasks, for sign-off. Results are reported against the dataset hash recorded in each result file.
 
 ### 7.2 Baseline Systems
 We evaluate GateOrchestra against four definitive baselines:
