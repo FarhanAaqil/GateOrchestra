@@ -118,20 +118,38 @@ python -m spacy download en_core_web_sm
 ```bash
 pytest --cov=shared --cov=gate --cov=integration --cov=agents --cov=evaluation --cov=api --cov=dataset --cov-fail-under=80
 ruff check . && black --check . && mypy shared/ gate/ integration/
+
+# Console (Node 22+)
+cd frontend-react && npm ci && npm run lint && npm run typecheck && npm test && npm run build
 ```
-The suite (542 tests, ~87% coverage over those packages) never calls a real LLM.
+The Python suite never calls a real LLM, and one test fails if a credential
+is committed. CI runs all of the above on every push.
 
 ### 3. Web application
 ```bash
-# Terminal 1: FastAPI backend
-uvicorn api.main:app --host 127.0.0.1 --port 8000
-
-# Terminal 2: React console (inside Google Drive, see frontend-react/README.md for npm install)
-cd frontend-react
-npm install
-npm run dev -- --host 127.0.0.1 --port 5173
+python scripts/dev.py
 ```
-Open [http://127.0.0.1:5173](http://127.0.0.1:5173). The console talks to `http://127.0.0.1:8000` unless `VITE_API_BASE_URL` is set (e.g. in `frontend-react/.env.local`). If another app already uses port 8000, start the API on a free port (`uvicorn api.main:app --port 8001`) and put `VITE_API_BASE_URL=http://127.0.0.1:8001` in `frontend-react/.env.local`; the console warns when the server it reaches is not GateOrchestra. `GateOrchestra` needs a trained gate in `configs/models/` (written by the final benchmark); without one the API returns HTTP 503. Simulated runs (`force_simulation: true`) show routing only and are returned ungraded.
+This starts the API on the first free port from 8010 and the console on
+[http://localhost:5173](http://localhost:5173), already pointed at that API, so
+another app on port 8000 can never be mistaken for GateOrchestra. When the
+repo lives in a synced folder (Google Drive, OneDrive, Dropbox), where npm
+installs fail, the console is mirrored to `~/.gateorchestra-build` and run
+from there. Ctrl+C stops both. `python scripts/dev.py --dry-run` prints the
+plan, and `--api-port` / `--ui-port` override the ports.
+
+To run the pieces yourself: `uvicorn api.main:app --port 8010`, then
+`npm run dev` in `frontend-react` with `VITE_API_BASE_URL=http://127.0.0.1:8010`
+in `frontend-react/.env.local`.
+
+`GateOrchestra` needs a trained gate in `configs/models/` (written by the final
+benchmark); without one the API returns HTTP 503. Simulated runs
+(`force_simulation: true`) show routing only and are returned ungraded. The
+API keeps the last 50 runs in `logs/api_history.jsonl`.
+
+### Credentials
+Keep API keys in `.env` (gitignored) and GitHub tokens in the git credential
+manager, never in a remote URL: `git remote get-url origin` should print a URL
+with no token in it.
 
 ---
 
