@@ -46,6 +46,8 @@ dataset/masbench_mini/**/*.json
 logs/*.json
 logs/*.jsonl
 configs/**/*.pkl
+# The gate and router calibrated by the final benchmark are results: keep them.
+!configs/models/best_gate_seed_*.pkl
 configs/*.pkl
 configs/**/*.joblib
 configs/*.joblib

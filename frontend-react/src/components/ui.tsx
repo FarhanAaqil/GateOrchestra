@@ -181,8 +181,8 @@ export function NoCitableResults({ status, what }: { status: ResultsStatus | und
     <EmptyState title={`No verified ${what} yet`}>
       {status === 'unverified' ? (
         <p>
-          The only recorded run is a 5-task, 1-seed smoke run that fails{' '}
-          <code className="rounded bg-lemon px-1 font-mono text-ink">verify_final_results.py</code>, so it is not shown as a finding.
+          The recorded results fail{' '}
+          <code className="rounded bg-lemon px-1 font-mono text-ink">verify_final_results.py</code>, so they are not shown as findings.
         </p>
       ) : (
         <p>No benchmark results have been recorded.</p>
