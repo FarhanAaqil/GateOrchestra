@@ -18,12 +18,12 @@ import json
 import logging
 import sys
 import threading
-from collections import deque
 from pathlib import Path
 from typing import Any
 
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel, Field
 
 # Make sure the repository root is available for imports
@@ -34,11 +34,9 @@ if str(ROOT) not in sys.path:
 from agents.baselines.always_mas_baseline import run_always_mas_baseline  # noqa: E402
 from agents.baselines.cot_sc_baseline import run_cot_sc_baseline  # noqa: E402
 from agents.baselines.simulated_probe import SimulatedProbe  # noqa: E402
-from agents.orchestrator.orchestrator import (  # noqa: E402
-    get_default_mas_orchestrator,
-    orchestrator,
-)
+from agents.orchestrator.orchestrator import request_orchestrator  # noqa: E402
 from agents.probe_agent import extract_answer, probe_agent  # noqa: E402
+from api.history import RunHistory  # noqa: E402
 from evaluation.results_detail import build_results_detail  # noqa: E402
 from gate.classifier import (  # noqa: E402
     FEATURE_NAMES,
@@ -59,11 +57,12 @@ from shared.config import (  # noqa: E402
     K_DEFAULT,
     K_VALUES,
     LLM_PROVIDER,
+    LOGS_DIR,
     MODEL_NAME,
     MODELS_DIR,
     PROBE_TOKEN_BUDGET,
 )
-from shared.data_loader import load_split  # noqa: E402
+from shared.data_loader import ANSWER_ALIASES_PATH, DATASET_DIR, load_split  # noqa: E402
 from shared.schemas import ProbeResult, Task  # noqa: E402
 from shared.token_logger import TokenAccountant  # noqa: E402
 
@@ -83,13 +82,53 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],
-    allow_credentials=True,
+    allow_credentials=False,  # no cookies are used; "*" with credentials is invalid CORS
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Results and task lists are large, repetitive JSON; gzip cuts them several-fold.
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 
-# In-memory history ring buffer (last 50 runs)
-_HISTORY: deque[dict[str, Any]] = deque(maxlen=50)
+# The last 50 runs, persisted so they survive a restart.
+_HISTORY = RunHistory(LOGS_DIR / "api_history.jsonl", limit=50)
+
+# Parsed files keyed by (path, mtime): rebuilt only when the file changes.
+_FILE_CACHE: dict[str, tuple[tuple[tuple[str, float], ...], Any]] = {}
+_FILE_CACHE_LOCK = threading.Lock()
+
+
+def _cached(name: str, paths: list[Path], build: Any) -> Any:
+    """Return ``build()``, recomputed only when one of ``paths`` changes."""
+    key = tuple((str(p), p.stat().st_mtime if p.exists() else -1.0) for p in paths)
+    with _FILE_CACHE_LOCK:
+        hit = _FILE_CACHE.get(name)
+        if hit is not None and hit[0] == key:
+            return hit[1]
+    value = build()
+    with _FILE_CACHE_LOCK:
+        _FILE_CACHE[name] = (key, value)
+    return value
+
+
+def _split_paths(split: str) -> list[Path]:
+    return [DATASET_DIR / split / f"{split}.jsonl", ANSWER_ALIASES_PATH]
+
+
+def _load_split_cached(split: str) -> list[Task]:
+    return _cached(f"split:{split}", _split_paths(split), lambda: load_split(split))  # type: ignore[arg-type]
+
+
+def _verified_master() -> tuple[dict[str, Any], list[str], list[str]]:
+    """master_results.json with its verification outcome (cached until it changes)."""
+    from scripts.verify_final_results import verify_master_results  # noqa: PLC0415
+
+    def build() -> tuple[dict[str, Any], list[str], list[str]]:
+        data = json.loads(MASTER_RESULTS_PATH.read_text(encoding="utf-8"))
+        errors, partial = verify_master_results(MASTER_RESULTS_PATH, allow_partial=True)
+        return data, errors, partial
+
+    return _cached(f"master:{MASTER_RESULTS_PATH}", [MASTER_RESULTS_PATH], build)
+
 
 # Cached learned gate instance to avoid repeated disk reads
 _CACHED_LEARNED_GATE: GateClassifier | None = None
@@ -288,7 +327,7 @@ def list_tasks(
         )
 
     try:
-        tasks = load_split(split)  # type: ignore[arg-type]
+        tasks = _load_split_cached(split)
     except Exception as err:
         raise HTTPException(
             status_code=500,
@@ -319,15 +358,13 @@ def list_tasks(
 @app.get("/history")
 def get_history() -> dict[str, Any]:
     """Retrieve recent task execution results (up to 50 runs)."""
-    return {
-        "count": len(_HISTORY),
-        "history": list(_HISTORY),
-    }
+    runs = _HISTORY.snapshot()
+    return {"count": len(runs), "history": runs}
 
 
 @app.delete("/history")
 def clear_history() -> dict[str, str]:
-    """Clear in-memory execution history."""
+    """Clear the run history (memory and disk)."""
     _HISTORY.clear()
     return {"status": "cleared"}
 
@@ -350,10 +387,7 @@ def get_demo_summary() -> dict[str, Any]:
             "aggregated": [],
         }
 
-    from scripts.verify_final_results import verify_master_results  # noqa: PLC0415
-
-    data = json.loads(MASTER_RESULTS_PATH.read_text(encoding="utf-8"))
-    errors, partial = verify_master_results(MASTER_RESULTS_PATH, allow_partial=True)
+    data, errors, partial = _verified_master()
     if errors:
         status = "unverified"
     elif partial:
@@ -382,7 +416,7 @@ def _simulated_orchestrator_call(task: Task, budget: int) -> tuple[str, int]:
 
 def _respond(data: dict[str, Any], simulated: bool) -> dict[str, Any]:
     data["simulated"] = simulated
-    _HISTORY.appendleft(data)
+    _HISTORY.add(data)
     return data
 
 
@@ -409,11 +443,11 @@ def _probe_details(probe: ProbeResult) -> dict[str, Any]:
     }
 
 
-def _mas_trace(use_sim: bool, mas_tokens: int | None) -> list[dict[str, Any]]:
+def _mas_trace(mas: Any, mas_tokens: int | None) -> list[dict[str, Any]]:
     """Steps the chosen sub-agent took in this request (empty when MAS did not run)."""
-    if use_sim or not mas_tokens:
+    if mas is None or not mas_tokens:
         return []
-    return list(get_default_mas_orchestrator()._last_trace)
+    return list(mas._last_trace)
 
 
 @app.post("/run")
@@ -438,7 +472,9 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
     method_name = request.method.strip()
 
     base_probe_fn = SimulatedProbe(seed=42).run if use_sim else probe_agent
-    orch_fn = _simulated_orchestrator_call if use_sim else orchestrator
+    # A per-request MAS, so concurrent requests never read each other's trace.
+    mas = None if use_sim else request_orchestrator()
+    orch_fn = _simulated_orchestrator_call if mas is None else mas
     probes: list[ProbeResult] = []
 
     def probe_fn(current: Task) -> ProbeResult:
@@ -473,10 +509,10 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
                 raise
             raise _live_failure("Always-MAS", err) from err
         data = result.model_dump(mode="json")
-        if not use_sim:
-            data["mas_strategy"] = get_default_mas_orchestrator()._last_strategy
+        if mas is not None:
+            data["mas_strategy"] = mas._last_strategy
         data["probe"] = None
-        data["trace"] = _mas_trace(use_sim, result.mas_tokens)
+        data["trace"] = _mas_trace(mas, result.mas_tokens)
         return _respond(data, use_sim)
 
     # 3. Gating Methods
@@ -506,7 +542,7 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
             k=request.k,
             method=method_name,
             threshold=request.threshold,
-            mas_orchestrator=None if use_sim else get_default_mas_orchestrator(),
+            mas_orchestrator=mas,
         )
     except Exception as err:
         if use_sim:
@@ -516,7 +552,7 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
     # The exact features the gate saw (extraction is deterministic).
     data["features"] = extract_features(task, probes[-1]).model_dump(mode="json")
     data["probe"] = _probe_details(probes[-1])
-    data["trace"] = _mas_trace(use_sim, result.mas_tokens)
+    data["trace"] = _mas_trace(mas, result.mas_tokens)
     return _respond(data, use_sim)
 
 
@@ -576,14 +612,16 @@ def results_detail() -> dict[str, Any]:
     }
     if not MASTER_RESULTS_PATH.exists():
         return {"status": "no_results", **empty}
-    from scripts.verify_final_results import verify_master_results  # noqa: PLC0415
-
-    master = json.loads(MASTER_RESULTS_PATH.read_text(encoding="utf-8"))
-    errors, partial = verify_master_results(MASTER_RESULTS_PATH, allow_partial=True)
-    labels = {
-        t.task_id: t.model_dump(include={"depth_score", "parallel_score", "source_dataset"})
-        for split in ("train", "val", "test")
-        for t in load_split(split)
-    }
+    master, errors, partial = _verified_master()
     status = "unverified" if errors else "partial" if partial else "verified"
-    return {"status": status, **build_results_detail(master, labels)}
+
+    def build() -> dict[str, Any]:
+        labels = {
+            t.task_id: t.model_dump(include={"depth_score", "parallel_score", "source_dataset"})
+            for split in ("train", "val", "test")
+            for t in _load_split_cached(split)
+        }
+        return build_results_detail(master, labels)
+
+    paths = [MASTER_RESULTS_PATH, *(p for s in ("train", "val", "test") for p in _split_paths(s))]
+    return {"status": status, **_cached("results_detail", paths, build)}

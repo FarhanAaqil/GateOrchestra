@@ -226,6 +226,26 @@ def get_default_mas_orchestrator() -> MASOrchestrator:
     return _default_orchestrator
 
 
+def request_orchestrator() -> MASOrchestrator:
+    """A fresh orchestrator for one request, routing like the default one.
+
+    Each request gets its own sub-agents, so ``_last_trace`` and
+    ``_last_strategy`` are never overwritten by a concurrent request. The
+    router is shared read-only: serving never updates it.
+    """
+    default = get_default_mas_orchestrator()
+    mas = MASOrchestrator(
+        model_name=default.model_name,
+        default_strategy=default.default_strategy,
+        provider=default.provider,
+        api_key=default.api_key,
+        llm_caller=default.llm_caller,
+        router=default.bandit_router,
+    )
+    mas.learning = False
+    return mas
+
+
 def bandit_state_path(seed: int) -> Path:
     """Where benchmark calibration on ``seed`` saves the learned bandit."""
     return MODELS_DIR / f"bandit_seed_{seed}.json"

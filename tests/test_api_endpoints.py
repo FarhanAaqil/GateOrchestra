@@ -229,11 +229,37 @@ class TestExecutionAndHistory:
         assert data["aggregated"] == []
 
     def test_history_contains_executed_runs(self, client: TestClient) -> None:
+        for i, method in enumerate(("CoT-SC", "Always-MAS", "RuleBasedGate", "RandomGate")):
+            payload = {"task_id": f"hist-{i}", "question": "Q?", "method": method}
+            client.post("/run", json={**payload, "force_simulation": True})
         hist_resp = client.get("/history")
         assert hist_resp.status_code == 200
         history_data = hist_resp.json()
-        assert history_data["count"] >= 4
-        assert any(run["task_id"] == "test-mas-01" for run in history_data["history"])
+        assert history_data["count"] == 4
+        # Newest first.
+        assert [run["task_id"] for run in history_data["history"]] == [
+            "hist-3",
+            "hist-2",
+            "hist-1",
+            "hist-0",
+        ]
+
+    def test_history_survives_a_restart(self, client: TestClient, tmp_path) -> None:
+        from api.history import RunHistory
+
+        client.post(
+            "/run",
+            json={
+                "task_id": "kept",
+                "question": "Q?",
+                "method": "CoT-SC",
+                "force_simulation": True,
+            },
+        )
+        reloaded = RunHistory(api_main._HISTORY.path)
+        assert [run["task_id"] for run in reloaded.snapshot()] == ["kept"]
+        assert client.delete("/history").json() == {"status": "cleared"}
+        assert RunHistory(api_main._HISTORY.path).snapshot() == []
 
     def test_run_unknown_method_raises_400(self, client: TestClient) -> None:
         payload = {
@@ -295,3 +321,37 @@ class TestGateProvenance:
             "force_simulation": True,
         }
         assert client.post("/run", json=payload).status_code == 200
+
+
+def test_run_history_compacts_and_skips_torn_lines(tmp_path) -> None:
+    from api.history import COMPACT_FACTOR, RunHistory
+
+    path = tmp_path / "h.jsonl"
+    history = RunHistory(path, limit=3)
+    for i in range(COMPACT_FACTOR * 3 + 2):
+        history.add({"task_id": f"t{i}"})
+    assert len(path.read_text(encoding="utf-8").splitlines()) < COMPACT_FACTOR * 3
+    with path.open("a", encoding="utf-8") as f:
+        f.write('{"task_id": "torn')
+    newest = [run["task_id"] for run in RunHistory(path, limit=3).snapshot()]
+    assert newest == [
+        f"t{COMPACT_FACTOR * 3 + 1}",
+        f"t{COMPACT_FACTOR * 3}",
+        f"t{COMPACT_FACTOR * 3 - 1}",
+    ]
+
+
+def test_concurrent_requests_get_their_own_mas(monkeypatch) -> None:
+    from agents.orchestrator.orchestrator import request_orchestrator
+
+    first, second = request_orchestrator(), request_orchestrator()
+    assert first is not second
+    assert first.react_agent is not second.react_agent
+    assert first.bandit_router is second.bandit_router  # shared, read-only
+    assert first.learning is False
+
+
+def test_large_responses_are_gzipped(client: TestClient) -> None:
+    response = client.get("/tasks?split=train&limit=100", headers={"Accept-Encoding": "gzip"})
+    assert response.status_code == 200
+    assert response.headers.get("content-encoding") == "gzip"
