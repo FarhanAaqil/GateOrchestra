@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
+import { clearApiCache } from './api'
 
 export interface ApiState<T> {
   data: T | null
@@ -36,6 +37,7 @@ export function useApi<T>(fetcher: () => Promise<T>): ApiState<T> {
   }, [nonce])
 
   const reload = useCallback(() => {
+    clearApiCache()
     setLoading(true)
     setNonce((n) => n + 1)
   }, [])

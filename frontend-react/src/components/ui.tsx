@@ -92,7 +92,7 @@ export function PageHeader({
   return (
     <motion.header variants={rise} className="mb-8">
       <p className="font-mono text-sm text-navy/60">
-        <span className="text-ember">{number}</span> — {kicker}
+        <span className="text-wine">{number}</span> — {kicker}
       </p>
       <h1 className="mt-2 text-4xl font-bold leading-[1.05] text-ink md:text-5xl">{title}</h1>
       {children ? <div className="mt-3 max-w-3xl text-base text-navy/70">{children}</div> : null}
@@ -200,6 +200,37 @@ export function Spinner({ label = 'Loading' }: { label?: string }) {
     <div className="flex items-center gap-2 text-sm text-navy/70" role="status">
       <span className="h-3 w-3 animate-spin rounded-full border-2 border-ember border-t-transparent" />
       {label}
+    </div>
+  )
+}
+
+/** A placeholder block shaped like the content that is loading. */
+export function Skeleton({ className = '' }: { className?: string }) {
+  return <span aria-hidden className={`block animate-pulse rounded-lg bg-sky/40 motion-reduce:animate-none ${className}`} />
+}
+
+/** Loading placeholder for a grid of cards (stats, charts). */
+export function SkeletonCards({ count = 3, height = 'h-28' }: { count?: number; height?: string }) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" role="status" aria-label="Loading">
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className="card space-y-3 p-5">
+          <Skeleton className="h-3 w-1/3" />
+          <Skeleton className={height} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Loading placeholder for a table. */
+export function SkeletonTable({ rows = 6 }: { rows?: number }) {
+  return (
+    <div className="card space-y-3 p-5" role="status" aria-label="Loading">
+      <Skeleton className="h-5 w-full" />
+      {Array.from({ length: rows }, (_, i) => (
+        <Skeleton key={i} className="h-4 w-full" />
+      ))}
     </div>
   )
 }

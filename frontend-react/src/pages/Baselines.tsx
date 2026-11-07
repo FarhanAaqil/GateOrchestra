@@ -1,5 +1,5 @@
 import { AccuracyChart, TokensChart } from '../charts/BaselineChart'
-import { Card, NoCitableResults, Page, PageHeader, Spinner, StatusBadge } from '../components/ui'
+import { Card, NoCitableResults, Page, PageHeader, SkeletonCards, StatusBadge } from '../components/ui'
 import { api } from '../lib/api'
 import { isCitable, METHOD_COLORS, METHOD_LABELS, num, pct } from '../lib/format'
 import type { ResultMethod } from '../lib/types'
@@ -37,7 +37,7 @@ export default function Baselines() {
       </div>
 
       {data ? <div className="mb-4"><StatusBadge status={data.status} /></div> : null}
-      {loading ? <Spinner /> : null}
+      {loading && !data ? <SkeletonCards count={3} height="h-56" /> : null}
       {error ? <p className="text-wine">{error}</p> : null}
 
       {data && citable && rows.length ? (

@@ -1,7 +1,8 @@
 import { motion } from 'framer-motion'
 import { Search } from 'lucide-react'
 import { useMemo, useState } from 'react'
-import { Card, ErrorNote, Page, PageHeader, Spinner } from '../components/ui'
+import { Card, ErrorNote, Page, PageHeader, SkeletonTable } from '../components/ui'
+import { useDebouncedValue } from '../lib/debounce'
 import { api } from '../lib/api'
 import { rise } from '../lib/motion'
 import { FIELD } from '../lib/styles'
@@ -17,10 +18,21 @@ const SPLIT_STYLE: Record<Split, string> = {
   test: 'bg-ember text-soft',
 }
 
+const PAGE_SIZE = 100 // the API's maximum page
+
+/** Every task of one split, fetched page by page. */
+async function loadSplit(split: Split): Promise<Row[]> {
+  const rows: Row[] = []
+  for (let offset = 0; ; offset += PAGE_SIZE) {
+    const page = await api.tasks(split, PAGE_SIZE, offset)
+    rows.push(...page.tasks.map((t) => ({ ...t, split })))
+    if (page.tasks.length === 0 || rows.length >= page.total) return rows
+  }
+}
+
 async function loadAll(): Promise<Row[]> {
   const splits: Split[] = ['train', 'val', 'test']
-  const results = await Promise.all(splits.map((s) => api.tasks(s, 100)))
-  return results.flatMap((r, i) => r.tasks.map((t) => ({ ...t, split: splits[i] })))
+  return (await Promise.all(splits.map(loadSplit))).flat()
 }
 
 function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
@@ -62,16 +74,25 @@ export default function Benchmark() {
 
   const rows = useMemo(() => data ?? [], [data])
   const sources = useMemo(() => [...new Set(rows.map((r) => r.source_dataset ?? 'unknown'))].sort(), [rows])
-  const filtered = rows.filter(
-    (r) =>
-      (!split || r.split === split) &&
-      (!source || (r.source_dataset ?? 'unknown') === source) &&
-      (!depth || String(r.depth_score) === depth) &&
-      (!parallel || String(r.parallel_score) === parallel) &&
-      (!query || `${r.task_id} ${r.question}`.toLowerCase().includes(query.toLowerCase())),
+  // Filter after typing pauses, not on every keystroke.
+  const search = useDebouncedValue(query.trim().toLowerCase(), 150)
+  const filtered = useMemo(
+    () =>
+      rows.filter(
+        (r) =>
+          (!split || r.split === split) &&
+          (!source || (r.source_dataset ?? 'unknown') === source) &&
+          (!depth || String(r.depth_score) === depth) &&
+          (!parallel || String(r.parallel_score) === parallel) &&
+          (!search || `${r.task_id} ${r.question}`.toLowerCase().includes(search)),
+      ),
+    [rows, split, source, depth, parallel, search],
   )
-  const counts = { train: 0, val: 0, test: 0 } as Record<Split, number>
-  rows.forEach((r) => (counts[r.split] += 1))
+  const counts = useMemo(() => {
+    const c = { train: 0, val: 0, test: 0 } as Record<Split, number>
+    rows.forEach((r) => (c[r.split] += 1))
+    return c
+  }, [rows])
 
   return (
     <Page>
@@ -109,7 +130,7 @@ export default function Benchmark() {
         </div>
       </Card>
 
-      {loading ? <Spinner label="Loading tasks" /> : null}
+      {loading && !data ? <SkeletonTable rows={8} /> : null}
       {error ? <ErrorNote message={error} /> : null}
 
       {data ? (

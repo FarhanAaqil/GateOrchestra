@@ -62,7 +62,7 @@ function Sidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onTo
           title={collapsed ? label : undefined}
           className={({ isActive }) =>
             `relative flex items-center gap-3 rounded-full px-3.5 py-2.5 text-sm transition-colors ${collapsed ? 'justify-center' : ''} ${
-              isActive ? 'text-soft' : 'text-sky/75 hover:bg-ice/10 hover:text-ice'
+              isActive ? 'font-semibold text-ink' : 'text-sky/75 hover:bg-ice/10 hover:text-ice'
             }`
           }
         >
@@ -82,7 +82,7 @@ function Sidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onTo
           <PanelLeftOpen className="mx-auto h-4 w-4" />
         </button>
       ) : (
-        <p className="mt-auto px-3 font-mono text-[10px] uppercase tracking-widest text-sky/40">AIML Capstone · 2026</p>
+        <p className="mt-auto px-3 font-mono text-[10px] uppercase tracking-widest text-sky/70">AIML Capstone · 2026</p>
       )}
     </nav>
   )

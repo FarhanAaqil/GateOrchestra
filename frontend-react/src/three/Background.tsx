@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react'
+import { lazy, Suspense, useEffect, useState } from 'react'
 import { useApp } from '../lib/context'
 
 const NeuralField = lazy(() => import('./NeuralField'))
@@ -22,12 +22,27 @@ function FlatBackdrop({ drift }: { drift: boolean }) {
   )
 }
 
+/** True once the browser is idle after the first paint, so decoration never delays content. */
+function useIdle(): boolean {
+  const [idle, setIdle] = useState(false)
+  useEffect(() => {
+    if ('requestIdleCallback' in window) {
+      const id = window.requestIdleCallback(() => setIdle(true), { timeout: 2500 })
+      return () => window.cancelIdleCallback(id)
+    }
+    const id = setTimeout(() => setIdle(true), 1500)
+    return () => clearTimeout(id)
+  }, [])
+  return idle
+}
+
 export default function Background() {
-  const { use3D, reducedMotion } = useApp()
+  const { use3D, reducedMotion, isMobile } = useApp()
+  const idle = useIdle()
   return (
     <>
-      <FlatBackdrop drift={!reducedMotion} />
-      {use3D ? (
+      <FlatBackdrop drift={!reducedMotion && !isMobile} />
+      {use3D && idle ? (
         <Suspense fallback={null}>
           <NeuralField />
         </Suspense>

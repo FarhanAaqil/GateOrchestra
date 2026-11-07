@@ -2,7 +2,7 @@ import { useState } from 'react'
 import AxisHeatmap from '../charts/AxisHeatmap'
 import KSweepChart from '../charts/KSweepChart'
 import ParetoChart from '../charts/ParetoChart'
-import { Card, NoCitableResults, Page, PageHeader, Spinner, StatusBadge } from '../components/ui'
+import { Card, NoCitableResults, Page, PageHeader, SkeletonCards, StatusBadge } from '../components/ui'
 import { api } from '../lib/api'
 import { isCitable, METHOD_LABELS } from '../lib/format'
 import { FIELD } from '../lib/styles'
@@ -25,7 +25,7 @@ export default function Results() {
         Every chart is computed from the recorded benchmark in results/real/final/master_results.json.
       </PageHeader>
       {status ? <div className="mb-4"><StatusBadge status={status} /></div> : null}
-      {summary.loading || detail.loading ? <Spinner /> : null}
+      {(summary.loading && !summary.data) || (detail.loading && !detail.data) ? <SkeletonCards count={3} height="h-48" /> : null}
 
       {summary.data && !citable ? <NoCitableResults status={status} what="results" /> : null}
 
@@ -64,10 +64,10 @@ export default function Results() {
                   <p className="font-bold">{METHOD_LABELS[q.method]}</p>
                   <div className="mt-1 grid grid-cols-2 gap-2 font-mono text-sm">
                     <span>
-                      precision <span className="font-semibold text-ember">{q.precision == null ? '—' : `${(q.precision * 100).toFixed(0)}%`}</span>
+                      precision <span className={`font-semibold ${q.method === 'GateOrchestra' ? 'text-ember' : 'text-wine'}`}>{q.precision == null ? '—' : `${(q.precision * 100).toFixed(0)}%`}</span>
                     </span>
                     <span>
-                      recall <span className="font-semibold text-ember">{q.recall == null ? '—' : `${(q.recall * 100).toFixed(0)}%`}</span>
+                      recall <span className={`font-semibold ${q.method === 'GateOrchestra' ? 'text-ember' : 'text-wine'}`}>{q.recall == null ? '—' : `${(q.recall * 100).toFixed(0)}%`}</span>
                     </span>
                   </div>
                   <p className="mt-1 font-mono text-[11px] opacity-70">

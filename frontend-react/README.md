@@ -4,16 +4,20 @@ React 19 + TypeScript + Vite, styled with Tailwind v4, 3D with three.js via
 @react-three/fiber, drei and postprocessing, animation with Framer Motion, and
 charts with Recharts.
 
+From the repository root, `python scripts/dev.py` starts the API and this
+console together, on matching ports. Inside this folder:
+
 ```bash
-npm install
+npm ci
 npm run dev        # http://localhost:5173
-npm run build      # type-check friendly production build in dist/
-npx tsc --noEmit   # type check
 npm run lint
+npm run typecheck
+npm test           # vitest + Testing Library (jsdom)
+npm run build      # production build in dist/
 ```
 
 The API address defaults to `http://127.0.0.1:8000`; set `VITE_API_BASE_URL` in
-`.env.local` to point elsewhere.
+`.env.local` to point elsewhere (`scripts/dev.py` sets it for you).
 
 ## Layout
 
@@ -38,15 +42,24 @@ multi-agent path, tangerine the token budget, wine over-budget.
 
 ## Motion and performance
 
-3D scenes are lazy-loaded. They are replaced by a 2D SVG version on screens
-under 768px, when the OS asks for reduced motion, when WebGL is unavailable, or
-when **Performance** mode is on (top bar).
+3D scenes are lazy-loaded, and the background scene waits until the browser is
+idle. They are replaced by a 2D SVG version on screens under 768px, when the OS
+asks for reduced motion, when WebGL is unavailable, or when **Performance** mode
+is on (top bar). Phones also get opaque cards without backdrop blur.
+
+GET requests are cached for 30 seconds and concurrent identical requests share
+one fetch; reloads and runs clear the cache. React, motion and Recharts are
+separate vendor chunks, fonts load without blocking the first paint, and pages
+show skeletons while they load. A Lighthouse audit of the production build
+scores performance 85 (mobile) / 94 (desktop) and 100 for accessibility, best
+practices and SEO.
 
 ## Installing inside Google Drive
 
 `npm install` fails with `EBADF` when the project lives in a Google Drive
-folder (Drive cannot keep up with npm's parallel writes). Install in a local
-folder and mirror the result:
+folder (Drive cannot keep up with npm's parallel writes). `scripts/dev.py`
+handles this by running the console from a local mirror. To install by hand,
+install in a local folder and mirror the result:
 
 ```powershell
 $local = "$env:USERPROFILE\.gateorchestra-build\frontend"

@@ -34,7 +34,7 @@ export default function About() {
         <p className="font-mono text-xs uppercase tracking-widest text-cyan">The research gap</p>
         <p className="mt-4 max-w-4xl text-xl leading-relaxed text-ice md:text-2xl">
           Multi-agent systems such as MAS-Orchestra often lose to a well-tuned single-agent CoT-SC baseline once thinking-token
-          budgets are held equal, at up to <span className="text-ember">10× the cost</span>. No published orchestrator decides,
+          budgets are held equal, at up to <span className="font-semibold text-wine">10× the cost</span>. No published orchestrator decides,
           before spending multi-agent compute, whether decomposition is worth it at all. <span className="text-lemon">GateOrchestra is that decision.</span>
         </p>
         <div className="mt-6 flex flex-wrap gap-2">
@@ -61,7 +61,7 @@ export default function About() {
       </div>
 
       <motion.h2 variants={rise} className="mb-4 mt-12 text-3xl font-bold text-ink">
-        <span className="font-mono text-base text-ember">Team </span>The people behind it
+        <span className="font-mono text-base text-wine">Team </span>The people behind it
       </motion.h2>
       <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
         {TEAM.map((m, i) => (
