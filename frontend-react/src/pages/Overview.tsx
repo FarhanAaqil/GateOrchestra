@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
-import { Card, CountUp, NoCitableResults, Page, PillLink, Spinner, StatusBadge, Tag } from '../components/ui'
+import { Card, CountUp, NoCitableResults, Page, PillLink, SkeletonCards, StatusBadge, Tag } from '../components/ui'
 import { api } from '../lib/api'
 import { useApp } from '../lib/context'
 import { isCitable } from '../lib/format'
@@ -108,7 +108,7 @@ export default function Overview() {
           {status ? <StatusBadge status={status} /> : null}
         </motion.div>
         {summary.loading ? (
-          <Spinner />
+          <SkeletonCards count={4} height="h-16" />
         ) : isCitable(status) && gate && mas ? (
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Card navy>

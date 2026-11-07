@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom'
 import ConfidenceGauge from '../charts/ConfidenceGauge'
 import ImportanceChart from '../charts/ImportanceChart'
-import { Card, EmptyState, Page, PageHeader, Spinner } from '../components/ui'
+import { Card, EmptyState, Page, PageHeader, Skeleton } from '../components/ui'
 import { api } from '../lib/api'
 import { useApp } from '../lib/context'
 import { FEATURE_LABELS } from '../lib/format'
@@ -118,7 +118,7 @@ export default function GateInspector() {
         <Card tilt={false}>
           <h2 className="mb-3 text-xl font-bold text-ink">Feature importance</h2>
           {importance.loading ? (
-            <Spinner />
+            <Skeleton className="h-48" />
           ) : importance.data?.available ? (
             <ImportanceChart rows={importance.data.importances} />
           ) : (

@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion'
 import { RefreshCw } from 'lucide-react'
-import { Card, EmptyState, ErrorNote, Page, PageHeader, Spinner } from '../components/ui'
+import { Card, EmptyState, ErrorNote, Page, PageHeader, SkeletonTable } from '../components/ui'
 import { api } from '../lib/api'
 import { METHOD_LABELS, num, STRATEGY_LABELS } from '../lib/format'
 import { rise } from '../lib/motion'
@@ -52,9 +52,9 @@ export default function TokenAccountant() {
           <RefreshCw className="h-3.5 w-3.5" /> Refresh
         </button>
       </motion.div>
-      {history.loading ? <Spinner /> : null}
+      {history.loading && !history.data ? <SkeletonTable rows={4} /> : null}
       {history.error ? <ErrorNote message={history.error} /> : null}
-      {history.data && !runs.length ? <EmptyState title="No runs yet">Runs from Run a Task appear here (the API keeps the last 50 in memory).</EmptyState> : null}
+      {history.data && !runs.length ? <EmptyState title="No runs yet">Runs from Run a Task appear here (the API keeps the last 50, across restarts).</EmptyState> : null}
       {runs.length ? (
         <motion.div variants={rise} className="card overflow-x-auto p-0">
           <table className="w-full min-w-[860px] text-left text-sm">
@@ -109,7 +109,7 @@ export default function TokenAccountant() {
 
       <motion.h2 variants={rise} className="mb-3 mt-10 text-2xl font-bold text-ink">Benchmark runs</motion.h2>
       {detail.loading ? (
-        <Spinner />
+        <SkeletonTable rows={6} />
       ) : benchmarkRows.length ? (
         <motion.div variants={rise} className="card max-h-[50vh] overflow-auto p-0">
           <table className="w-full min-w-[640px] text-left text-sm">

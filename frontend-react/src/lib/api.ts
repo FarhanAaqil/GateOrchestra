@@ -27,6 +27,29 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   return data as T
 }
 
+// GET responses are cached briefly and concurrent identical requests share one
+// fetch, so pages that need the same data (e.g. /models, /demo/summary) do not
+// each hit the API. Reloads and runs clear the cache.
+const CACHE_TTL_MS = 30_000
+const cache = new Map<string, { at: number; value: Promise<unknown> }>()
+
+function cachedGet<T>(path: string): Promise<T> {
+  const hit = cache.get(path)
+  if (hit && Date.now() - hit.at < CACHE_TTL_MS) return hit.value as Promise<T>
+  const value = request<T>(path)
+  cache.set(path, { at: Date.now(), value })
+  // Never keep a failure: the next call should retry.
+  value.catch(() => {
+    if (cache.get(path)?.value === value) cache.delete(path)
+  })
+  return value
+}
+
+/** Drop every cached GET response (used by reload buttons and after a run). */
+export function clearApiCache(): void {
+  cache.clear()
+}
+
 /** Confirms the server on API_BASE_URL is really GateOrchestra, not another local app. */
 export async function checkBackend(): Promise<void> {
   let root: { name?: string } | null
@@ -44,18 +67,21 @@ export async function checkBackend(): Promise<void> {
 }
 
 export const api = {
-  models: () => request<ModelsResponse>('/models'),
+  models: () => cachedGet<ModelsResponse>('/models'),
   tasks: (split: 'train' | 'val' | 'test', limit = 100, offset = 0) =>
-    request<TasksResponse>(`/tasks?split=${split}&limit=${limit}&offset=${offset}`),
+    cachedGet<TasksResponse>(`/tasks?split=${split}&limit=${limit}&offset=${offset}`),
   history: () => request<{ count: number; history: RunResult[] }>('/history'),
-  summary: () => request<SummaryResponse>('/demo/summary'),
-  gateImportance: () => request<ImportanceResponse>('/gate/importance'),
-  resultsDetail: () => request<ResultsDetail>('/results/detail'),
-  run: (body: RunRequest, signal?: AbortSignal) =>
-    request<RunResult>('/run', {
+  summary: () => cachedGet<SummaryResponse>('/demo/summary'),
+  gateImportance: () => cachedGet<ImportanceResponse>('/gate/importance'),
+  resultsDetail: () => cachedGet<ResultsDetail>('/results/detail'),
+  run: async (body: RunRequest, signal?: AbortSignal) => {
+    const result = await request<RunResult>('/run', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
       signal,
-    }),
+    })
+    clearApiCache()
+    return result
+  },
 }

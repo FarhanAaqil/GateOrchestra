@@ -203,3 +203,34 @@ export function Spinner({ label = 'Loading' }: { label?: string }) {
     </div>
   )
 }
+
+/** A placeholder block shaped like the content that is loading. */
+export function Skeleton({ className = '' }: { className?: string }) {
+  return <span aria-hidden className={`block animate-pulse rounded-lg bg-sky/40 motion-reduce:animate-none ${className}`} />
+}
+
+/** Loading placeholder for a grid of cards (stats, charts). */
+export function SkeletonCards({ count = 3, height = 'h-28' }: { count?: number; height?: string }) {
+  return (
+    <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3" role="status" aria-label="Loading">
+      {Array.from({ length: count }, (_, i) => (
+        <div key={i} className="card space-y-3 p-5">
+          <Skeleton className="h-3 w-1/3" />
+          <Skeleton className={height} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+/** Loading placeholder for a table. */
+export function SkeletonTable({ rows = 6 }: { rows?: number }) {
+  return (
+    <div className="card space-y-3 p-5" role="status" aria-label="Loading">
+      <Skeleton className="h-5 w-full" />
+      {Array.from({ length: rows }, (_, i) => (
+        <Skeleton key={i} className="h-4 w-full" />
+      ))}
+    </div>
+  )
+}
