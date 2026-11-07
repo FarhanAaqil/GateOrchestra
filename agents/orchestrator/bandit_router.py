@@ -121,15 +121,8 @@ class LinUCBRouter:
         """
         p = Path(path)
         p.parent.mkdir(parents=True, exist_ok=True)
-        data = {
-            "arms": self.arms,
-            "alpha": self.alpha,
-            "d": self.d,
-            "A": {arm: self.A[arm].tolist() for arm in self.arms},
-            "b": {arm: self.b[arm].tolist() for arm in self.arms},
-        }
         tmp_path = p.with_suffix(".tmp")
-        tmp_path.write_text(json.dumps(data, indent=2), encoding="utf-8")
+        tmp_path.write_text(json.dumps(self.to_dict(), indent=2), encoding="utf-8")
         tmp_path.replace(p)
         logger.info(f"[LinUCBRouter] State saved atomically to {p}")
 
@@ -141,8 +134,21 @@ class LinUCBRouter:
                 f"[LinUCBRouter] State file not found at {p}. Continuing with initialized state."
             )
             return
-        data = json.loads(p.read_text(encoding="utf-8"))
-        self.arms = data["arms"]
+        self.from_dict(json.loads(p.read_text(encoding="utf-8")))
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialisable copy of the router state (used for checkpoints)."""
+        return {
+            "arms": list(self.arms),
+            "alpha": self.alpha,
+            "d": self.d,
+            "A": {arm: self.A[arm].tolist() for arm in self.arms},
+            "b": {arm: self.b[arm].tolist() for arm in self.arms},
+        }
+
+    def from_dict(self, data: dict[str, Any]) -> None:
+        """Restore state produced by :meth:`to_dict`."""
+        self.arms = list(data["arms"])
         self.alpha = data["alpha"]
         self.d = data["d"]
         self.A = {arm: np.array(mat, dtype=np.float64) for arm, mat in data["A"].items()}

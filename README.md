@@ -168,14 +168,17 @@ All parameters live in `shared/config.py`; `configs/default.yaml` mirrors them a
 
 ## LLM Provider Setup
 
-`shared/config.py` defaults to local Ollama; `.env.example` shows a Groq setup.
+`shared/config.py` and `.env.example` default to local Ollama with `qwen2.5:3b`,
+which fits a 4 GB GPU. The Blueprint names `qwen2.5:7b-instruct`; set
+`GATE_MODEL_NAME` to use it, and retrain the gate, because the gate's features
+come from the probe model.
 
 ### Local Ollama (default)
 ```bash
 ollama serve
-ollama pull qwen2.5:7b-instruct
+ollama pull qwen2.5:3b
 export GATE_LLM_PROVIDER=ollama
-export GATE_MODEL_NAME=qwen2.5:7b-instruct
+export GATE_MODEL_NAME=qwen2.5:3b
 export GATE_API_BASE=http://localhost:11434
 ```
 

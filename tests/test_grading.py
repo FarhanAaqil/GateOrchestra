@@ -88,3 +88,11 @@ def test_every_dataset_answer_and_alias_grades_itself_correct() -> None:
         assert task.ground_truth is not None
         for candidate in (task.ground_truth, *task.answer_aliases):
             assert is_correct(candidate, task.ground_truth, task.answer_aliases), task.task_id
+
+
+def test_approximate_gold_answers_allow_five_percent() -> None:
+    assert is_correct("Final Answer: about 203,000", "approximately 200,000")
+    assert is_correct("142,984 km", "approximately 139,820 km")
+    assert not is_correct("Final Answer: 250,000", "approximately 200,000")
+    # Exact gold answers keep exact precision.
+    assert not is_correct("$14,500", "$14,450")

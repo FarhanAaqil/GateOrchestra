@@ -44,8 +44,6 @@ CORRECTIONS: dict[str, dict[str, str]] = {
         "gold leaf to commemorate it.",
         "ground_truth": "Denver",
     },
-    # Beijing to New Delhi is ~3,781 km, as the task's own context says.
-    "comp_029": {"ground_truth": "approximately 3,781 km"},
     # Trump (78 at his 2025 inauguration) is now the oldest; ask about first inaugurations.
     "cmp_027": {
         "question": "Who was older at their first inauguration as U.S. president: "
@@ -120,6 +118,153 @@ CORRECTIONS: dict[str, dict[str, str]] = {
         "context": "Karl Marx co-wrote 'The Communist Manifesto' with Friedrich Engels and "
         "later wrote 'Das Kapital'. Marx was born in Trier, Germany.",
         "ground_truth": "Trier",
+    },
+    # --- Second audit (November 2026) ---
+    # The answer key contradicted the task's own context.
+    "bridge_021": {"ground_truth": "Hinduism"},
+    "comp_008": {"ground_truth": "George W. Bush"},
+    # Skiing was not invented in Switzerland.
+    "bridge_015": {
+        "question": "What is the currency of the country where the Red Cross was founded?",
+        "context": "The Red Cross was founded in Geneva, Switzerland, in 1863. The currency of "
+        "Switzerland is the Swiss franc.",
+        "ground_truth": "Swiss franc",
+    },
+    # A GDP ranking changes every year.
+    "bridge_017": {
+        "question": "In what year did the country that launched the first artificial satellite "
+        "send the first human into space?",
+        "context": "The first artificial satellite, Sputnik 1, was launched by the Soviet Union "
+        "in 1957. The Soviet Union sent Yuri Gagarin, the first human in space, into orbit in "
+        "1961.",
+        "ground_truth": "1961",
+    },
+    # Fourteen countries border China; ask for the longest border.
+    "bridge_028": {
+        "question": "Which country shares the longest land border with the country where the "
+        "Great Wall is located?",
+        "context": "The Great Wall is located in China. China's longest land border, about "
+        "4,630 km, is with Mongolia.",
+        "ground_truth": "Mongolia",
+    },
+    # Africa borders both the Atlantic and the Indian Ocean.
+    "bridge_046": {
+        "question": "Which ocean borders the western coast of the continent where the Sahara "
+        "Desert is primarily located?",
+    },
+    # Pin office-holders to a year so the answer cannot go stale.
+    "bridge_006": {
+        "question": "In 2024, who was the president of the country that hosted the 2016 Summer "
+        "Olympics?",
+        "context": "The 2016 Summer Olympics were hosted in Rio de Janeiro, Brazil. In 2024 the "
+        "president of Brazil was Luiz Inácio Lula da Silva.",
+    },
+    "bridge_043": {
+        "question": "In 2024, who was the CEO of the company that owns Instagram?",
+        "context": "Instagram is owned by Meta Platforms. In 2024 the CEO of Meta Platforms was "
+        "Mark Zuckerberg.",
+    },
+    # Watson (American) and Crick (British) described DNA together.
+    "bridge_003": {
+        "question": "What was the nationality of the scientist who described the double-helix "
+        "structure of DNA together with the American James Watson?",
+    },
+    # C was created in the US but is standardised by ISO; ask about its creation.
+    "comp_014": {
+        "question": "In which country was the programming language used to write most of the "
+        "Linux kernel created?",
+    },
+    # Asia borders several oceans; the Indian Ocean is the one named after India.
+    "comp_016": {
+        "question": "Which ocean is named after the country where chess was invented?",
+        "context": "Chess developed from chaturanga, which originated in India. The Indian Ocean "
+        "is named after India.",
+    },
+    # Spain is itself in continental Europe.
+    "comp_019": {
+        "question": "Which strait separates the country that produces the most olive oil from "
+        "Africa?",
+        "context": "Spain is the world's largest producer of olive oil. The Strait of Gibraltar "
+        "separates Spain from Morocco in Africa.",
+    },
+    # The river's length depends on which part is measured; ask which river.
+    "comp_020": {
+        "question": "What is the longest river flowing through the country that is the world's "
+        "largest producer of coffee?",
+        "context": "Brazil is the world's largest producer of coffee. The longest river flowing "
+        "through Brazil is the Amazon River.",
+        "ground_truth": "Amazon River",
+    },
+    # China, not India, consumes the most rice; a distance is not reliably gradable.
+    "comp_029": {
+        "question": "What is the capital of the country that produces the most rice?",
+        "context": "China is the world's largest producer of rice. The capital of China is "
+        "Beijing.",
+        "ground_truth": "Beijing",
+    },
+    # Ottawa's population differs by city versus metro area.
+    "comp_033": {
+        "question": "What is the capital of the country that has the world's longest coastline?",
+        "context": "Canada has the world's longest coastline. The capital of Canada is Ottawa.",
+        "ground_truth": "Ottawa",
+    },
+    # Many composers were born in the 1770s; ask for the decade itself.
+    "comp_034": {
+        "question": "In which decade did the country where jazz music originated declare its "
+        "independence?",
+        "context": "Jazz music originated in the United States. The United States declared "
+        "independence in 1776, in the 1770s.",
+        "ground_truth": "1770s",
+    },
+    # Silver, not copper, is the best conductor; name copper directly.
+    "comp_024": {
+        "question": "What is the capital of the country that imports the most copper, the "
+        "metal most widely used for electrical wiring?",
+        "context": "Copper is the metal most widely used for electrical wiring. China is the "
+        "world's largest importer of copper. The capital of China is Beijing.",
+    },
+    # Several French Impressionists fit; ask about one painting.
+    "comp_015": {
+        "question": "The philosopher who said 'I think, therefore I am' was born in the same "
+        "country as the painter of 'Impression, Sunrise'. Who painted it?",
+        "context": "René Descartes, who said 'I think, therefore I am', was born in France. "
+        "'Impression, Sunrise' was painted by the French artist Claude Monet.",
+    },
+    # There were no Olympic Games in 2007, when the iPhone launched.
+    "comp_026": {
+        "question": "Which country hosted the Summer Olympics in the year after the first "
+        "iPhone was released?",
+        "context": "The first iPhone was released in 2007. The 2008 Summer Olympics were hosted "
+        "by China in Beijing.",
+    },
+    # Cambodia's coast is on the Gulf of Thailand; Vietnam borders the South China Sea.
+    "comp_031": {
+        "question": "What is the name of the sea that borders both the country that invented "
+        "paper money and the country that is home to Ha Long Bay?",
+        "context": "Paper money was invented in China. Ha Long Bay is in Vietnam. Both China "
+        "and Vietnam border the South China Sea.",
+    },
+    # The zloty's regular notes do not show Marie Curie.
+    "comp_036": {
+        "question": "What is the largest lake in the country where the discoverer of polonium "
+        "was born?",
+        "context": "Polonium was discovered by Marie Curie, who was born in Poland and named the "
+        "element after it. Poland's largest lake is Lake Śniardwy.",
+    },
+    # Counting territories, the US also spans 11 time zones.
+    "cmp_028": {
+        "question": "Which country spans more time zones across its contiguous mainland: Russia "
+        "or the United States?",
+        "ground_truth": "Russia: 11 mainland time zones versus 4 in the contiguous United States",
+    },
+    # The Byzantine Empire was the Eastern Roman Empire.
+    "cmp_030": {
+        "question": "Which lasted longer: the Western Roman Empire or the Byzantine Empire?",
+    },
+    # China's land area is larger; the US total area (with water) is larger.
+    "cmp_001": {
+        "question": "Which has the larger total area, counting land and water: China or the "
+        "United States?",
     },
     # Everest is not in India, and Everest did not survey it himself.
     "comp_038": {

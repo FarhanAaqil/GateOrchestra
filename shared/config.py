@@ -37,7 +37,8 @@ except ImportError:
 LLM_PROVIDER: str = os.getenv("GATE_LLM_PROVIDER", "ollama").lower()
 
 # Ollama / Local settings (Default)
-MODEL_NAME: str = os.getenv("GATE_MODEL_NAME", "qwen2.5:7b-instruct")
+MODEL_NAME: str = os.getenv("GATE_MODEL_NAME", "qwen2.5:3b")
+"""Ollama model. qwen2.5:3b fits a 4 GB GPU; the Blueprint names qwen2.5:7b-instruct."""
 MODEL_API_BASE: str = os.getenv("GATE_API_BASE", "http://localhost:11434")  # Ollama default
 
 # Groq Cloud settings (Optional)
@@ -80,6 +81,11 @@ Label = STOP      otherwise
 
 TAU_ACC_SWEEP: list[float] = [0.03, 0.05, 0.08]
 """Values of τ_acc to sweep during validation (Week 8–9)."""
+
+MAS_ROUTER: str = os.getenv("GATE_MAS_ROUTER", "bandit").lower()
+"""How the MAS picks a sub-agent: "bandit" (LinUCB, learned during benchmark
+calibration; falls back to "auto" until a trained state exists), "auto"
+(text heuristic) or a fixed agent name ("react", "debate", "reflexion")."""
 
 K_DEFAULT: int = 3
 """Default token budget multiplier: MAS budget = k × probe_tokens."""

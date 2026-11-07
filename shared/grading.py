@@ -26,6 +26,8 @@ Rules
      "United States").
    * A candidate written as ``"part one && part two"`` requires every part to
      appear as a whole phrase in the prediction (for two-part questions).
+   * When the gold answer is itself approximate ("approximately 200,000"),
+     numbers within 5% are accepted.
 """
 
 from __future__ import annotations
@@ -170,11 +172,28 @@ def parse_numbers(text: str) -> list[tuple[float, int]]:
 # Matching
 
 
-def _numbers_equal(predicted: float, candidate: float, decimals: int) -> bool:
+APPROXIMATE_TOLERANCE = 0.05
+"""Relative tolerance when the gold answer is itself approximate ("about 200,000")."""
+
+_APPROXIMATE_RE = re.compile(
+    r"\b(?:approximately|approx|about|around|roughly|nearly)\b|~|≈", re.IGNORECASE
+)
+
+
+def is_approximate(ground_truth: str) -> bool:
+    """Whether a gold answer is stated as approximate."""
+    return bool(_APPROXIMATE_RE.search(ground_truth or ""))
+
+
+def _numbers_equal(
+    predicted: float, candidate: float, decimals: int, approximate: bool = False
+) -> bool:
+    if approximate:
+        return math.isclose(predicted, candidate, rel_tol=APPROXIMATE_TOLERANCE, abs_tol=1e-9)
     return math.isclose(round(predicted, decimals), round(candidate, decimals), abs_tol=1e-9)
 
 
-def _numeric_match(predicted: str, candidate: str) -> bool:
+def _numeric_match(predicted: str, candidate: str, approximate: bool = False) -> bool:
     candidate_numbers = parse_numbers(candidate)
     predicted_numbers = parse_numbers(predicted)
     if not predicted_numbers:
@@ -188,13 +207,13 @@ def _numeric_match(predicted: str, candidate: str) -> bool:
             tail_numbers = parse_numbers(predicted.rsplit("=", 1)[1])
             if tail_numbers:
                 options.append(tail_numbers[0][0])
-        return any(_numbers_equal(option, value, decimals) for option in options)
+        return any(_numbers_equal(option, value, decimals, approximate) for option in options)
 
     # Multi-number candidates ("1 hour 43 minutes") need every number, in order.
     position = 0
     for value, decimals in candidate_numbers:
         while position < len(predicted_numbers) and not _numbers_equal(
-            predicted_numbers[position][0], value, decimals
+            predicted_numbers[position][0], value, decimals, approximate
         ):
             position += 1
         if position == len(predicted_numbers):
@@ -226,14 +245,17 @@ def _all_of_match(predicted: str, candidate: str) -> bool:
     return all(_contains_phrase(norm_pred, part) for part in parts if part)
 
 
-def matches_candidate(predicted_answer: str, candidate: str) -> bool:
-    """Return True if an already-extracted answer matches one acceptable answer."""
+def matches_candidate(predicted_answer: str, candidate: str, approximate: bool = False) -> bool:
+    """Return True if an already-extracted answer matches one acceptable answer.
+
+    ``approximate`` allows numbers within APPROXIMATE_TOLERANCE of the candidate.
+    """
     if not predicted_answer or not candidate or not candidate.strip():
         return False
     if ALL_OF_SEPARATOR in candidate:
         return _all_of_match(predicted_answer, candidate)
     if parse_numbers(candidate):
-        return _numeric_match(predicted_answer, candidate)
+        return _numeric_match(predicted_answer, candidate, approximate)
     return _text_match(predicted_answer, candidate)
 
 
@@ -254,7 +276,11 @@ def is_correct(
     answer = extract_final_answer(predicted)
     if not answer:
         return False
-    return any(matches_candidate(answer, candidate) for candidate in (ground_truth, *aliases))
+    # Aliases restate the gold answer, so they inherit whether it is approximate.
+    approximate = is_approximate(ground_truth)
+    return any(
+        matches_candidate(answer, candidate, approximate) for candidate in (ground_truth, *aliases)
+    )
 
 
 def grade_task(predicted: str, task: object) -> bool | None:
