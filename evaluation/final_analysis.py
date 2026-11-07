@@ -32,11 +32,41 @@ from gate.classifier import FEATURE_NAMES, make_classifier
 from gate.feature_extractor import extract_features
 from gate.train_gate import apply_repeated_label_rule, evaluate_validation_policy
 from shared.config import K_DEFAULT, TAU_ACC
+from shared.grading import normalize_text
 from shared.schemas import EvalResult, GateFeatures, ProbeResult, Task
 
 COT = "CoT-SC-only"
 MAS = "Always-MAS"
 NO_ANSWER = {"", "unknown", "none", "n/a", "[simulated: no llm answer]"}
+LENIENT_MAX_WORDS = 25
+_FINISH = re.compile(r"^\s*finish\s*\[(.*)\]\s*$", re.I)
+_NEGATION = re.compile(r"\b(?:not|no|never|neither|nor)\b|n't", re.I)
+
+
+def lenient_correct(result: EvalResult, task: Task) -> bool:
+    """Strict grade, or the gold answer/an alias stated inside a short answer.
+
+    A sensitivity check for wordy answers ("Bong Joon-ho was born in South
+    Korea") and leaked action syntax ("finish[South China Sea]"). Answers over
+    25 words or containing a negation never pass on this rule alone.
+    """
+    if result.is_correct:
+        return True
+    predicted = result.predicted_answer or ""
+    if match := _FINISH.match(predicted):
+        predicted = match.group(1)
+    text = normalize_text(predicted)
+    if not text or len(text.split()) > LENIENT_MAX_WORDS or _NEGATION.search(predicted):
+        return False
+    for candidate in (task.ground_truth or "", *(task.answer_aliases or ())):
+        wanted = normalize_text(candidate)
+        if len(wanted) >= 2 and re.search(rf"\b{re.escape(wanted)}\b", text):
+            return True
+    return False
+
+
+def _regraded(results: list[EvalResult], task: Task) -> list[EvalResult]:
+    return [r.model_copy(update={"is_correct": lenient_correct(r, task)}) for r in results]
 
 
 # Loading
@@ -429,7 +459,22 @@ def analyse(
         for seed, state in states.items()
     }
     test_by_seed = {s: m for s, m in test_by_seed.items() if m[COT] and m[MAS]}
+    if calib_cot and calib_mas:
+        lenient_cot = {t: _regraded(r, tasks[t]) for t, r in calib_cot.items()}
+        lenient_mas = {t: _regraded(r, tasks[t]) for t, r in calib_mas.items()}
+        out["lenient"] = {"premise": premise(lenient_cot, lenient_mas)}
     if test_by_seed:
+        lenient_test: dict[str, dict[str, Any]] = {}
+        for method in (COT, MAS, "RandomGate", "RuleBasedGate", "GateOrchestra"):
+            strict = [r for seed in test_by_seed.values() for r in seed.get(method, {}).values()]
+            if not strict:
+                continue
+            loose = sum(lenient_correct(r, tasks[r.task_id]) for r in strict)
+            lenient_test[method] = {
+                "strict": _rate(sum(r.is_correct is True for r in strict), len(strict)),
+                "lenient": _rate(loose, len(strict)),
+            }
+        out.setdefault("lenient", {})["test"] = lenient_test
         out["error_analysis"] = error_analysis(test_by_seed, tasks)
         out["power"] = [power(test_by_seed, m) for m in ("GateOrchestra", COT, "RuleBasedGate")]
         first = test_by_seed[min(test_by_seed)]
