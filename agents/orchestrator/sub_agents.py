@@ -149,6 +149,15 @@ def _is_placeholder(argument: str) -> bool:
     return argument.strip().strip(".").lower() in _PLACEHOLDERS
 
 
+_FINISH_WRAPPER = re.compile(r"^\s*(?:Action\s*\d*\s*:\s*)?finish\s*\[(.*)\]\s*\.?\s*$", re.I)
+
+
+def _unwrap_finish(answer: str) -> str:
+    """'finish[Paris]' -> 'Paris' (the model sometimes writes the action as its answer)."""
+    match = _FINISH_WRAPPER.match(answer)
+    return match.group(1).strip() if match else answer
+
+
 class ReActAgent(_SubAgentBase):
     """ReAct (Yao et al., 2023): Thought -> Action -> Observation with real tools.
 
@@ -201,7 +210,7 @@ class ReActAgent(_SubAgentBase):
             history.append(f"Thought {step}: {response[: match.end()] if match else response}")
             if match is None:
                 if "final answer" in response.lower():
-                    return extract_answer(response), total_tokens
+                    return _unwrap_finish(extract_answer(response)), total_tokens
                 history.append(
                     f"Observation {step}: No valid action. "
                     "Use lookup[...], calculate[...] or finish[...]."
@@ -230,8 +239,8 @@ class ReActAgent(_SubAgentBase):
         if outcome is not None:
             response, fin_tokens = outcome
             total_tokens += fin_tokens
-            return extract_answer(f"Final Answer: {response}"), total_tokens
-        return extract_answer(response), total_tokens
+            return _unwrap_finish(extract_answer(f"Final Answer: {response}")), total_tokens
+        return _unwrap_finish(extract_answer(response)), total_tokens
 
 
 # 2. Multi-Agent Debate & Consensus Agent

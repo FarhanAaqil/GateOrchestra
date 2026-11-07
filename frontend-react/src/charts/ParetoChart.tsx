@@ -1,3 +1,4 @@
+import { useChartAnimation } from './animation'
 import { CartesianGrid, LabelList, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis, ZAxis } from 'recharts'
 import { METHOD_COLORS, METHOD_LABELS } from '../lib/format'
 import type { AggregatedRow } from '../lib/types'
@@ -5,6 +6,7 @@ import { AXIS, GRID, TOOLTIP } from './theme'
 
 /** Accuracy vs mean tokens per task; up and to the left is better. */
 export default function ParetoChart({ rows }: { rows: AggregatedRow[] }) {
+  const animate = useChartAnimation()
   return (
     <ResponsiveContainer width="100%" height={340}>
       <ScatterChart margin={{ top: 20, right: 30, bottom: 20, left: 0 }}>
@@ -16,6 +18,7 @@ export default function ParetoChart({ rows }: { rows: AggregatedRow[] }) {
         <Tooltip {...TOOLTIP} cursor={{ strokeDasharray: '3 3' }} />
         {rows.map((r) => (
           <Scatter
+            isAnimationActive={animate}
             key={r.method}
             name={METHOD_LABELS[r.method]}
             data={[{ tokens: r.avg_tokens_mean, accuracy: r.accuracy_mean, label: METHOD_LABELS[r.method] }]}

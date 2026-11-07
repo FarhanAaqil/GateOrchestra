@@ -178,6 +178,27 @@ def render_markdown(a: dict[str, Any]) -> str:
                 )
                 lines.append(f"- seed {seed}, {phase}: {text}")
         lines.append("")
+    if len_ := a.get("lenient"):
+        lines += [
+            "## Sensitivity: lenient grading",
+            "",
+            "Strict grading is what the results use. As a check on wordy answers and leaked",
+            "action syntax, this also counts an answer as right when the gold answer or an",
+            "alias appears as a whole phrase in an answer of at most 25 words with no negation.",
+            "",
+        ]
+        if lp := len_.get("premise"):
+            lines += [
+                f"Premise, lenient: CoT-SC {_ci(lp['cot_sc'])}, MAS {_ci(lp['mas'])} "
+                f"({lp['accuracy_gain_pts']:+.1f} pts; per task MAS better on {lp['tasks_mas_better']}, "
+                f"worse on {lp['tasks_cot_better']}, sign test p = {lp['sign_test_p']:.3f}).",
+                "",
+            ]
+        if lt := len_.get("test"):
+            lines += ["| Method (test, all seeds) | Strict | Lenient |", "|:--|--:|--:|"]
+            for method, v in lt.items():
+                lines.append(f"| {method} | {_ci(v['strict'])} | {_ci(v['lenient'])} |")
+            lines.append("")
     if b := a.get("budget"):
         lines += [
             "## Budget enforcement",

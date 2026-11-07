@@ -1,0 +1,1441 @@
+{
+  "seed": 123,
+  "n": null,
+  "dry_run": false,
+  "execution_mode": "real",
+  "results": [
+    {
+      "method": "CoT-SC-only",
+      "n": 32,
+      "n_correct": 31,
+      "accuracy": 0.96875,
+      "accuracy_ci95": [
+        0.8425539219962727,
+        0.9944622826374491
+      ],
+      "total_tokens": 23693,
+      "avg_tokens": 740.40625,
+      "token_savings_pct": 39.75079465988557,
+      "stop_rate": 0.0,
+      "escalate_rate": 0.0,
+      "avg_latency_ms": 20260.91856561834
+    },
+    {
+      "method": "Always-MAS",
+      "n": 32,
+      "n_correct": 29,
+      "accuracy": 0.90625,
+      "accuracy_ci95": [
+        0.7578150066422116,
+        0.9675990373736805
+      ],
+      "total_tokens": 39325,
+      "avg_tokens": 1228.90625,
+      "token_savings_pct": 0.0,
+      "stop_rate": 0.0,
+      "escalate_rate": 1.0,
+      "avg_latency_ms": 20127.905831246608
+    },
+    {
+      "method": "RandomGate",
+      "n": 32,
+      "n_correct": 30,
+      "accuracy": 0.9375,
+      "accuracy_ci95": [
+        0.7985253275199642,
+        0.9826897968048427
+      ],
+      "total_tokens": 27706,
+      "avg_tokens": 865.8125,
+      "token_savings_pct": 29.546090273363003,
+      "stop_rate": 0.875,
+      "escalate_rate": 0.125,
+      "avg_latency_ms": 21609.016921867806
+    },
+    {
+      "method": "RuleBasedGate",
+      "n": 32,
+      "n_correct": 26,
+      "accuracy": 0.8125,
+      "accuracy_ci95": [
+        0.6469050424507756,
+        0.9111057606383721
+      ],
+      "total_tokens": 48640,
+      "avg_tokens": 1520.0,
+      "token_savings_pct": -23.687221869040044,
+      "stop_rate": 0.3125,
+      "escalate_rate": 0.6875,
+      "avg_latency_ms": 32352.88957499506
+    },
+    {
+      "method": "GateOrchestra",
+      "n": 32,
+      "n_correct": 31,
+      "accuracy": 0.96875,
+      "accuracy_ci95": [
+        0.8425539219962727,
+        0.9944622826374491
+      ],
+      "total_tokens": 23693,
+      "avg_tokens": 740.40625,
+      "token_savings_pct": 39.75079465988557,
+      "stop_rate": 1.0,
+      "escalate_rate": 0.0,
+      "avg_latency_ms": 20260.91856561834
+    }
+  ],
+  "k": 5,
+  "calibration_seed": 42,
+  "mas_router": "bandit",
+  "feature_backend": "spacy",
+  "mas_routing": {
+    "train": {
+      "debate": {
+        "n": 1,
+        "correct": 0,
+        "accuracy": 0.0
+      },
+      "react": {
+        "n": 207,
+        "correct": 157,
+        "accuracy": 0.7584541062801933
+      },
+      "reflexion": {
+        "n": 83,
+        "correct": 70,
+        "accuracy": 0.8433734939759037
+      }
+    },
+    "test_always_mas": {
+      "react": {
+        "n": 9,
+        "correct": 8,
+        "accuracy": 0.8888888888888888
+      },
+      "reflexion": {
+        "n": 23,
+        "correct": 21,
+        "accuracy": 0.9130434782608695
+      }
+    },
+    "test_gateorchestra": {}
+  },
+  "dataset_sha256": "4f85db9c32225373002623045cd7ff9306b8df2c1396acec0d63049fa2e78ad0",
+  "test_task_ids": [
+    "arith_004",
+    "arith_008",
+    "arith_013",
+    "arith_016",
+    "arith_029",
+    "arith_037",
+    "arith_039",
+    "arith_040",
+    "bridge_002",
+    "bridge_009",
+    "bridge_011",
+    "bridge_012",
+    "bridge_018",
+    "bridge_019",
+    "bridge_022",
+    "bridge_036",
+    "bridge_051",
+    "cmp_007",
+    "cmp_011",
+    "cmp_014",
+    "cmp_025",
+    "cmp_026",
+    "comp_003",
+    "comp_009",
+    "comp_012",
+    "comp_015",
+    "comp_025",
+    "comp_026",
+    "comp_031",
+    "comp_035",
+    "comp_036",
+    "comp_038"
+  ],
+  "gate": {
+    "classifier": "mlp",
+    "tau_acc": 0.03,
+    "degenerate": false,
+    "val_escalation_rate": 0.0625,
+    "note": null
+  },
+  "paired_tests": [
+    {
+      "method": "Always-MAS",
+      "reference": "CoT-SC-only",
+      "method_only_correct": 0,
+      "reference_only_correct": 2,
+      "p_value": 0.5
+    },
+    {
+      "method": "RandomGate",
+      "reference": "CoT-SC-only",
+      "method_only_correct": 0,
+      "reference_only_correct": 1,
+      "p_value": 1.0
+    },
+    {
+      "method": "RuleBasedGate",
+      "reference": "CoT-SC-only",
+      "method_only_correct": 0,
+      "reference_only_correct": 5,
+      "p_value": 0.0625
+    },
+    {
+      "method": "GateOrchestra",
+      "reference": "CoT-SC-only",
+      "method_only_correct": 0,
+      "reference_only_correct": 0,
+      "p_value": 1.0
+    },
+    {
+      "method": "CoT-SC-only",
+      "reference": "Always-MAS",
+      "method_only_correct": 2,
+      "reference_only_correct": 0,
+      "p_value": 0.5
+    },
+    {
+      "method": "RandomGate",
+      "reference": "Always-MAS",
+      "method_only_correct": 2,
+      "reference_only_correct": 1,
+      "p_value": 1.0
+    },
+    {
+      "method": "RuleBasedGate",
+      "reference": "Always-MAS",
+      "method_only_correct": 2,
+      "reference_only_correct": 5,
+      "p_value": 0.453125
+    },
+    {
+      "method": "GateOrchestra",
+      "reference": "Always-MAS",
+      "method_only_correct": 2,
+      "reference_only_correct": 0,
+      "p_value": 0.5
+    }
+  ],
+  "calibration": [
+    {
+      "classifier": "logreg",
+      "tau_acc": 0.03,
+      "k": 2,
+      "accuracy": 0.875,
+      "avg_tokens": 903.0625,
+      "token_savings_pct": 10.106697359007066,
+      "escalation_rate": 0.09375
+    },
+    {
+      "classifier": "logreg",
+      "tau_acc": 0.03,
+      "k": 3,
+      "accuracy": 0.90625,
+      "avg_tokens": 931.78125,
+      "token_savings_pct": 19.23670738644059,
+      "escalation_rate": 0.09375
+    },
+    {
+      "classifier": "logreg",
+      "tau_acc": 0.03,
+      "k": 5,
+      "accuracy": 0.90625,
+      "avg_tokens": 917.75,
+      "token_savings_pct": 24.72638728694092,
+      "escalation_rate": 0.09375
+    },
+    {
+      "classifier": "gbt",
+      "tau_acc": 0.03,
+      "k": 2,
+      "accuracy": 0.84375,
+      "avg_tokens": 855.96875,
+      "token_savings_pct": 14.794537592932466,
+      "escalation_rate": 0.0625
+    },
+    {
+      "classifier": "gbt",
+      "tau_acc": 0.03,
+      "k": 3,
+      "accuracy": 0.84375,
+      "avg_tokens": 854.5625,
+      "token_savings_pct": 25.92973807524581,
+      "escalation_rate": 0.0625
+    },
+    {
+      "classifier": "gbt",
+      "tau_acc": 0.03,
+      "k": 5,
+      "accuracy": 0.84375,
+      "avg_tokens": 859.0,
+      "token_savings_pct": 29.54504677688069,
+      "escalation_rate": 0.0625
+    },
+    {
+      "classifier": "mlp",
+      "tau_acc": 0.03,
+      "k": 2,
+      "accuracy": 0.84375,
+      "avg_tokens": 855.34375,
+      "token_savings_pct": 14.85675179643513,
+      "escalation_rate": 0.0625
+    },
+    {
+      "classifier": "mlp",
+      "tau_acc": 0.03,
+      "k": 3,
+      "accuracy": 0.875,
+      "avg_tokens": 870.53125,
+      "token_savings_pct": 24.545626912971642,
+      "escalation_rate": 0.0625
+    },
+    {
+      "classifier": "mlp",
+      "tau_acc": 0.03,
+      "k": 5,
+      "accuracy": 0.875,
+      "avg_tokens": 857.0625,
+      "token_savings_pct": 29.703960015378705,
+      "escalation_rate": 0.0625
+    },
+    {
+      "classifier": "logreg",
+      "tau_acc": 0.05,
+      "k": 2,
+      "accuracy": 0.875,
+      "avg_tokens": 903.0625,
+      "token_savings_pct": 10.106697359007066,
+      "escalation_rate": 0.09375
+    },
+    {
+      "classifier": "logreg",
+      "tau_acc": 0.05,
+      "k": 3,
+      "accuracy": 0.90625,
+      "avg_tokens": 931.78125,
+      "token_savings_pct": 19.23670738644059,
+      "escalation_rate": 0.09375
+    },
+    {
+      "classifier": "logreg",
+      "tau_acc": 0.05,
+      "k": 5,
+      "accuracy": 0.90625,
+      "avg_tokens": 917.75,
+      "token_savings_pct": 24.72638728694092,
+      "escalation_rate": 0.09375
+    },
+    {
+      "classifier": "gbt",
+      "tau_acc": 0.05,
+      "k": 2,
+      "accuracy": 0.84375,
+      "avg_tokens": 855.96875,
+      "token_savings_pct": 14.794537592932466,
+      "escalation_rate": 0.0625
+    },
+    {
+      "classifier": "gbt",
+      "tau_acc": 0.05,
+      "k": 3,
+      "accuracy": 0.84375,
+      "avg_tokens": 854.5625,
+      "token_savings_pct": 25.92973807524581,
+      "escalation_rate": 0.0625
+    },
+    {
+      "classifier": "gbt",
+      "tau_acc": 0.05,
+      "k": 5,
+      "accuracy": 0.84375,
+      "avg_tokens": 859.0,
+      "token_savings_pct": 29.54504677688069,
+      "escalation_rate": 0.0625
+    },
+    {
+      "classifier": "mlp",
+      "tau_acc": 0.05,
+      "k": 2,
+      "accuracy": 0.84375,
+      "avg_tokens": 855.34375,
+      "token_savings_pct": 14.85675179643513,
+      "escalation_rate": 0.0625
+    },
+    {
+      "classifier": "mlp",
+      "tau_acc": 0.05,
+      "k": 3,
+      "accuracy": 0.875,
+      "avg_tokens": 870.53125,
+      "token_savings_pct": 24.545626912971642,
+      "escalation_rate": 0.0625
+    },
+    {
+      "classifier": "mlp",
+      "tau_acc": 0.05,
+      "k": 5,
+      "accuracy": 0.875,
+      "avg_tokens": 857.0625,
+      "token_savings_pct": 29.703960015378705,
+      "escalation_rate": 0.0625
+    },
+    {
+      "classifier": "logreg",
+      "tau_acc": 0.08,
+      "k": 2,
+      "accuracy": 0.875,
+      "avg_tokens": 903.0625,
+      "token_savings_pct": 10.106697359007066,
+      "escalation_rate": 0.09375
+    },
+    {
+      "classifier": "logreg",
+      "tau_acc": 0.08,
+      "k": 3,
+      "accuracy": 0.90625,
+      "avg_tokens": 931.78125,
+      "token_savings_pct": 19.23670738644059,
+      "escalation_rate": 0.09375
+    },
+    {
+      "classifier": "logreg",
+      "tau_acc": 0.08,
+      "k": 5,
+      "accuracy": 0.90625,
+      "avg_tokens": 917.75,
+      "token_savings_pct": 24.72638728694092,
+      "escalation_rate": 0.09375
+    },
+    {
+      "classifier": "gbt",
+      "tau_acc": 0.08,
+      "k": 2,
+      "accuracy": 0.84375,
+      "avg_tokens": 855.96875,
+      "token_savings_pct": 14.794537592932466,
+      "escalation_rate": 0.0625
+    },
+    {
+      "classifier": "gbt",
+      "tau_acc": 0.08,
+      "k": 3,
+      "accuracy": 0.84375,
+      "avg_tokens": 854.5625,
+      "token_savings_pct": 25.92973807524581,
+      "escalation_rate": 0.0625
+    },
+    {
+      "classifier": "gbt",
+      "tau_acc": 0.08,
+      "k": 5,
+      "accuracy": 0.84375,
+      "avg_tokens": 859.0,
+      "token_savings_pct": 29.54504677688069,
+      "escalation_rate": 0.0625
+    },
+    {
+      "classifier": "mlp",
+      "tau_acc": 0.08,
+      "k": 2,
+      "accuracy": 0.84375,
+      "avg_tokens": 855.34375,
+      "token_savings_pct": 14.85675179643513,
+      "escalation_rate": 0.0625
+    },
+    {
+      "classifier": "mlp",
+      "tau_acc": 0.08,
+      "k": 3,
+      "accuracy": 0.875,
+      "avg_tokens": 870.53125,
+      "token_savings_pct": 24.545626912971642,
+      "escalation_rate": 0.0625
+    },
+    {
+      "classifier": "mlp",
+      "tau_acc": 0.08,
+      "k": 5,
+      "accuracy": 0.875,
+      "avg_tokens": 857.0625,
+      "token_savings_pct": 29.703960015378705,
+      "escalation_rate": 0.0625
+    }
+  ],
+  "per_task": {
+    "CoT-SC-only": [
+      {
+        "task_id": "arith_004",
+        "is_correct": true,
+        "tokens_spent": 687,
+        "decision": null
+      },
+      {
+        "task_id": "arith_008",
+        "is_correct": true,
+        "tokens_spent": 888,
+        "decision": null
+      },
+      {
+        "task_id": "arith_013",
+        "is_correct": true,
+        "tokens_spent": 667,
+        "decision": null
+      },
+      {
+        "task_id": "arith_016",
+        "is_correct": true,
+        "tokens_spent": 846,
+        "decision": null
+      },
+      {
+        "task_id": "arith_029",
+        "is_correct": true,
+        "tokens_spent": 893,
+        "decision": null
+      },
+      {
+        "task_id": "arith_037",
+        "is_correct": true,
+        "tokens_spent": 1009,
+        "decision": null
+      },
+      {
+        "task_id": "arith_039",
+        "is_correct": true,
+        "tokens_spent": 1108,
+        "decision": null
+      },
+      {
+        "task_id": "arith_040",
+        "is_correct": false,
+        "tokens_spent": 789,
+        "decision": null
+      },
+      {
+        "task_id": "bridge_002",
+        "is_correct": true,
+        "tokens_spent": 604,
+        "decision": null
+      },
+      {
+        "task_id": "bridge_009",
+        "is_correct": true,
+        "tokens_spent": 588,
+        "decision": null
+      },
+      {
+        "task_id": "bridge_011",
+        "is_correct": true,
+        "tokens_spent": 538,
+        "decision": null
+      },
+      {
+        "task_id": "bridge_012",
+        "is_correct": true,
+        "tokens_spent": 636,
+        "decision": null
+      },
+      {
+        "task_id": "bridge_018",
+        "is_correct": true,
+        "tokens_spent": 588,
+        "decision": null
+      },
+      {
+        "task_id": "bridge_019",
+        "is_correct": true,
+        "tokens_spent": 561,
+        "decision": null
+      },
+      {
+        "task_id": "bridge_022",
+        "is_correct": true,
+        "tokens_spent": 638,
+        "decision": null
+      },
+      {
+        "task_id": "bridge_036",
+        "is_correct": true,
+        "tokens_spent": 630,
+        "decision": null
+      },
+      {
+        "task_id": "bridge_051",
+        "is_correct": true,
+        "tokens_spent": 520,
+        "decision": null
+      },
+      {
+        "task_id": "cmp_007",
+        "is_correct": true,
+        "tokens_spent": 872,
+        "decision": null
+      },
+      {
+        "task_id": "cmp_011",
+        "is_correct": true,
+        "tokens_spent": 679,
+        "decision": null
+      },
+      {
+        "task_id": "cmp_014",
+        "is_correct": true,
+        "tokens_spent": 935,
+        "decision": null
+      },
+      {
+        "task_id": "cmp_025",
+        "is_correct": true,
+        "tokens_spent": 772,
+        "decision": null
+      },
+      {
+        "task_id": "cmp_026",
+        "is_correct": true,
+        "tokens_spent": 1036,
+        "decision": null
+      },
+      {
+        "task_id": "comp_003",
+        "is_correct": true,
+        "tokens_spent": 887,
+        "decision": null
+      },
+      {
+        "task_id": "comp_009",
+        "is_correct": true,
+        "tokens_spent": 596,
+        "decision": null
+      },
+      {
+        "task_id": "comp_012",
+        "is_correct": true,
+        "tokens_spent": 838,
+        "decision": null
+      },
+      {
+        "task_id": "comp_015",
+        "is_correct": true,
+        "tokens_spent": 819,
+        "decision": null
+      },
+      {
+        "task_id": "comp_025",
+        "is_correct": true,
+        "tokens_spent": 636,
+        "decision": null
+      },
+      {
+        "task_id": "comp_026",
+        "is_correct": true,
+        "tokens_spent": 598,
+        "decision": null
+      },
+      {
+        "task_id": "comp_031",
+        "is_correct": true,
+        "tokens_spent": 789,
+        "decision": null
+      },
+      {
+        "task_id": "comp_035",
+        "is_correct": true,
+        "tokens_spent": 726,
+        "decision": null
+      },
+      {
+        "task_id": "comp_036",
+        "is_correct": true,
+        "tokens_spent": 669,
+        "decision": null
+      },
+      {
+        "task_id": "comp_038",
+        "is_correct": true,
+        "tokens_spent": 651,
+        "decision": null
+      }
+    ],
+    "Always-MAS": [
+      {
+        "task_id": "arith_004",
+        "is_correct": true,
+        "tokens_spent": 1091,
+        "decision": null
+      },
+      {
+        "task_id": "arith_008",
+        "is_correct": true,
+        "tokens_spent": 1427,
+        "decision": null
+      },
+      {
+        "task_id": "arith_013",
+        "is_correct": true,
+        "tokens_spent": 1218,
+        "decision": null
+      },
+      {
+        "task_id": "arith_016",
+        "is_correct": true,
+        "tokens_spent": 1524,
+        "decision": null
+      },
+      {
+        "task_id": "arith_029",
+        "is_correct": true,
+        "tokens_spent": 1455,
+        "decision": null
+      },
+      {
+        "task_id": "arith_037",
+        "is_correct": true,
+        "tokens_spent": 1677,
+        "decision": null
+      },
+      {
+        "task_id": "arith_039",
+        "is_correct": true,
+        "tokens_spent": 2684,
+        "decision": null
+      },
+      {
+        "task_id": "arith_040",
+        "is_correct": false,
+        "tokens_spent": 1416,
+        "decision": null
+      },
+      {
+        "task_id": "bridge_002",
+        "is_correct": true,
+        "tokens_spent": 843,
+        "decision": null
+      },
+      {
+        "task_id": "bridge_009",
+        "is_correct": false,
+        "tokens_spent": 849,
+        "decision": null
+      },
+      {
+        "task_id": "bridge_011",
+        "is_correct": true,
+        "tokens_spent": 842,
+        "decision": null
+      },
+      {
+        "task_id": "bridge_012",
+        "is_correct": true,
+        "tokens_spent": 1172,
+        "decision": null
+      },
+      {
+        "task_id": "bridge_018",
+        "is_correct": true,
+        "tokens_spent": 791,
+        "decision": null
+      },
+      {
+        "task_id": "bridge_019",
+        "is_correct": true,
+        "tokens_spent": 1294,
+        "decision": null
+      },
+      {
+        "task_id": "bridge_022",
+        "is_correct": true,
+        "tokens_spent": 423,
+        "decision": null
+      },
+      {
+        "task_id": "bridge_036",
+        "is_correct": true,
+        "tokens_spent": 1060,
+        "decision": null
+      },
+      {
+        "task_id": "bridge_051",
+        "is_correct": true,
+        "tokens_spent": 1000,
+        "decision": null
+      },
+      {
+        "task_id": "cmp_007",
+        "is_correct": true,
+        "tokens_spent": 1380,
+        "decision": null
+      },
+      {
+        "task_id": "cmp_011",
+        "is_correct": true,
+        "tokens_spent": 1608,
+        "decision": null
+      },
+      {
+        "task_id": "cmp_014",
+        "is_correct": true,
+        "tokens_spent": 1979,
+        "decision": null
+      },
+      {
+        "task_id": "cmp_025",
+        "is_correct": true,
+        "tokens_spent": 1381,
+        "decision": null
+      },
+      {
+        "task_id": "cmp_026",
+        "is_correct": true,
+        "tokens_spent": 2220,
+        "decision": null
+      },
+      {
+        "task_id": "comp_003",
+        "is_correct": true,
+        "tokens_spent": 999,
+        "decision": null
+      },
+      {
+        "task_id": "comp_009",
+        "is_correct": false,
+        "tokens_spent": 1386,
+        "decision": null
+      },
+      {
+        "task_id": "comp_012",
+        "is_correct": true,
+        "tokens_spent": 585,
+        "decision": null
+      },
+      {
+        "task_id": "comp_015",
+        "is_correct": true,
+        "tokens_spent": 1088,
+        "decision": null
+      },
+      {
+        "task_id": "comp_025",
+        "is_correct": true,
+        "tokens_spent": 519,
+        "decision": null
+      },
+      {
+        "task_id": "comp_026",
+        "is_correct": true,
+        "tokens_spent": 1081,
+        "decision": null
+      },
+      {
+        "task_id": "comp_031",
+        "is_correct": true,
+        "tokens_spent": 1946,
+        "decision": null
+      },
+      {
+        "task_id": "comp_035",
+        "is_correct": true,
+        "tokens_spent": 666,
+        "decision": null
+      },
+      {
+        "task_id": "comp_036",
+        "is_correct": true,
+        "tokens_spent": 1208,
+        "decision": null
+      },
+      {
+        "task_id": "comp_038",
+        "is_correct": true,
+        "tokens_spent": 513,
+        "decision": null
+      }
+    ],
+    "RandomGate": [
+      {
+        "task_id": "arith_004",
+        "is_correct": true,
+        "tokens_spent": 1804,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "arith_008",
+        "is_correct": true,
+        "tokens_spent": 888,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "arith_013",
+        "is_correct": true,
+        "tokens_spent": 667,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "arith_016",
+        "is_correct": true,
+        "tokens_spent": 846,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "arith_029",
+        "is_correct": true,
+        "tokens_spent": 893,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "arith_037",
+        "is_correct": true,
+        "tokens_spent": 2503,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "arith_039",
+        "is_correct": true,
+        "tokens_spent": 1108,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "arith_040",
+        "is_correct": false,
+        "tokens_spent": 789,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "bridge_002",
+        "is_correct": true,
+        "tokens_spent": 604,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "bridge_009",
+        "is_correct": true,
+        "tokens_spent": 588,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "bridge_011",
+        "is_correct": true,
+        "tokens_spent": 538,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "bridge_012",
+        "is_correct": true,
+        "tokens_spent": 636,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "bridge_018",
+        "is_correct": true,
+        "tokens_spent": 588,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "bridge_019",
+        "is_correct": false,
+        "tokens_spent": 1339,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "bridge_022",
+        "is_correct": true,
+        "tokens_spent": 638,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "bridge_036",
+        "is_correct": true,
+        "tokens_spent": 630,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "bridge_051",
+        "is_correct": true,
+        "tokens_spent": 520,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "cmp_007",
+        "is_correct": true,
+        "tokens_spent": 872,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "cmp_011",
+        "is_correct": true,
+        "tokens_spent": 679,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "cmp_014",
+        "is_correct": true,
+        "tokens_spent": 935,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "cmp_025",
+        "is_correct": true,
+        "tokens_spent": 772,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "cmp_026",
+        "is_correct": true,
+        "tokens_spent": 1036,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "comp_003",
+        "is_correct": true,
+        "tokens_spent": 887,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "comp_009",
+        "is_correct": true,
+        "tokens_spent": 596,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "comp_012",
+        "is_correct": true,
+        "tokens_spent": 1462,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "comp_015",
+        "is_correct": true,
+        "tokens_spent": 819,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "comp_025",
+        "is_correct": true,
+        "tokens_spent": 636,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "comp_026",
+        "is_correct": true,
+        "tokens_spent": 598,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "comp_031",
+        "is_correct": true,
+        "tokens_spent": 789,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "comp_035",
+        "is_correct": true,
+        "tokens_spent": 726,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "comp_036",
+        "is_correct": true,
+        "tokens_spent": 669,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "comp_038",
+        "is_correct": true,
+        "tokens_spent": 651,
+        "decision": "STOP"
+      }
+    ],
+    "RuleBasedGate": [
+      {
+        "task_id": "arith_004",
+        "is_correct": true,
+        "tokens_spent": 1934,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "arith_008",
+        "is_correct": true,
+        "tokens_spent": 2276,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "arith_013",
+        "is_correct": true,
+        "tokens_spent": 667,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "arith_016",
+        "is_correct": true,
+        "tokens_spent": 846,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "arith_029",
+        "is_correct": true,
+        "tokens_spent": 893,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "arith_037",
+        "is_correct": true,
+        "tokens_spent": 1009,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "arith_039",
+        "is_correct": true,
+        "tokens_spent": 1108,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "arith_040",
+        "is_correct": false,
+        "tokens_spent": 789,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "bridge_002",
+        "is_correct": true,
+        "tokens_spent": 604,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "bridge_009",
+        "is_correct": true,
+        "tokens_spent": 1416,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "bridge_011",
+        "is_correct": true,
+        "tokens_spent": 1545,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "bridge_012",
+        "is_correct": true,
+        "tokens_spent": 1628,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "bridge_018",
+        "is_correct": true,
+        "tokens_spent": 1562,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "bridge_019",
+        "is_correct": false,
+        "tokens_spent": 1473,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "bridge_022",
+        "is_correct": true,
+        "tokens_spent": 638,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "bridge_036",
+        "is_correct": false,
+        "tokens_spent": 2065,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "bridge_051",
+        "is_correct": true,
+        "tokens_spent": 1832,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "cmp_007",
+        "is_correct": true,
+        "tokens_spent": 872,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "cmp_011",
+        "is_correct": false,
+        "tokens_spent": 1670,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "cmp_014",
+        "is_correct": true,
+        "tokens_spent": 935,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "cmp_025",
+        "is_correct": true,
+        "tokens_spent": 2357,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "cmp_026",
+        "is_correct": true,
+        "tokens_spent": 3146,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "comp_003",
+        "is_correct": true,
+        "tokens_spent": 1442,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "comp_009",
+        "is_correct": true,
+        "tokens_spent": 2705,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "comp_012",
+        "is_correct": true,
+        "tokens_spent": 1413,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "comp_015",
+        "is_correct": false,
+        "tokens_spent": 1884,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "comp_025",
+        "is_correct": true,
+        "tokens_spent": 1155,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "comp_026",
+        "is_correct": true,
+        "tokens_spent": 1640,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "comp_031",
+        "is_correct": true,
+        "tokens_spent": 1347,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "comp_035",
+        "is_correct": true,
+        "tokens_spent": 2317,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "comp_036",
+        "is_correct": false,
+        "tokens_spent": 1923,
+        "decision": "ESCALATE"
+      },
+      {
+        "task_id": "comp_038",
+        "is_correct": true,
+        "tokens_spent": 1549,
+        "decision": "ESCALATE"
+      }
+    ],
+    "GateOrchestra": [
+      {
+        "task_id": "arith_004",
+        "is_correct": true,
+        "tokens_spent": 687,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "arith_008",
+        "is_correct": true,
+        "tokens_spent": 888,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "arith_013",
+        "is_correct": true,
+        "tokens_spent": 667,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "arith_016",
+        "is_correct": true,
+        "tokens_spent": 846,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "arith_029",
+        "is_correct": true,
+        "tokens_spent": 893,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "arith_037",
+        "is_correct": true,
+        "tokens_spent": 1009,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "arith_039",
+        "is_correct": true,
+        "tokens_spent": 1108,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "arith_040",
+        "is_correct": false,
+        "tokens_spent": 789,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "bridge_002",
+        "is_correct": true,
+        "tokens_spent": 604,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "bridge_009",
+        "is_correct": true,
+        "tokens_spent": 588,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "bridge_011",
+        "is_correct": true,
+        "tokens_spent": 538,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "bridge_012",
+        "is_correct": true,
+        "tokens_spent": 636,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "bridge_018",
+        "is_correct": true,
+        "tokens_spent": 588,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "bridge_019",
+        "is_correct": true,
+        "tokens_spent": 561,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "bridge_022",
+        "is_correct": true,
+        "tokens_spent": 638,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "bridge_036",
+        "is_correct": true,
+        "tokens_spent": 630,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "bridge_051",
+        "is_correct": true,
+        "tokens_spent": 520,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "cmp_007",
+        "is_correct": true,
+        "tokens_spent": 872,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "cmp_011",
+        "is_correct": true,
+        "tokens_spent": 679,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "cmp_014",
+        "is_correct": true,
+        "tokens_spent": 935,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "cmp_025",
+        "is_correct": true,
+        "tokens_spent": 772,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "cmp_026",
+        "is_correct": true,
+        "tokens_spent": 1036,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "comp_003",
+        "is_correct": true,
+        "tokens_spent": 887,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "comp_009",
+        "is_correct": true,
+        "tokens_spent": 596,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "comp_012",
+        "is_correct": true,
+        "tokens_spent": 838,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "comp_015",
+        "is_correct": true,
+        "tokens_spent": 819,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "comp_025",
+        "is_correct": true,
+        "tokens_spent": 636,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "comp_026",
+        "is_correct": true,
+        "tokens_spent": 598,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "comp_031",
+        "is_correct": true,
+        "tokens_spent": 789,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "comp_035",
+        "is_correct": true,
+        "tokens_spent": 726,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "comp_036",
+        "is_correct": true,
+        "tokens_spent": 669,
+        "decision": "STOP"
+      },
+      {
+        "task_id": "comp_038",
+        "is_correct": true,
+        "tokens_spent": 651,
+        "decision": "STOP"
+      }
+    ]
+  }
+}

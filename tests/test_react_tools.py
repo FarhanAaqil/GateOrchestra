@@ -163,3 +163,9 @@ def test_routing_summary_counts_arms():
         "debate": {"n": 1, "correct": 1, "accuracy": 1.0},
         "react": {"n": 2, "correct": 1, "accuracy": 0.5},
     }
+
+
+def test_finish_written_as_the_final_answer_is_unwrapped():
+    caller, _ = _scripted(["Final Answer: finish[South China Sea]"])
+    answer, _ = ReActAgent(llm_caller=caller).run(_task(), 2000)
+    assert answer == "South China Sea"

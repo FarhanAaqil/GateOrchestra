@@ -151,3 +151,28 @@ def test_budget_overshoot_and_power_helpers() -> None:
     assert fa.mcnemar_mde(1, 0.4) is None
     assert fa.mcnemar_mde(0, 0.4) is None
     assert fa.sign_test(0, 0) == 1.0
+
+
+def test_lenient_grading_accepts_wordy_but_not_negated_answers() -> None:
+    task = Task(
+        task_id="t",
+        question="Where was he born?",
+        ground_truth="South Korea",
+        answer_aliases=("Korea",),
+    )
+
+    def graded(answer: str) -> bool:
+        result = EvalResult(
+            task_id="t",
+            method="Always-MAS",
+            predicted_answer=answer,
+            is_correct=False,
+            tokens_spent=1,
+        )
+        return fa.lenient_correct(result, task)
+
+    assert graded("Bong Joon-ho was born in South Korea")
+    assert graded("finish[South Korea]")
+    assert not graded("He was not born in South Korea")
+    assert not graded("North America")
+    assert not graded("South Korea " + "word " * 30)

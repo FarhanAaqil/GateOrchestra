@@ -14,31 +14,45 @@ GateOrchestra places a lightweight, trainable **gate** in front of a Multi-Agent
 
 **Research Goal:** ≥40% token savings vs. Always-MAS at ≤2 points accuracy cost, measured under equal token budgets (see the [Blueprint](Blueprint) hypotheses H1/RQ1–RQ3).
 
+**Outcome:** 38.5% savings with no accuracy cost on Qwen2.5-3B, but only because MAS was not better than the probe at this scale, so the gate learned to stop. See [Results](#results).
+
 ---
 
-## Results Status
+## Results
 
-> **There is no verified real-LLM result yet.** Treat any other figure you find in older reports as simulation.
+The final benchmark has run and passes `scripts/verify_final_results.py`: Qwen2.5-3B on a local GPU,
+32 held-out test tasks x 3 seeds (42, 123, 999), gate and router calibrated on 129 train/validation tasks
+run three times each. Full analysis: [`reports/final_analysis.md`](reports/final_analysis.md); write-up:
+[`reports/research_report.md`](reports/research_report.md); slides:
+[`reports/deck/GateOrchestra_final.pptx`](reports/deck/GateOrchestra_final.pptx).
 
-| Evidence | What it shows |
-| :--- | :--- |
-| **Simulation** (`results/simulated/`, `mode: mock`) | Not evidence. The simulator builds probe samples from the ground truth and models Always-MAS as always correct. Figures such as "78.37% savings / 82.29% accuracy" come from here. |
-| **Real-LLM smoke run** (`results/real/final/master_results.json`, Groq `qwen/qwen3.8-27b`, **5 test tasks, 1 seed**) | No method is distinguishable: every 95% Wilson interval spans about 12–77%, so "40% vs 20%" is a difference of one task. The learned gate stopped on 100% of tasks, so its row is identical to CoT-SC-only. It was recorded before the measurement fixes below and **fails** `scripts/verify_final_results.py`. |
-| **Final benchmark** (32 test tasks × seeds 42, 123, 999) | **Not run yet.** Run `python scripts/final_benchmark.py`, then `python scripts/verify_final_results.py`. |
+| Method (test, 3 seeds) | Accuracy | Pooled 95% CI | Avg tokens / task | vs Always-MAS | Escalation |
+| :--- | --: | :--- | --: | --: | --: |
+| CoT-SC-only | 95.8% | [89.8, 98.4] | 743 | -40.1% | 0% |
+| Always-MAS | 89.6% | [81.9, 94.2] | 1,241 | 0% | 100% |
+| RandomGate | 93.8% | [87.0, 97.1] | 852 | -31.2% | 9% |
+| RuleBasedGate | 82.3% | [73.5, 88.6] | 1,534 | +23.8% | 69% |
+| **GateOrchestra** | **95.8%** | [89.8, 98.4] | **764** | **-38.5%** | **1%** |
 
-Smoke-run numbers, kept for transparency only:
+What it shows:
 
-| Method | Accuracy | Wilson 95% CI | Avg Tokens / Task | STOP Rate |
-| :--- | :--- | :--- | :--- | :--- |
-| CoT-SC-only | 40.0% (2/5) | [11.8%, 76.9%] | 782.4 | — |
-| Always-MAS | 20.0% (1/5) | [3.6%, 62.4%] | 788.2 | — |
-| RandomGate | 20.0% (1/5) | [3.6%, 62.4%] | 1,354.2 | 40.0% |
-| RuleBasedGate | 40.0% (2/5) | [11.8%, 76.9%] | 935.8 | 80.0% |
-| GateOrchestra | 40.0% (2/5) | [11.8%, 76.9%] | 782.4 | 100.0% |
+- **The premise fails on a 3B model.** Over 387 graded calibration runs each, MAS was *less* accurate
+  than CoT-SC (79.8% vs 88.4%, sign test p = 0.008) and used 1.26x the tokens. A lenient grader that
+  forgives wordy MAS answers narrows the gap to 3.9 points, but MAS is never better.
+- **The gate learned the right policy.** It escalated 1% of test tasks, matching CoT-SC accuracy at
+  38.5% fewer tokens than Always-MAS (McNemar vs Always-MAS p = 0.07, pooled). The rule-based gate,
+  which escalates 69% of tasks, is significantly worse than CoT-SC (p = 0.001).
+- **Little room for any gate.** An oracle would escalate only 6% of questions here. Probe consistency is
+  the one feature the logistic gate depends on.
+- **Power is limited.** 32 test tasks cannot separate methods within about 8 points even pooled over seeds.
 
-Two things to know before reading any future result:
-- **The savings premise needs MAS to be much more expensive than the probe.** In the smoke run, Always-MAS (788 tokens) cost about the same as the probe (782), so no gate could save much.
-- **"The gate learned to always stop" is a legitimate, reportable negative result.** Calibration reports a degenerate constant gate rather than substituting another one.
+To reproduce: `python scripts/final_benchmark.py` (resumable with `--resume`; `GATE_EVAL_WORKERS=3`
+runs three tasks at once against a local Ollama), then `python scripts/verify_final_results.py`,
+`python scripts/analyze_final_results.py`, `python scripts/make_figures.py` and
+`node reports/deck/build_deck.js`.
+
+The dataset corrections behind these numbers came from an automated audit and still need a person's
+review: [`docs/dataset/CORRECTIONS_REVIEW.md`](docs/dataset/CORRECTIONS_REVIEW.md).
 
 ### Fixes made before the final benchmark
 
@@ -48,15 +62,27 @@ Two things to know before reading any future result:
 | Failed LLM calls | Sub-agents returned a fake answer with 0 tokens; failed probe samples voted with consistency 1.0 | `SubAgentError` / `ProbeError` are raised; failed samples lower consistency |
 | Majority vote | Jaccard ≥ 0.5 merged "30 / 60 / 45 square centimeters" | Uses the grader's equivalence (numbers compared by value) |
 | Grading | Two graders; "$500" correct for "$5.00", "15" correct for "5" | One grader (`shared/grading.py`) with numeric/unit handling and curated aliases |
-| Dataset | 14 tasks wrong, stale or unanswerable (e.g. the U.S. Capitol dome is not gold) | Corrected by `scripts/apply_dataset_corrections.py`; 82 tasks have answer aliases |
+| Dataset | 37 tasks wrong, stale or ambiguous (e.g. the U.S. Capitol dome is not gold) | Corrected by `scripts/apply_dataset_corrections.py`; 81 tasks have answer aliases; review sheet in `docs/dataset/` |
 | MAS prompts | Debate/Reflexion dropped the context and previous draft after round 1 | Context and previous draft carried through every step |
-| Routing | "auto" router read dataset depth/parallel labels | Text-only heuristic (LinUCB optional), no labels |
+| Routing | "auto" router read dataset depth/parallel labels | LinUCB router learned from graded train/val runs, frozen for test; text-only features |
 | Budgets | Always-MAS capped at 1,500; escalations at k × probe tokens | Every MAS call capped at k × the paired probe's tokens |
 | RandomGate | Fixed 50%; the API rebuilt it per request, so it always stopped | Matched to the learned gate's validation escalation rate; one persistent gate in the API |
 | Gate training | Single-class labels → loaded a gate trained on *simulated* data and reported hardcoded metrics | Degenerate constant gate, scored on real validation data and flagged |
 | Verifier | Hashed no files; seed and "no mock" checks missing | Checks seeds, dataset SHA-256, per-task records, mock markers, and recomputes aggregates |
 | Statistics | Accuracy only | Wilson CIs per method, exact McNemar tests vs CoT-SC-only and Always-MAS |
 | API / UI | Mock numbers served as verified; simulator returned the ground truth; dummy-trained gates; fabricated telemetry | Results read from disk with verification status; simulation never sees the answer and is ungraded; UI shows only returned values |
+
+---
+
+## Console
+
+| Overview | Results |
+| :---: | :---: |
+| ![Overview](docs/screenshots/overview.png) | ![Results](docs/screenshots/results.png) |
+| **Baselines** | **Token accountant** |
+| ![Baselines](docs/screenshots/baselines.png) | ![Token accountant](docs/screenshots/token_accountant.png) |
+
+More pages in [`docs/screenshots/`](docs/screenshots/).
 
 ---
 
@@ -163,9 +189,16 @@ python scripts/final_benchmark.py --n 5      # smoke test on a subset
 # 2. Verify integrity (dataset hash, seeds, per-task records, no mock data)
 python scripts/verify_final_results.py       # --allow-partial accepts a smoke run as PARTIAL
 
-# 3. Audit dataset leakage
+# 3. Analyse, draw figures and rebuild the deck (no LLM calls)
+python scripts/analyze_final_results.py      # reports/final_analysis.md
+python scripts/make_figures.py               # reports/figures/
+node reports/deck/build_deck.js              # reports/deck/GateOrchestra_final.pptx
+
+# 4. Audit dataset leakage
 python scripts/audit_leakage.py
 ```
+`GATE_EVAL_WORKERS=3` evaluates three tasks at once against a local Ollama, which roughly halves the run.
+Later seeds reuse the gate and router calibrated on the first seed (`--calibrate-per-seed` retrains them).
 Each seed writes `results/real/final/final_eval_seed_<seed>_n_all.json` with per-method accuracy and Wilson CIs, per-task outcomes, the selected gate (flagged if degenerate), and McNemar tests; `master_results.json` aggregates them.
 
 ---
