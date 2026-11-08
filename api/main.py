@@ -16,6 +16,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import sys
 import threading
 from pathlib import Path
@@ -38,6 +39,7 @@ from agents.orchestrator.orchestrator import request_orchestrator  # noqa: E402
 from agents.probe_agent import extract_answer, probe_agent  # noqa: E402
 from api.chat_routes import router as chat_router  # noqa: E402
 from api.history import RunHistory  # noqa: E402
+from api.security import SecurityMiddleware  # noqa: E402
 from evaluation.results_detail import build_results_detail  # noqa: E402
 from gate.classifier import (  # noqa: E402
     FEATURE_NAMES,
@@ -80,15 +82,17 @@ app = FastAPI(
     version="1.2.0",
 )
 
+# Middleware runs outermost-last: gzip and CORS wrap the security layer, so even
+# a refused request carries CORS headers the browser can read.
+app.add_middleware(SecurityMiddleware)
+app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,  # no cookies are used; "*" with credentials is invalid CORS
+    allow_origins=[o.strip() for o in os.getenv("GATE_CORS_ORIGINS", "*").split(",") if o.strip()],
+    allow_credentials=False,  # tokens travel in a header, not cookies
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# Results and task lists are large, repetitive JSON; gzip cuts them several-fold.
-app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.include_router(chat_router)
 
 # The last 50 runs, persisted so they survive a restart.
