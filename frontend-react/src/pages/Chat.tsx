@@ -1,0 +1,361 @@
+import { ArrowUp, ChevronDown, Copy, MessageSquarePlus, Square, Trash2, Wrench } from 'lucide-react'
+import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import KeyDialog from '../components/KeyDialog'
+import { Markdown } from '../components/Markdown'
+import { GATE_LABELS, chatApi, streamChat, type ChatEvent, type ChatMessage, type Conversation, type KeyAttempt, type ToolCall, type TurnMeta } from '../lib/chat'
+import { useApp } from '../lib/context'
+
+const GATE_MODE_KEY = 'gateorchestra.gateMode'
+const GATE_MODES = [
+  { id: 'auto', label: 'Auto (cheapest accurate gate)' },
+  { id: 'learned', label: 'Learned gate' },
+  { id: 'rule_based', label: 'Rule-based gate' },
+  { id: 'always_stop', label: 'Always answer directly' },
+  { id: 'always_escalate', label: 'Always use the research agent' },
+]
+const SUGGESTIONS = [
+  'Explain how a hash map works, with a Python example',
+  'If I invest $5,000 at 7% a year, how much do I have after 12 years?',
+  'Who won the 2022 FIFA World Cup and who was the top scorer?',
+  'Write a SQL query for the top 3 customers by total order value',
+]
+
+interface Live {
+  stage: 'probe' | 'gate' | 'tools' | 'writing'
+  probe?: Extract<ChatEvent, { type: 'probe' }>
+  gate?: Extract<ChatEvent, { type: 'gate' }>
+  tools: ToolCall[]
+  text: string
+}
+
+function readMode(): string {
+  try {
+    return localStorage.getItem(GATE_MODE_KEY) || 'auto'
+  } catch {
+    return 'auto'
+  }
+}
+
+function RouteBadges({ meta }: { meta: Partial<TurnMeta> }) {
+  if (meta.stopped) return <p className="mt-2 font-mono text-[11px] text-wine">stopped</p>
+  if (!meta.gate) return null
+  const escalated = meta.decision === 'ESCALATE'
+  return (
+    <div className="mt-2 flex flex-wrap items-center gap-1.5 font-mono text-[11px] text-navy/70">
+      <span className={`rounded-full px-2 py-0.5 ${escalated ? 'bg-ember text-ink' : 'bg-cyan/30 text-navy'}`}>
+        {meta.decision}
+      </span>
+      <span className="rounded-full border border-sky px-2 py-0.5" title={meta.gate_reason}>{GATE_LABELS[meta.gate] ?? meta.gate}</span>
+      {meta.task_type ? <span className="rounded-full border border-sky px-2 py-0.5">{meta.task_type}</span> : null}
+      {meta.total_tokens != null ? (
+        <span className="rounded-full border border-sky px-2 py-0.5" title={meta.tokens ? `probe ${meta.tokens.probe} · agent ${meta.tokens.agent} · answer ${meta.tokens.answer}` : undefined}>
+          {meta.total_tokens.toLocaleString()} tok
+        </span>
+      ) : null}
+      {meta.latency_ms != null ? <span className="rounded-full border border-sky px-2 py-0.5">{(meta.latency_ms / 1000).toFixed(1)} s</span> : null}
+      {meta.cached ? <span className="rounded-full bg-lemon px-2 py-0.5 text-ink">cached</span> : null}
+      {meta.models?.answer ? <span className="hidden rounded-full border border-sky px-2 py-0.5 sm:inline" title={Object.entries(meta.models).map(([k, v]) => `${k}: ${v}`).join('\n')}>{meta.models.answer.split(':').pop()}</span> : null}
+    </div>
+  )
+}
+
+function ToolList({ tools }: { tools: ToolCall[] }) {
+  if (!tools.length) return null
+  return (
+    <details className="group mt-2 rounded-2xl border border-sky/70 bg-ice/60 px-3 py-2 text-sm">
+      <summary className="flex cursor-pointer list-none items-center gap-2 text-navy">
+        <Wrench className="h-4 w-4 text-wine" /> {tools.length} tool call{tools.length === 1 ? '' : 's'}
+        <ChevronDown className="ml-auto h-4 w-4 transition-transform group-open:rotate-180" />
+      </summary>
+      <ol className="mt-2 space-y-2">
+        {tools.map((t, i) => (
+          <li key={i} className="rounded-xl bg-soft p-2">
+            <p className="font-mono text-xs font-semibold text-ink">{t.name}({JSON.stringify(t.input)})</p>
+            <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap font-mono text-xs text-navy/80">{t.output}</pre>
+          </li>
+        ))}
+      </ol>
+    </details>
+  )
+}
+
+function AssistantBubble({ message }: { message: ChatMessage }) {
+  const copy = () => navigator.clipboard?.writeText(message.content).catch(() => undefined)
+  return (
+    <div className="group">
+      <Markdown text={message.content} />
+      {message.meta?.tools?.length ? <ToolList tools={message.meta.tools} /> : null}
+      <div className="flex items-start justify-between gap-2">
+        <RouteBadges meta={message.meta ?? {}} />
+        <button onClick={copy} className="mt-2 rounded-lg p-1 text-navy/50 opacity-0 transition-opacity hover:bg-ice hover:text-navy group-hover:opacity-100" aria-label="Copy answer">
+          <Copy className="h-4 w-4" />
+        </button>
+      </div>
+    </div>
+  )
+}
+
+function LiveBubble({ live }: { live: Live }) {
+  const steps = [
+    { id: 'probe', label: live.probe ? `Probe: ${live.probe.task_type}, ${Math.round(live.probe.consistency * 100)}% agree` : 'Probing…' },
+    { id: 'gate', label: live.gate ? `${GATE_LABELS[live.gate.gate] ?? live.gate.gate} → ${live.gate.decision}` : 'Gate' },
+    ...(live.gate?.decision === 'ESCALATE' || live.tools.length ? [{ id: 'tools', label: live.tools.length ? `${live.tools.length} tool call(s)` : 'Researching…' }] : []),
+    { id: 'writing', label: 'Writing' },
+  ]
+  const order = ['probe', 'gate', 'tools', 'writing']
+  return (
+    <div>
+      <div className="mb-2 flex flex-wrap gap-1.5" aria-live="polite">
+        {steps.map((s) => {
+          const done = order.indexOf(s.id) < order.indexOf(live.stage) || (s.id === 'writing' && live.text)
+          const active = s.id === live.stage
+          return (
+            <span key={s.id} className={`rounded-full px-2.5 py-0.5 font-mono text-[11px] ${active ? 'bg-lemon text-ink' : done ? 'bg-navy text-sky' : 'border border-sky text-navy/50'}`}>
+              {s.label}
+            </span>
+          )
+        })}
+      </div>
+      {live.text ? <Markdown text={live.text + ' ▍'} /> : <div className="h-5 w-16 animate-pulse rounded bg-sky/40 motion-reduce:animate-none" />}
+      <ToolList tools={live.tools} />
+    </div>
+  )
+}
+
+export default function Chat() {
+  const { backend } = useApp()
+  const [conversations, setConversations] = useState<Conversation[]>([])
+  const [activeId, setActiveId] = useState<string | null>(null)
+  const [messages, setMessages] = useState<ChatMessage[]>([])
+  const [input, setInput] = useState('')
+  const [live, setLive] = useState<Live | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [keyPrompt, setKeyPrompt] = useState<{ attempts: KeyAttempt[]; message: string } | null>(null)
+  const [gateMode, setGateModeState] = useState(readMode)
+  const abortRef = useRef<AbortController | null>(null)
+  const bottomRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLTextAreaElement>(null)
+  const textRef = useRef('')
+  const localId = useRef(0)
+
+  const setGateMode = (mode: string) => {
+    setGateModeState(mode)
+    try {
+      localStorage.setItem(GATE_MODE_KEY, mode)
+    } catch {
+      // Storage may be unavailable; the choice still applies to this session.
+    }
+  }
+
+  const loadConversations = useCallback(() => {
+    chatApi.conversations().then((d) => setConversations(d.conversations)).catch(() => undefined)
+  }, [])
+
+  useEffect(() => {
+    if (backend === 'online') loadConversations()
+  }, [backend, loadConversations])
+
+  useEffect(() => {
+    bottomRef.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [messages, live?.text, live?.stage])
+
+  const openConversation = async (id: string) => {
+    if (live) return
+    setActiveId(id)
+    setError(null)
+    try {
+      setMessages((await chatApi.conversation(id)).messages)
+    } catch (err) {
+      setError((err as Error).message)
+    }
+  }
+
+  const newChat = () => {
+    if (live) return
+    setActiveId(null)
+    setMessages([])
+    setError(null)
+    inputRef.current?.focus()
+  }
+
+  const deleteConversation = async (id: string) => {
+    await chatApi.remove(id).catch(() => undefined)
+    if (id === activeId) newChat()
+    loadConversations()
+  }
+
+  const send = async (text: string) => {
+    const message = text.trim()
+    if (!message || live) return
+    localId.current += 1
+    const optimistic: ChatMessage = { id: `local-${localId.current}`, role: 'user', content: message }
+    setMessages((m) => [...m, optimistic])
+    setInput('')
+    setError(null)
+    setLive({ stage: 'probe', tools: [], text: '' })
+    textRef.current = ''
+    const controller = new AbortController()
+    abortRef.current = controller
+    try {
+      await streamChat(
+        { message, conversation_id: activeId, gate_mode: gateMode },
+        (event) => {
+          if (event.type === 'meta') {
+            setActiveId(event.conversation_id)
+          } else if (event.type === 'probe') {
+            setLive((l) => l && { ...l, probe: event, stage: 'gate' })
+          } else if (event.type === 'gate') {
+            setLive((l) => l && { ...l, gate: event, stage: event.decision === 'ESCALATE' ? 'tools' : 'writing' })
+          } else if (event.type === 'tool') {
+            setLive((l) => l && { ...l, tools: [...l.tools, event] })
+          } else if (event.type === 'answer_start') {
+            setLive((l) => l && { ...l, stage: 'writing' })
+          } else if (event.type === 'delta') {
+            textRef.current += event.text
+            setLive((l) => l && { ...l, text: textRef.current })
+          } else if (event.type === 'done') {
+            const content = textRef.current
+            setMessages((m) => [...m, { id: event.message_id, role: 'assistant', content, meta: event.meta }])
+            setLive(null)
+          } else if (event.type === 'error') {
+            setMessages((m) => m.filter((x) => x.id !== optimistic.id))
+            if (event.code === 'needs_key') setKeyPrompt({ attempts: event.attempts ?? [], message })
+            else setError(event.message)
+          }
+        },
+        controller.signal,
+      )
+    } catch (err) {
+      if (controller.signal.aborted) {
+        const partial = textRef.current
+        if (partial.trim()) {
+          localId.current += 1
+          setMessages((m) => [...m, { id: `stopped-${localId.current}`, role: 'assistant', content: partial, meta: { stopped: true } }])
+        }
+        setError(partial.trim() ? 'Stopped. The partial answer was kept.' : 'Stopped.')
+      } else {
+        setError((err as Error).message)
+        setMessages((m) => m.filter((x) => x.id !== optimistic.id))
+      }
+    } finally {
+      abortRef.current = null
+      setLive(null)
+      loadConversations()
+    }
+  }
+
+  const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault()
+      send(input)
+    }
+  }
+
+  return (
+    <div className="mx-auto grid h-[calc(100vh-7.5rem)] w-full max-w-7xl gap-4 lg:grid-cols-[250px_minmax(0,1fr)]">
+      <aside className="card hidden min-h-0 flex-col p-3 lg:flex" aria-label="Conversations">
+        <button onClick={newChat} className="mb-3 inline-flex items-center justify-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-soft">
+          <MessageSquarePlus className="h-4 w-4" /> New chat
+        </button>
+        <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto">
+          {conversations.map((c) => (
+            <li key={c.id} className="group flex items-center">
+              <button
+                onClick={() => openConversation(c.id)}
+                className={`min-w-0 flex-1 truncate rounded-xl px-3 py-2 text-left text-sm ${c.id === activeId ? 'bg-navy text-ice' : 'text-navy hover:bg-ice'}`}
+                title={c.title}
+              >
+                {c.title}
+              </button>
+              <button onClick={() => deleteConversation(c.id)} className="ml-1 rounded-lg p-1.5 text-navy/40 opacity-0 hover:bg-wine/10 hover:text-wine group-hover:opacity-100" aria-label={`Delete ${c.title}`}>
+                <Trash2 className="h-3.5 w-3.5" />
+              </button>
+            </li>
+          ))}
+          {!conversations.length ? <li className="px-3 py-2 text-xs text-navy/50">No conversations yet.</li> : null}
+        </ul>
+      </aside>
+
+      <section className="card flex min-h-0 flex-col p-0" aria-label="Chat">
+        <div className="flex flex-wrap items-center gap-2 border-b border-sky/60 px-4 py-2.5">
+          <h1 className="font-display text-lg font-bold text-ink">Chat</h1>
+          <button onClick={newChat} className="rounded-full border border-sky px-3 py-1 text-xs text-navy hover:bg-ice lg:hidden">New chat</button>
+          <label className="ml-auto flex items-center gap-2 text-xs text-navy/70">
+            Routing
+            <select value={gateMode} onChange={(e) => setGateMode(e.target.value)} className="rounded-full border border-sky bg-soft px-2.5 py-1 text-xs text-ink">
+              {GATE_MODES.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
+            </select>
+          </label>
+        </div>
+
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-8">
+          {!messages.length && !live ? (
+            <div className="mx-auto mt-6 max-w-2xl text-center">
+              <h2 className="text-3xl font-bold text-ink">Ask anything</h2>
+              <p className="mt-2 text-sm text-navy/70">
+                A quick probe checks how sure a single answer would be; the gate sends hard questions to a research agent with tools.
+              </p>
+              <div className="mt-6 grid gap-2 sm:grid-cols-2">
+                {SUGGESTIONS.map((s) => (
+                  <button key={s} onClick={() => send(s)} disabled={backend !== 'online'} className="rounded-2xl border border-sky bg-soft px-4 py-3 text-left text-sm text-navy hover:bg-ice disabled:opacity-50">
+                    {s}
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <div className="mx-auto max-w-3xl space-y-6">
+            {messages.map((m) =>
+              m.role === 'user' ? (
+                <div key={m.id} className="flex justify-end">
+                  <p className="max-w-[85%] whitespace-pre-wrap rounded-3xl rounded-br-md bg-navy px-4 py-2.5 text-sm text-ice">{m.content}</p>
+                </div>
+              ) : (
+                <AssistantBubble key={m.id} message={m} />
+              ),
+            )}
+            {live ? <LiveBubble live={live} /> : null}
+            {error ? <p className="rounded-2xl bg-wine/10 px-4 py-2.5 text-sm text-wine" role="alert">{error}</p> : null}
+            <div ref={bottomRef} />
+          </div>
+        </div>
+
+        <div className="border-t border-sky/60 p-3 sm:px-8">
+          <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-3xl border border-sky bg-soft px-3 py-2 focus-within:ring-2 focus-within:ring-navy/30">
+            <textarea
+              ref={inputRef}
+              value={input}
+              onChange={(e) => setInput(e.target.value)}
+              onKeyDown={onKeyDown}
+              rows={Math.min(6, Math.max(1, input.split('\n').length))}
+              placeholder={backend === 'online' ? 'Message GateOrchestra…  (Enter to send, Shift+Enter for a new line)' : 'Connecting to the API…'}
+              aria-label="Message"
+              className="max-h-40 min-h-[2.25rem] flex-1 resize-none bg-transparent py-1.5 text-sm text-ink outline-none"
+            />
+            {live ? (
+              <button onClick={() => abortRef.current?.abort()} className="rounded-full bg-wine p-2 text-soft" aria-label="Stop">
+                <Square className="h-4 w-4" />
+              </button>
+            ) : (
+              <button onClick={() => send(input)} disabled={!input.trim() || backend !== 'online'} className="rounded-full bg-ember p-2 text-ink disabled:opacity-40" aria-label="Send">
+                <ArrowUp className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+        </div>
+      </section>
+
+      {keyPrompt ? (
+        <KeyDialog
+          attempts={keyPrompt.attempts}
+          onClose={() => setKeyPrompt(null)}
+          onSaved={() => {
+            const retry = keyPrompt.message
+            setKeyPrompt(null)
+            send(retry)
+          }}
+        />
+      ) : null}
+    </div>
+  )
+}

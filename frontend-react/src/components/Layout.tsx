@@ -9,6 +9,7 @@ import {
   Info,
   LayoutDashboard,
   Menu,
+  MessagesSquare,
   PanelLeftClose,
   PanelLeftOpen,
   Play,
@@ -20,6 +21,7 @@ import { useApp } from '../lib/context'
 import Background from '../three/Background'
 
 const NAV = [
+  { to: '/chat', label: 'Chat', icon: MessagesSquare },
   { to: '/', label: 'Overview', icon: LayoutDashboard },
   { to: '/run', label: 'Run a Task', icon: Play },
   { to: '/gate', label: 'Gate Inspector', icon: Gauge },
