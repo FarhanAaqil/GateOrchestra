@@ -1,3 +1,4 @@
+import { AuthRequired, authHeaders } from './auth'
 import type {
   ImportanceResponse,
   ModelsResponse,
@@ -13,7 +14,8 @@ export const API_BASE_URL: string =
   import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, init)
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers: authHeaders(init?.headers) })
+  if (response.status === 401) throw new AuthRequired()
   let data: unknown = null
   try {
     data = await response.json()

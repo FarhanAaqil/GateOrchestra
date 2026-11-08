@@ -92,6 +92,9 @@ class AssistantSettings:
         default_factory=lambda: float(_env("ASSISTANT_GATE_EXPLORE", "0.1"))
     )
 
+    guard_enabled: bool = field(default_factory=lambda: _flag("ASSISTANT_GUARD", True))
+    cache_ttl: float = field(default_factory=lambda: float(_env("ASSISTANT_CACHE_TTL", "86400")))
+
     timeout_seconds: float = field(default_factory=lambda: float(_env("ASSISTANT_TIMEOUT", "90")))
     max_concurrent: int = field(default_factory=lambda: int(_env("ASSISTANT_MAX_CONCURRENT", "8")))
 

@@ -1,4 +1,5 @@
 import { API_BASE_URL, clearApiCache } from './api'
+import { AuthRequired, authHeaders } from './auth'
 
 export type GateName = 'learned' | 'rule_based' | 'always_stop' | 'always_escalate' | 'triage'
 
@@ -58,6 +59,33 @@ export interface UploadedDocument {
   chunks: number
 }
 
+export interface AdminStats {
+  window_hours: number
+  turns: number
+  cached: number
+  cache_hit_rate: number
+  errors: number
+  error_codes: Record<string, number>
+  blocked: number
+  tokens: Record<string, number>
+  total_tokens: number
+  avg_tokens_per_turn: number
+  latency_ms: { p50: number; p95: number }
+  gates: Record<string, number>
+  decisions: Record<string, number>
+  task_types: Record<string, number>
+  recent: { ts: number; gate: string; decision: string; task_type: string; total_tokens: number; latency_ms: number; cached: boolean }[]
+}
+
+export interface ProviderStatus {
+  providers: string[]
+  keys: Record<string, { key: string; usable: boolean; invalid: boolean; cooldown_seconds: number; last_error: string; uses: number }[]>
+  models: Record<string, string>
+  gates: string[]
+  gate_mode: string
+  local_fallback: boolean
+}
+
 export interface KeyAttempt {
   provider: string
   reason: 'rate_limited' | 'invalid_key' | 'no_key' | 'unavailable' | string
@@ -74,7 +102,8 @@ export type ChatEvent =
   | { type: 'error'; code: string; message: string; needs_key?: boolean; attempts?: KeyAttempt[] }
 
 async function json<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, init)
+  const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers: authHeaders(init?.headers) })
+  if (response.status === 401) throw new AuthRequired()
   const data = await response.json().catch(() => null)
   if (!response.ok) {
     const detail = (data as { detail?: unknown } | null)?.detail
@@ -91,7 +120,7 @@ export async function streamChat(
 ): Promise<void> {
   const response = await fetch(`${API_BASE_URL}/chat`, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: authHeaders({ 'Content-Type': 'application/json' }),
     body: JSON.stringify(body),
     signal,
   })
@@ -133,6 +162,9 @@ export const chatApi = {
       body: JSON.stringify({ rating }),
     }),
   gates: () => json<{ margin: number; explore: number; gates: GateScore[] }>('/assistant/gates'),
+  stats: (hours = 24) => json<AdminStats>(`/assistant/stats?hours=${hours}`),
+  status: () => json<ProviderStatus>('/assistant/status'),
+  clearCache: () => json<{ cleared: number }>('/assistant/cache', { method: 'DELETE' }),
   documents: () => json<{ documents: UploadedDocument[] }>('/documents'),
   removeDocument: (id: string) => json(`/documents/${id}`, { method: 'DELETE' }),
   uploadDocument: async (file: File) => {

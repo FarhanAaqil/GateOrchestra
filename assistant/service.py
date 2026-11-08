@@ -8,6 +8,9 @@ and gates. The API holds one instance (get_service); tests swap in their own
 
 from __future__ import annotations
 
+import hashlib
+import logging
+import re
 import threading
 from typing import Any
 
@@ -19,9 +22,12 @@ from assistant.keys import KeyPool, mask, persist_key, valid_key_shape
 from assistant.llm import Gateway, ProviderError
 from assistant.probe import ChatProbe
 from assistant.sandbox import run_python, sandbox_status
+from assistant.security import parse_guard_score
 from assistant.selector import GateSelector, Selection
 from assistant.store import Store
 from assistant.web import search_wikipedia
+
+logger = logging.getLogger(__name__)
 
 
 class KeyRejected(Exception):
@@ -134,6 +140,27 @@ class AssistantService:
             return None
         hits = docs.top_chunks(question, self.store.all_chunks(document_ids or None))
         return docs.format_context(hits) or None
+
+    def guard_score(self, text: str) -> float | None:
+        """Prompt-injection probability from the guard model, or None if it is unavailable."""
+        if not self.settings.guard_enabled or "groq" not in self.gateway.provider_order():
+            return None
+        try:
+            result = self.gateway.complete(
+                "guard",
+                [{"role": "user", "content": text[:4000]}],
+                max_tokens=8,
+                providers=["groq"],
+            )
+        except Exception as err:  # never let the guard take the chat down
+            logger.warning(f"prompt guard unavailable: {type(err).__name__}")
+            return None
+        return parse_guard_score(result.text)
+
+    @staticmethod
+    def cache_key(text: str) -> str:
+        normalized = " ".join(re.sub(r"[^\w\s]", " ", text.lower()).split())
+        return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
     def add_document(self, name: str, content_base64: str) -> dict[str, Any]:
         data = docs.decode_upload(content_base64)

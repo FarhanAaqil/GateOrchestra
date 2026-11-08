@@ -22,6 +22,7 @@ from typing import TYPE_CHECKING, Any
 from assistant.agent import AgentResult, run_agent, run_tool_call
 from assistant.llm import Message, ProvidersExhausted
 from assistant.probe import run_probe
+from assistant.security import guard_threshold
 from gate.feature_extractor import extract_features
 from shared.schemas import Task
 
@@ -146,6 +147,28 @@ class ChatPipeline:
         svc, settings = self.service, self.service.settings
         tokens: dict[str, int] = {"probe": 0, "agent": 0, "answer": 0}
         models: dict[str, str] = {}
+
+        # 0. Screen for prompt injection, then serve a cached answer if there is one.
+        score = svc.guard_score(text)
+        if score is not None and score >= guard_threshold():
+            svc.store.log_event("blocked", {"score": score})
+            raise ChatError(
+                "blocked",
+                "This message looks like an attempt to override the assistant's "
+                "instructions, so it was not answered.",
+                score=round(score, 3),
+            )
+        cacheable = (
+            not history
+            and document_ids is None
+            and (gate_mode or "auto") == "auto"
+            and settings.cache_ttl > 0
+        )
+        cache_key = svc.cache_key(text) if cacheable else ""
+        cached = svc.store.cache_get(cache_key, settings.cache_ttl) if cacheable else None
+        if cached:
+            yield from self._replay(cid, cached, started)
+            return
 
         context = svc.retrieve_context(text, document_ids) if document_ids is not None else None
 
@@ -285,6 +308,40 @@ class ChatPipeline:
             "verdicts": {g: v.decision for g, v in verdicts.items()},
             "cached": False,
         }
+        if cacheable and not tool_calls_need_freshness(tool_calls):
+            svc.store.cache_put(cache_key, text, answer, meta)
         mid = svc.store.add_message(cid, "assistant", answer, meta)
         svc.store.log_event("chat", {"message_id": mid, **meta})
         yield {"type": "done", "message_id": mid, "conversation_id": cid, "meta": meta}
+
+    def _replay(self, cid: str, cached: dict[str, Any], started: float) -> Iterator[dict[str, Any]]:
+        """Stream a cached answer: no model calls, zero tokens."""
+        original = cached["meta"]
+        meta = {
+            **original,
+            "cached": True,
+            "tokens": {"probe": 0, "agent": 0, "answer": 0},
+            "total_tokens": 0,
+            "tools": original.get("tools", []),
+            "latency_ms": round((time.perf_counter() - started) * 1000),
+        }
+        yield {
+            "type": "gate",
+            "gate": original.get("gate", "triage"),
+            "decision": original.get("decision", "STOP"),
+            "reason": "answered from the cache",
+            "verdicts": original.get("verdicts", {}),
+            "selection": [],
+        }
+        yield {"type": "answer_start", "model_role": "cache"}
+        answer = cached["answer"]
+        for start in range(0, len(answer), 120):
+            yield {"type": "delta", "text": answer[start : start + 120]}
+        mid = self.service.store.add_message(cid, "assistant", answer, meta)
+        self.service.store.log_event("chat", {"message_id": mid, **meta})
+        yield {"type": "done", "message_id": mid, "conversation_id": cid, "meta": meta}
+
+
+def tool_calls_need_freshness(tool_calls: list[dict[str, Any]]) -> bool:
+    """Answers built on live lookups or code runs are not cached."""
+    return any(c.get("name") in {"search_wikipedia", "run_python"} for c in tool_calls)

@@ -13,6 +13,9 @@ HTTP endpoints for the chat assistant.
   POST   /documents                 upload a text, code or PDF file (base64) to ask about
   GET    /documents                 uploaded documents
   DELETE /documents/{id}            remove one
+  GET    /assistant/stats           usage, tokens, latency, routing and errors (Admin page)
+  GET    /metrics                   the same in Prometheus text format
+  DELETE /assistant/cache           clear the answer cache (local or admin token)
   GET    /assistant/status          providers, masked key status, models, gates
   POST   /assistant/keys            add an API key (checked, then saved to .env)
 
@@ -28,7 +31,7 @@ from collections.abc import Iterator
 from typing import Any
 
 from fastapi import APIRouter, HTTPException, Request
-from fastapi.responses import StreamingResponse
+from fastapi.responses import PlainTextResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from assistant.pipeline import ChatPipeline
@@ -168,6 +171,26 @@ def list_documents() -> dict[str, Any]:
 def delete_document(did: str) -> dict[str, str]:
     get_service().store.delete_document(did)
     return {"status": "deleted"}
+
+
+@router.get("/assistant/stats")
+def assistant_stats(hours: float = 24.0) -> dict[str, Any]:
+    from assistant.metrics import summarize
+
+    return summarize(get_service().store, min(max(hours, 0.1), 24 * 30))
+
+
+@router.get("/metrics", response_class=PlainTextResponse)
+def metrics() -> str:
+    from assistant.metrics import prometheus
+
+    return prometheus(get_service().store)
+
+
+@router.delete("/assistant/cache")
+def clear_cache(request: Request) -> dict[str, int]:
+    _require_admin(request)
+    return {"cleared": get_service().store.cache_clear()}
 
 
 @router.get("/assistant/status")

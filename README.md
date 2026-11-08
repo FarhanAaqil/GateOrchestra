@@ -86,6 +86,75 @@ More pages in [`assets/screenshots/`](assets/screenshots/).
 
 ---
 
+## Chat assistant
+
+The **Chat** page answers any question: explanations, code, math, facts, and questions about
+documents you upload. It runs on Groq by default, falls back to Gemini, and can fall back to a
+local Ollama model.
+
+How a message is answered:
+
+1. **Probe:** two short samples in parallel (JSON mode), plus a third only if they disagree. They
+   also label the request type; small talk and creative requests skip the gate.
+2. **Gate:** in auto mode, the cheapest gate whose rated accuracy is within 2 points of the best.
+   Every turn records every gate's verdict and cost, and your 👍/👎 ratings count for every gate
+   that would have routed the answer the same way.
+3. **STOP** answers directly (the fast model when the probe is confident). **ESCALATE** first runs
+   a research agent with tools: Wikipedia search, a calculator, a sandboxed Python runner
+   (Docker) and search over your documents.
+4. The answer streams back as Markdown with highlighted code and rendered math, plus badges for
+   the route, tokens, time and model.
+
+Reliability:
+
+- **Keys and models:** keys rotate. A rate-limited model cools down on its own while other models
+  keep working. Over-capacity models fall back to the next one, and a malformed tool call is
+  retried without tools.
+- **Out of keys:** when every provider is out, the console asks for another Groq or Gemini key.
+  The key is checked with the provider, then saved only to your local `.env`.
+- **Repeats:** a repeated first question is answered from the cache at zero tokens.
+- **Screening:** messages that look like prompt injection are refused using Groq's prompt-guard
+  model.
+
+Endpoints: `POST /chat` (server-sent events), `/conversations`, `/documents`,
+`/messages/{id}/feedback`, `/assistant/gates`, `/assistant/stats`, `/metrics` (Prometheus) and
+`/assistant/status`. The **Admin** page shows usage, tokens, latency, routing, errors and each
+key's state; keys are only ever shown by their last four characters.
+
+---
+
+## Production deployment
+
+```bash
+cp .env.example .env        # set GROQ_API_KEY, GATE_API_TOKEN and GATE_CORS_ORIGINS
+docker compose up --build   # console on http://localhost:8080
+```
+
+The console image (nginx) serves the app and forwards `/api/` to the API container on the same
+origin, with buffering off so answers stream. Neither image contains a secret; keys come from
+`.env` at run time.
+
+Before exposing the stack publicly:
+
+- **`GATE_API_TOKEN`:** set it. Every endpoint except `/health` then requires
+  `Authorization: Bearer <token>`. The console asks for the token once per browser tab and keeps
+  it in session storage, never in the bundle.
+- **`GATE_CORS_ORIGINS`:** set it to your site instead of `*`.
+- **`GATE_RATE_LIMIT_PER_MINUTE`:** chat and upload requests per client per minute; the default
+  is 30.
+- **`ASSISTANT_PROVIDERS`:** put at least two providers here (for example `groq,gemini`), so one
+  provider's outage or rate limit does not stop the chat.
+- **Admin endpoints:** adding API keys and clearing the cache are accepted only from the host
+  itself, or with `GATE_ADMIN_TOKEN`.
+- **Terminate TLS** at your host or a proxy in front of port 8080.
+- **Scrape `/metrics`** with Prometheus, or watch the Admin page.
+
+Conversations, ratings, usage and the cache live in SQLite at `logs/assistant.db`, which is mounted
+as a volume so restarts keep them. CI runs the Python and console tests, a browser smoke test
+against the offline mock provider, and both Docker builds.
+
+---
+
 ## Architecture
 
 ```text
