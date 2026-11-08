@@ -6,6 +6,7 @@ import { Spinner } from './components/ui'
 
 // Pages are code-split so each loads only its own charts.
 const Overview = lazy(() => import('./pages/Overview'))
+const Chat = lazy(() => import('./pages/Chat'))
 const RunTask = lazy(() => import('./pages/RunTask'))
 const GateInspector = lazy(() => import('./pages/GateInspector'))
 const Benchmark = lazy(() => import('./pages/Benchmark'))
@@ -22,6 +23,7 @@ export default function App() {
         <AnimatePresence mode="wait">
           <Routes location={location} key={location.pathname}>
             <Route path="/" element={<Overview />} />
+            <Route path="/chat" element={<Chat />} />
             <Route path="/run" element={<RunTask />} />
             <Route path="/gate" element={<GateInspector />} />
             <Route path="/benchmark" element={<Benchmark />} />
