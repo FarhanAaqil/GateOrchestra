@@ -152,6 +152,30 @@ class Store:
             (mid, rating, gate, time.time()),
         )
 
+    def clear_feedback(self, mid: str) -> None:
+        self._write("DELETE FROM feedback WHERE message_id = ?", (mid,))
+
+    def rated_turns(self, limit: int = 5000) -> list[dict[str, Any]]:
+        """Each rated answer's rating with the route it took and every gate's verdict."""
+        with self._connect() as db:
+            rows = db.execute(
+                "SELECT f.rating, m.meta FROM feedback f JOIN messages m ON m.id = f.message_id "
+                "ORDER BY f.created_at DESC LIMIT ?",
+                (limit,),
+            ).fetchall()
+        out = []
+        for row in rows:
+            meta = json.loads(row["meta"])
+            if meta.get("decision") and meta.get("verdicts") and row["rating"]:
+                out.append(
+                    {
+                        "rating": row["rating"],
+                        "decision": meta["decision"],
+                        "verdicts": meta["verdicts"],
+                    }
+                )
+        return out
+
     def feedback_by_gate(self) -> dict[str, dict[str, int]]:
         with self._connect() as db:
             rows = db.execute(

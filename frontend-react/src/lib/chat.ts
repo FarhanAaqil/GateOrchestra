@@ -40,6 +40,17 @@ export interface Conversation {
   updated_at: number
 }
 
+export interface GateScore {
+  gate: GateName
+  escalate_rate: number
+  expected_tokens: number
+  up: number
+  down: number
+  accuracy: number
+  eligible: boolean
+  chosen: boolean
+}
+
 export interface KeyAttempt {
   provider: string
   reason: 'rate_limited' | 'invalid_key' | 'no_key' | 'unavailable' | string
@@ -108,6 +119,13 @@ export const chatApi = {
   rename: (id: string, title: string) =>
     json(`/conversations/${id}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ title }) }),
   remove: (id: string) => json(`/conversations/${id}`, { method: 'DELETE' }),
+  rate: (messageId: string, rating: -1 | 0 | 1) =>
+    json<{ message_id: string; rating: number }>(`/messages/${messageId}/feedback`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rating }),
+    }),
+  gates: () => json<{ margin: number; explore: number; gates: GateScore[] }>('/assistant/gates'),
   addKey: (provider: 'groq' | 'gemini', key: string) =>
     json<{ provider: string; key: string; models: number }>('/assistant/keys', {
       method: 'POST',
