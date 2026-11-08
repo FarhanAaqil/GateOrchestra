@@ -10,6 +10,9 @@ HTTP endpoints for the chat assistant.
   DELETE /conversations/{id}        delete
   POST   /messages/{id}/feedback    thumbs up (1), down (-1) or clear (0) on an answer
   GET    /assistant/gates           each gate's expected cost and rated accuracy
+  POST   /documents                 upload a text, code or PDF file (base64) to ask about
+  GET    /documents                 uploaded documents
+  DELETE /documents/{id}            remove one
   GET    /assistant/status          providers, masked key status, models, gates
   POST   /assistant/keys            add an API key (checked, then saved to .env)
 
@@ -48,6 +51,11 @@ class RenameRequest(BaseModel):
 
 class RatingRequest(BaseModel):
     rating: int = Field(..., ge=-1, le=1, description="1 helpful, -1 not helpful, 0 clear")
+
+
+class DocumentRequest(BaseModel):
+    name: str = Field(..., min_length=1, max_length=200)
+    content_base64: str = Field(..., min_length=1, max_length=14_000_000)
 
 
 class KeyRequest(BaseModel):
@@ -139,6 +147,27 @@ def rate_message(mid: str, body: RatingRequest) -> dict[str, Any]:
 @router.get("/assistant/gates")
 def gate_report() -> dict[str, Any]:
     return get_service().gate_report()
+
+
+@router.post("/documents")
+def upload_document(body: DocumentRequest) -> dict[str, Any]:
+    from assistant.documents import DocumentError
+
+    try:
+        return get_service().add_document(body.name, body.content_base64)
+    except DocumentError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
+
+
+@router.get("/documents")
+def list_documents() -> dict[str, Any]:
+    return {"documents": get_service().store.documents()}
+
+
+@router.delete("/documents/{did}")
+def delete_document(did: str) -> dict[str, str]:
+    get_service().store.delete_document(did)
+    return {"status": "deleted"}
 
 
 @router.get("/assistant/status")

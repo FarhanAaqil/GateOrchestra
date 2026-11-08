@@ -9,3 +9,7 @@ it('turns \\( \\) and \\[ \\] into dollar math but leaves money and code alone',
   expect(out).toContain('\n$$\nA = P(1+r)^n\n$$\n')
   expect(out).toContain('`\\(code\\)`')
 })
+
+it('drops citation placeholders such as 【source】', () => {
+  expect(normalizeMath('Capacity is 88,966【source】.')).toBe('Capacity is 88,966.')
+})

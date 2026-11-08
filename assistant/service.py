@@ -11,14 +11,17 @@ from __future__ import annotations
 import threading
 from typing import Any
 
+from assistant import documents as docs
 from assistant.agent import Tool, calculator_tool
 from assistant.config import AssistantSettings, get_settings
 from assistant.gates import GATES, GateSet
 from assistant.keys import KeyPool, mask, persist_key, valid_key_shape
 from assistant.llm import Gateway, ProviderError
 from assistant.probe import ChatProbe
+from assistant.sandbox import run_python, sandbox_status
 from assistant.selector import GateSelector, Selection
 from assistant.store import Store
+from assistant.web import search_wikipedia
 
 
 class KeyRejected(Exception):
@@ -94,16 +97,50 @@ class AssistantService:
             "gates": [s.as_dict() for s in scores],
         }
 
-    def tools(self) -> list[Tool]:
+    def tools(self, document_ids: list[str] | None = None) -> list[Tool]:
         """Tools for the research agent (ESCALATE)."""
-        return [calculator_tool()]
+        tools = [calculator_tool(), wikipedia_tool()]
+        if sandbox_status()[0]:
+            tools.append(python_tool())
+        if document_ids is not None and self.store.documents():
+            tools.append(self.document_tool(document_ids))
+        return tools
+
+    def document_tool(self, document_ids: list[str]) -> Tool:
+        def run(args: dict[str, Any]) -> str:
+            hits = docs.top_chunks(
+                str(args.get("query", "")), self.store.all_chunks(document_ids or None)
+            )
+            return docs.format_context(hits) or "Nothing in the documents matches that."
+
+        return Tool(
+            name="search_documents",
+            description="Search the user's uploaded documents for passages about a query.",
+            parameters={
+                "type": "object",
+                "properties": {"query": {"type": "string"}},
+                "required": ["query"],
+            },
+            run=run,
+        )
 
     def answer_tools(self) -> list[Tool]:
         """Cheap, exact tools the answer model may call on any path."""
         return [calculator_tool()]
 
     def retrieve_context(self, question: str, document_ids: list[str] | None) -> str | None:
-        return None
+        """Best-matching passages from the chosen documents ([] = all documents)."""
+        if document_ids is None:
+            return None
+        hits = docs.top_chunks(question, self.store.all_chunks(document_ids or None))
+        return docs.format_context(hits) or None
+
+    def add_document(self, name: str, content_base64: str) -> dict[str, Any]:
+        data = docs.decode_upload(content_base64)
+        text = docs.extract_text(name, data)
+        chunks = docs.chunk_text(text)
+        did = self.store.add_document(name, chunks)
+        return {"id": did, "name": name, "chars": len(text), "chunks": len(chunks)}
 
     # Keys
 
@@ -167,3 +204,31 @@ def set_service(service: AssistantService | None) -> None:
     global _service
     with _service_lock:
         _service = service
+
+
+def wikipedia_tool() -> Tool:
+    return Tool(
+        name="search_wikipedia",
+        description="Search Wikipedia for facts, people, places, events or definitions. Returns article "
+        "summaries with their URLs, which you should cite.",
+        parameters={
+            "type": "object",
+            "properties": {"query": {"type": "string"}},
+            "required": ["query"],
+        },
+        run=lambda args: search_wikipedia(str(args.get("query", ""))),
+    )
+
+
+def python_tool() -> Tool:
+    return Tool(
+        name="run_python",
+        description="Run a short Python 3 program in an isolated sandbox (no network, 15 s) and return "
+        "its printed output. Use it to test code or compute results; print what you need to see.",
+        parameters={
+            "type": "object",
+            "properties": {"code": {"type": "string"}},
+            "required": ["code"],
+        },
+        run=lambda args: run_python(str(args.get("code", ""))),
+    )

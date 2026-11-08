@@ -35,7 +35,9 @@ ANSWER_SYSTEM = (
     "Put code in fenced blocks with a language tag. Be complete but concise: start directly with "
     "the answer (no heading such as 'Answer'), "
     "then explain only as much as helps. If research notes are provided, rely on them, keep any "
-    "numbers they computed, and cite their sources as links. If you are unsure, say so. "
+    "numbers they computed, and cite their sources inline as Markdown links built from the URLs in "
+    "the notes, e.g. [Wikipedia: Lusail Stadium](https://en.wikipedia.org/wiki/Lusail_Stadium); "
+    "never write placeholder markers such as 【source】. If you are unsure, say so. "
     "Write math in LaTeX as \\( ... \\) inline or \\[ ... \\] on its own line; never wrap math in "
     "single $ signs, which mean money."
 )
@@ -204,7 +206,7 @@ class ChatPipeline:
                 svc.gateway,
                 text,
                 history,
-                svc.tools(),
+                svc.tools(document_ids),
                 max_rounds=settings.agent_max_rounds,
                 context=context,
             ):
