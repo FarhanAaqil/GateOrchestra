@@ -1,0 +1,24 @@
+# GateOrchestra: API + console.
+#   cp .env.example .env    # add GROQ_API_KEY (and GATE_API_TOKEN for a public server)
+#   docker compose up --build
+# Console: http://localhost:8080 . The API is only reachable through it.
+services:
+  api:
+    build: .
+    env_file: .env
+    environment:
+      ASSISTANT_DB_PATH: /app/logs/assistant.db
+      GATE_CORS_ORIGINS: http://localhost:8080
+    volumes:
+      - ./logs:/app/logs
+      - ./.env:/app/.env
+    restart: unless-stopped
+
+  web:
+    build: ./frontend-react
+    ports:
+      - "8080:80"
+    depends_on:
+      api:
+        condition: service_healthy
+    restart: unless-stopped
