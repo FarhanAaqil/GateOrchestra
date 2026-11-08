@@ -30,7 +30,7 @@ dev = [
 
 [tool.setuptools.packages.find]
 where = ["."]
-include = ["shared*", "gate*", "integration*", "agents*", "dataset*", "evaluation*"]
+include = ["shared*", "gate*", "integration*", "agents*", "dataset*", "evaluation*", "assistant*", "api*"]
 
 # ── Ruff (linter) ───────────────────────────────────────────────────────────
 [tool.ruff]

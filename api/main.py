@@ -36,6 +36,7 @@ from agents.baselines.cot_sc_baseline import run_cot_sc_baseline  # noqa: E402
 from agents.baselines.simulated_probe import SimulatedProbe  # noqa: E402
 from agents.orchestrator.orchestrator import request_orchestrator  # noqa: E402
 from agents.probe_agent import extract_answer, probe_agent  # noqa: E402
+from api.chat_routes import router as chat_router  # noqa: E402
 from api.history import RunHistory  # noqa: E402
 from evaluation.results_detail import build_results_detail  # noqa: E402
 from gate.classifier import (  # noqa: E402
@@ -88,6 +89,7 @@ app.add_middleware(
 )
 # Results and task lists are large, repetitive JSON; gzip cuts them several-fold.
 app.add_middleware(GZipMiddleware, minimum_size=1024)
+app.include_router(chat_router)
 
 # The last 50 runs, persisted so they survive a restart.
 _HISTORY = RunHistory(LOGS_DIR / "api_history.jsonl", limit=50)
