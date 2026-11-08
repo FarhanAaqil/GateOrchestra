@@ -751,3 +751,173 @@ def test_feedback_and_gate_report_api(service: AssistantService) -> None:
     assert service.store.messages(events[0]["conversation_id"])[-1]["rating"] is None
     assert client.post("/messages/nope/feedback", json={"rating": 1}).status_code == 404
     assert client.post(f"/messages/{mid}/feedback", json={"rating": 5}).status_code == 422
+
+
+# Phase 3: web search, code sandbox, documents
+
+
+def test_chunking_and_retrieval() -> None:
+    from assistant.documents import chunk_text, format_context, top_chunks
+
+    text = "\n\n".join(f"Paragraph {i} about topic {i}. " * 8 for i in range(12))
+    chunks = chunk_text(text, size=300, overlap=50)
+    assert len(chunks) > 3 and all(len(c) <= 600 for c in chunks)
+    docs = [
+        {"text": t, "name": "n.md", "idx": i}
+        for i, t in enumerate(
+            [
+                "Our refund policy allows returns within 30 days.",
+                "Support is open Monday to Friday.",
+                "The gate reads eight features.",
+                "Shipping takes 3 to 5 business days.",
+                "Passwords need 12 characters.",
+            ]
+        )
+    ]
+    hits = top_chunks("How many days do I have to return an item?", docs, k=2)
+    assert hits[0]["idx"] == 0
+    assert top_chunks("anything", docs[:2]) == [
+        {**d, "score": 1.0} for d in docs[:2]
+    ]  # small set returned whole
+    assert top_chunks("", docs) == [] and top_chunks("q", []) == []
+    assert format_context(hits[:1]).startswith("[n.md · part 1]")
+
+
+def test_text_extraction_limits_and_pdf() -> None:
+    import base64
+
+    from assistant.documents import DocumentError, decode_upload, extract_text
+
+    assert extract_text("notes.md", b"# Title\n\nBody") == "# Title\n\nBody"
+    for name, data, message in [
+        ("x.exe", b"MZ", "Unsupported"),
+        ("e.txt", b"   ", "No text"),
+        ("big.txt", b"a" * (10 * 1024 * 1024 + 1), "10 MB"),
+        ("bad.pdf", b"not a pdf", "PDF"),
+    ]:
+        with pytest.raises(DocumentError, match=message):
+            extract_text(name, data)
+    with pytest.raises(DocumentError):
+        decode_upload("***")
+    assert decode_upload(base64.b64encode(b"hi").decode()) == b"hi"
+
+
+def test_pdf_text_is_extracted(tmp_path: Path) -> None:
+    from pypdf import PdfWriter
+    from pypdf.generic import DecodedStreamObject, DictionaryObject, NameObject
+
+    from assistant.documents import extract_text
+
+    writer = PdfWriter()
+    page = writer.add_blank_page(width=300, height=200)
+    font = DictionaryObject(
+        {
+            NameObject("/Type"): NameObject("/Font"),
+            NameObject("/Subtype"): NameObject("/Type1"),
+            NameObject("/BaseFont"): NameObject("/Helvetica"),
+        }
+    )
+    page[NameObject("/Resources")] = DictionaryObject(
+        {NameObject("/Font"): DictionaryObject({NameObject("/F1"): writer._add_object(font)})}
+    )
+    stream = DecodedStreamObject()
+    stream.set_data(b"BT /F1 12 Tf 20 100 Td (Refunds within 30 days) Tj ET")
+    page[NameObject("/Contents")] = writer._add_object(stream)
+    buffer = io.BytesIO()
+    writer.write(buffer)
+    assert "Refunds within 30 days" in extract_text("policy.pdf", buffer.getvalue())
+
+
+def test_wikipedia_search_formats_sources(monkeypatch) -> None:
+    from assistant import web
+
+    def fake_get(url):
+        if "list=search" in url:
+            return {"query": {"search": [{"title": "Lusail Stadium"}]}}
+        return {
+            "extract": "A stadium in Qatar.",
+            "content_urls": {"desktop": {"page": "https://en.wikipedia.org/wiki/Lusail_Stadium"}},
+        }
+
+    monkeypatch.setattr(web, "_get", fake_get)
+    out = web.search_wikipedia("final venue")
+    assert (
+        out.startswith("## Lusail Stadium")
+        and "https://en.wikipedia.org/wiki/Lusail_Stadium" in out
+    )
+    monkeypatch.setattr(web, "_get", lambda url: {"query": {"search": []}})
+    assert "No Wikipedia article" in web.search_wikipedia("zzzz")
+    assert web.search_wikipedia("  ").startswith("Error")
+
+    def down(url):
+        raise OSError("offline")
+
+    monkeypatch.setattr(web, "_get", down)
+    assert "failed" in web.search_wikipedia("x")
+
+
+def test_sandbox_is_locked_down_and_refuses_without_docker(monkeypatch) -> None:
+    import subprocess
+
+    from assistant import sandbox
+
+    cmd = sandbox.docker_command("box")
+    for flag in (
+        "--network",
+        "none",
+        "--read-only",
+        "--cap-drop",
+        "ALL",
+        "no-new-privileges",
+        "65534:65534",
+    ):
+        assert flag in cmd
+    monkeypatch.setattr(sandbox, "sandbox_status", lambda: (False, "Docker is not running."))
+    assert "unavailable" in sandbox.run_python("print(1)")
+    assert sandbox.run_python("  ").startswith("Error")
+
+    monkeypatch.setattr(sandbox, "sandbox_status", lambda: (True, "ready"))
+    calls = []
+
+    def fake_run(args, **kw):
+        calls.append(args)
+        if args[:2] == ["docker", "run"]:
+            if "loop" in kw.get("input", ""):
+                raise subprocess.TimeoutExpired(args, 15)
+            return subprocess.CompletedProcess(args, 0, stdout="42\n", stderr="")
+        return subprocess.CompletedProcess(args, 0, "", "")
+
+    monkeypatch.setattr(sandbox.subprocess, "run", fake_run)
+    assert sandbox.run_python("print(42)") == "exit code 0\n42"
+    assert "stopped" in sandbox.run_python("while True: pass  # loop")
+    assert calls[-1][:3] == ["docker", "rm", "-f"]
+
+
+def test_documents_api_and_chat_use_them(service: AssistantService) -> None:
+    import base64
+
+    from api.main import app
+
+    client = TestClient(app)
+    body = {
+        "name": "policy.md",
+        "content_base64": base64.b64encode(b"Refunds are accepted within 30 days.").decode(),
+    }
+    doc = client.post("/documents", json=body).json()
+    assert doc["chunks"] == 1 and client.get("/documents").json()["documents"][0]["id"] == doc["id"]
+    assert (
+        client.post("/documents", json={"name": "x.exe", "content_base64": "TVo="}).status_code
+        == 400
+    )
+    assert "Refunds" in service.retrieve_context("refund window?", [doc["id"]])
+    assert service.retrieve_context("refund window?", None) is None
+    assert "search_documents" in [t.name for t in service.tools([])]
+    with client.stream(
+        "POST", "/chat", json={"message": "What is the refund window?", "document_ids": []}
+    ) as r:
+        events = [json.loads(line[6:]) for line in r.iter_lines() if line.startswith("data: ")]
+    assert events[-1]["type"] == "done"
+    gate = next(e for e in events if e["type"] == "gate")
+    assert gate["features"]["has_context"] is True
+    assert client.delete(f"/documents/{doc['id']}").json() == {"status": "deleted"}
+    assert client.get("/documents").json()["documents"] == []

@@ -1,8 +1,8 @@
-import { ArrowUp, ChevronDown, Copy, MessageSquarePlus, Square, ThumbsDown, ThumbsUp, Trash2, Wrench } from 'lucide-react'
+import { ArrowUp, ChevronDown, Copy, FileText, Loader2, MessageSquarePlus, Paperclip, Square, ThumbsDown, ThumbsUp, Trash2, Wrench, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import KeyDialog from '../components/KeyDialog'
 import { Markdown } from '../components/Markdown'
-import { GATE_LABELS, chatApi, streamChat, type ChatEvent, type ChatMessage, type Conversation, type GateScore, type KeyAttempt, type ToolCall, type TurnMeta } from '../lib/chat'
+import { GATE_LABELS, chatApi, streamChat, type ChatEvent, type ChatMessage, type Conversation, type GateScore, type KeyAttempt, type ToolCall, type TurnMeta, type UploadedDocument } from '../lib/chat'
 import { useApp } from '../lib/context'
 
 const GATE_MODE_KEY = 'gateorchestra.gateMode'
@@ -191,6 +191,10 @@ export default function Chat() {
   const [keyPrompt, setKeyPrompt] = useState<{ attempts: KeyAttempt[]; message: string } | null>(null)
   const [gateMode, setGateModeState] = useState(readMode)
   const [routing, setRouting] = useState<{ margin: number; gates: GateScore[] }>({ margin: 0.02, gates: [] })
+  const [documents, setDocuments] = useState<UploadedDocument[]>([])
+  const [selectedDocs, setSelectedDocs] = useState<string[]>([])
+  const [uploading, setUploading] = useState(false)
+  const fileRef = useRef<HTMLInputElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
@@ -214,12 +218,44 @@ export default function Chat() {
     chatApi.gates().then((d) => setRouting({ margin: d.margin, gates: d.gates })).catch(() => undefined)
   }, [])
 
+  const loadDocuments = useCallback(() => {
+    chatApi.documents().then((d) => setDocuments(d.documents)).catch(() => undefined)
+  }, [])
+
   useEffect(() => {
     if (backend === 'online') {
       loadConversations()
       loadRouting()
+      loadDocuments()
     }
-  }, [backend, loadConversations, loadRouting])
+  }, [backend, loadConversations, loadRouting, loadDocuments])
+
+  const upload = async (files: FileList | null) => {
+    if (!files?.length) return
+    setUploading(true)
+    setError(null)
+    try {
+      for (const file of Array.from(files)) {
+        const doc = await chatApi.uploadDocument(file)
+        setSelectedDocs((ids) => [...ids, doc.id])
+      }
+      loadDocuments()
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setUploading(false)
+      if (fileRef.current) fileRef.current.value = ''
+    }
+  }
+
+  const toggleDoc = (id: string) =>
+    setSelectedDocs((ids) => (ids.includes(id) ? ids.filter((x) => x !== id) : [...ids, id]))
+
+  const removeDoc = async (id: string) => {
+    await chatApi.removeDocument(id).catch(() => undefined)
+    setSelectedDocs((ids) => ids.filter((x) => x !== id))
+    loadDocuments()
+  }
 
   const rate = async (id: string, rating: -1 | 0 | 1) => {
     setMessages((m) => m.map((x) => (x.id === id ? { ...x, rating } : x)))
@@ -274,7 +310,7 @@ export default function Chat() {
     abortRef.current = controller
     try {
       await streamChat(
-        { message, conversation_id: activeId, gate_mode: gateMode },
+        { message, conversation_id: activeId, gate_mode: gateMode, document_ids: selectedDocs.length ? selectedDocs : null },
         (event) => {
           if (event.type === 'meta') {
             setActiveId(event.conversation_id)
@@ -351,6 +387,25 @@ export default function Chat() {
           ))}
           {!conversations.length ? <li className="px-3 py-2 text-xs text-navy/50">No conversations yet.</li> : null}
         </ul>
+        <div className="mt-3 border-t border-sky/60 pt-3">
+          <p className="mb-1.5 flex items-center justify-between px-1 text-xs font-semibold text-navy">
+            Documents
+            <span className="font-normal text-navy/50">{selectedDocs.length}/{documents.length} in use</span>
+          </p>
+          <ul className="max-h-40 space-y-1 overflow-y-auto" aria-label="Documents">
+            {documents.map((d) => (
+              <li key={d.id} className="group flex items-center gap-1.5 rounded-lg px-1 py-1 text-xs text-navy hover:bg-ice">
+                <input type="checkbox" checked={selectedDocs.includes(d.id)} onChange={() => toggleDoc(d.id)} aria-label={`Use ${d.name}`} className="accent-[#1B263B]" />
+                <FileText className="h-3.5 w-3.5 shrink-0 text-wine" />
+                <span className="min-w-0 flex-1 truncate" title={`${d.name} · ${d.chunks} passages`}>{d.name}</span>
+                <button onClick={() => removeDoc(d.id)} className="rounded p-0.5 text-navy/40 opacity-0 hover:text-wine group-hover:opacity-100" aria-label={`Remove ${d.name}`}>
+                  <X className="h-3 w-3" />
+                </button>
+              </li>
+            ))}
+            {!documents.length ? <li className="px-1 text-xs text-navy/50">Attach a file to ask about it.</li> : null}
+          </ul>
+        </div>
       </aside>
 
       <section className="card flex min-h-0 flex-col p-0" aria-label="Chat">
@@ -400,7 +455,30 @@ export default function Chat() {
         </div>
 
         <div className="border-t border-sky/60 p-3 sm:px-8">
+          {selectedDocs.length ? (
+            <p className="mx-auto mb-1.5 max-w-3xl px-2 text-xs text-navy/70">
+              Answering from {selectedDocs.length} document{selectedDocs.length === 1 ? '' : 's'}:{' '}
+              {documents.filter((d) => selectedDocs.includes(d.id)).map((d) => d.name).join(', ')}
+            </p>
+          ) : null}
           <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-3xl border border-sky bg-soft px-3 py-2 focus-within:ring-2 focus-within:ring-navy/30">
+            <input
+              ref={fileRef}
+              type="file"
+              multiple
+              accept=".txt,.md,.markdown,.csv,.json,.pdf,.py,.js,.ts,.tsx,.html,.css,.sql,.yaml,.yml,.xml,.java,.c,.cpp,.go,.rs,.rb"
+              className="hidden"
+              onChange={(e) => upload(e.target.files)}
+            />
+            <button
+              onClick={() => fileRef.current?.click()}
+              disabled={uploading || backend !== 'online'}
+              className="rounded-full p-2 text-navy/60 hover:bg-ice hover:text-navy disabled:opacity-40"
+              aria-label="Attach a document"
+              title="Attach a text, code or PDF file"
+            >
+              {uploading ? <Loader2 className="h-4 w-4 animate-spin" /> : <Paperclip className="h-4 w-4" />}
+            </button>
             <textarea
               ref={inputRef}
               value={input}

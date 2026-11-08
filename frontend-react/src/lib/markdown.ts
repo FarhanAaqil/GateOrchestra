@@ -11,6 +11,7 @@ export function normalizeMath(text: string): string {
     .map((part, i) => {
       if (i % 2 === 1) return part // inside code
       return part
+        .replace(/【[^】\n]{0,80}】/g, '') // citation placeholders some models emit
         .replace(/\\\[([\s\S]+?)\\\]/g, (_, m: string) => `\n$$\n${m.trim()}\n$$\n`)
         .replace(/\\\(([\s\S]+?)\\\)/g, (_, m: string) => `$$${m.trim()}$$`)
     })

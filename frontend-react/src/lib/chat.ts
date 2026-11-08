@@ -51,6 +51,13 @@ export interface GateScore {
   chosen: boolean
 }
 
+export interface UploadedDocument {
+  id: string
+  name: string
+  chars: number
+  chunks: number
+}
+
 export interface KeyAttempt {
   provider: string
   reason: 'rate_limited' | 'invalid_key' | 'no_key' | 'unavailable' | string
@@ -78,7 +85,7 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
 
 /** Send one message and receive the turn's events as they stream in. */
 export async function streamChat(
-  body: { message: string; conversation_id?: string | null; gate_mode?: string | null },
+  body: { message: string; conversation_id?: string | null; gate_mode?: string | null; document_ids?: string[] | null },
   onEvent: (event: ChatEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
@@ -126,6 +133,18 @@ export const chatApi = {
       body: JSON.stringify({ rating }),
     }),
   gates: () => json<{ margin: number; explore: number; gates: GateScore[] }>('/assistant/gates'),
+  documents: () => json<{ documents: UploadedDocument[] }>('/documents'),
+  removeDocument: (id: string) => json(`/documents/${id}`, { method: 'DELETE' }),
+  uploadDocument: async (file: File) => {
+    const bytes = new Uint8Array(await file.arrayBuffer())
+    let binary = ''
+    for (let i = 0; i < bytes.length; i += 0x8000) binary += String.fromCharCode(...bytes.subarray(i, i + 0x8000))
+    return json<UploadedDocument>('/documents', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name: file.name, content_base64: btoa(binary) }),
+    })
+  },
   addKey: (provider: 'groq' | 'gemini', key: string) =>
     json<{ provider: string; key: string; models: number }>('/assistant/keys', {
       method: 'POST',
