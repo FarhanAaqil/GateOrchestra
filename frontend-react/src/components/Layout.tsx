@@ -13,10 +13,12 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Play,
+  ServerCog,
   Zap,
 } from 'lucide-react'
 import { useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
+import { setToken } from '../lib/auth'
 import { useApp } from '../lib/context'
 import Background from '../three/Background'
 
@@ -29,6 +31,7 @@ const NAV = [
   { to: '/baselines', label: 'Baselines', icon: BarChart3 },
   { to: '/results', label: 'Results', icon: FlaskConical },
   { to: '/tokens', label: 'Token Accountant', icon: Coins },
+  { to: '/admin', label: 'Admin', icon: ServerCog },
   { to: '/about', label: 'About', icon: Info },
 ]
 
@@ -90,6 +93,35 @@ function Sidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onTo
   )
 }
 
+function TokenPrompt() {
+  const [token, setTokenValue] = useState('')
+  return (
+    <form
+      className="mx-4 mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-sky bg-soft px-4 py-3 text-sm md:mx-8"
+      onSubmit={(e) => {
+        e.preventDefault()
+        setToken(token.trim())
+        window.location.reload()
+      }}
+    >
+      <label htmlFor="api-token" className="font-medium text-navy">This server needs its API token</label>
+      <input
+        id="api-token"
+        type="password"
+        autoComplete="off"
+        value={token}
+        onChange={(e) => setTokenValue(e.target.value)}
+        className="min-w-0 flex-1 rounded-full border border-sky bg-ice px-3 py-1.5 font-mono text-xs"
+        placeholder="GATE_API_TOKEN"
+      />
+      <button type="submit" disabled={!token.trim()} className="rounded-full bg-ink px-4 py-1.5 text-xs font-bold text-soft disabled:opacity-40">
+        Sign in
+      </button>
+      <span className="w-full text-xs text-navy/60">Kept only in this browser tab.</span>
+    </form>
+  )
+}
+
 function TopBar({ onMenu }: { onMenu: () => void }) {
   const { backend, models, performanceMode, setPerformanceMode } = useApp()
   return (
@@ -113,7 +145,7 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
         >
           <span className={`h-2 w-2 rounded-full ${backend === 'online' ? 'bg-cyan glow-cyan' : backend === 'error' ? 'bg-lemon' : 'bg-sky'}`} />
           <Activity className="h-3.5 w-3.5" aria-hidden />
-          {backend === 'online' ? 'Backend online' : backend === 'error' ? 'Backend unreachable' : 'Connecting'}
+          {backend === 'online' ? 'Backend online' : backend === 'error' ? 'Backend unreachable' : backend === 'locked' ? 'Sign in needed' : 'Connecting'}
         </span>
         <button
           onClick={() => setPerformanceMode(!performanceMode)}
@@ -162,6 +194,7 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar onMenu={() => setMobileOpen(true)} />
+        {backend === 'locked' ? <TokenPrompt /> : null}
         {backend === 'error' && backendError ? (
           <div className="mx-4 mt-4 rounded-2xl border border-wine/30 bg-wine/10 px-4 py-3 text-sm text-wine md:mx-8" role="alert">
             {backendError}

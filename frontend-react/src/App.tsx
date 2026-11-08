@@ -14,6 +14,7 @@ const Baselines = lazy(() => import('./pages/Baselines'))
 const Results = lazy(() => import('./pages/Results'))
 const TokenAccountant = lazy(() => import('./pages/TokenAccountant'))
 const About = lazy(() => import('./pages/About'))
+const Admin = lazy(() => import('./pages/Admin'))
 
 export default function App() {
   const location = useLocation()
@@ -31,6 +32,7 @@ export default function App() {
             <Route path="/results" element={<Results />} />
             <Route path="/tokens" element={<TokenAccountant />} />
             <Route path="/about" element={<About />} />
+            <Route path="/admin" element={<Admin />} />
             <Route path="*" element={<Overview />} />
           </Routes>
         </AnimatePresence>

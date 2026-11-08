@@ -2,7 +2,7 @@ import { createContext, useContext } from 'react'
 import type { ModelsResponse, RunResult } from './types'
 
 export interface AppState {
-  backend: 'checking' | 'online' | 'error'
+  backend: 'checking' | 'online' | 'error' | 'locked'
   backendError: string | null
   models: ModelsResponse | null
   /** Most recent run from this browser session (shared by Run and Gate Inspector). */

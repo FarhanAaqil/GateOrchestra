@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { api, checkBackend } from './api'
+import { AuthRequired } from './auth'
 import { AppContext, type AppState } from './context'
 import type { ModelsResponse, RunResult } from './types'
 
@@ -55,7 +56,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       })
       .catch((err: Error) => {
         if (cancelled) return
-        setBackend('error')
+        setBackend(err instanceof AuthRequired ? 'locked' : 'error')
         setBackendError(err.message)
       })
     return () => {
