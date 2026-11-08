@@ -76,3 +76,6 @@ GateOrchestra review.docx
 # Evaluation outputs
 logs/results/
 
+
+# Private notes, plans and guides stay on this machine.
+docs/

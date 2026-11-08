@@ -52,7 +52,7 @@ runs three tasks at once against a local Ollama), then `python scripts/verify_fi
 `node reports/deck/build_deck.js`.
 
 The dataset corrections behind these numbers came from an automated audit and still need a person's
-review: [`docs/dataset/CORRECTIONS_REVIEW.md`](docs/dataset/CORRECTIONS_REVIEW.md).
+review. `python scripts/dataset_review_sheet.py` writes a sign-off sheet locally (it is not published).
 
 ### Fixes made before the final benchmark
 
@@ -62,7 +62,7 @@ review: [`docs/dataset/CORRECTIONS_REVIEW.md`](docs/dataset/CORRECTIONS_REVIEW.m
 | Failed LLM calls | Sub-agents returned a fake answer with 0 tokens; failed probe samples voted with consistency 1.0 | `SubAgentError` / `ProbeError` are raised; failed samples lower consistency |
 | Majority vote | Jaccard ≥ 0.5 merged "30 / 60 / 45 square centimeters" | Uses the grader's equivalence (numbers compared by value) |
 | Grading | Two graders; "$500" correct for "$5.00", "15" correct for "5" | One grader (`shared/grading.py`) with numeric/unit handling and curated aliases |
-| Dataset | 37 tasks wrong, stale or ambiguous (e.g. the U.S. Capitol dome is not gold) | Corrected by `scripts/apply_dataset_corrections.py`; 81 tasks have answer aliases; review sheet in `docs/dataset/` |
+| Dataset | 37 tasks wrong, stale or ambiguous (e.g. the U.S. Capitol dome is not gold) | Corrected by `scripts/apply_dataset_corrections.py`; 81 tasks have answer aliases; a local review sheet lists them |
 | MAS prompts | Debate/Reflexion dropped the context and previous draft after round 1 | Context and previous draft carried through every step |
 | Routing | "auto" router read dataset depth/parallel labels | LinUCB router learned from graded train/val runs, frozen for test; text-only features |
 | Budgets | Always-MAS capped at 1,500; escalations at k × probe tokens | Every MAS call capped at k × the paired probe's tokens |
@@ -78,11 +78,11 @@ review: [`docs/dataset/CORRECTIONS_REVIEW.md`](docs/dataset/CORRECTIONS_REVIEW.m
 
 | Overview | Results |
 | :---: | :---: |
-| ![Overview](docs/screenshots/overview.png) | ![Results](docs/screenshots/results.png) |
+| ![Overview](assets/screenshots/overview.png) | ![Results](assets/screenshots/results.png) |
 | **Baselines** | **Token accountant** |
-| ![Baselines](docs/screenshots/baselines.png) | ![Token accountant](docs/screenshots/token_accountant.png) |
+| ![Baselines](assets/screenshots/baselines.png) | ![Token accountant](assets/screenshots/token_accountant.png) |
 
-More pages in [`docs/screenshots/`](docs/screenshots/).
+More pages in [`assets/screenshots/`](assets/screenshots/).
 
 ---
 
