@@ -8,6 +8,8 @@ HTTP endpoints for the chat assistant.
   GET    /conversations/{id}        one conversation with its messages
   PATCH  /conversations/{id}        rename
   DELETE /conversations/{id}        delete
+  POST   /messages/{id}/feedback    thumbs up (1), down (-1) or clear (0) on an answer
+  GET    /assistant/gates           each gate's expected cost and rated accuracy
   GET    /assistant/status          providers, masked key status, models, gates
   POST   /assistant/keys            add an API key (checked, then saved to .env)
 
@@ -42,6 +44,10 @@ class ChatRequest(BaseModel):
 
 class RenameRequest(BaseModel):
     title: str = Field(..., min_length=1, max_length=120)
+
+
+class RatingRequest(BaseModel):
+    rating: int = Field(..., ge=-1, le=1, description="1 helpful, -1 not helpful, 0 clear")
 
 
 class KeyRequest(BaseModel):
@@ -120,6 +126,19 @@ def rename_conversation(cid: str, body: RenameRequest) -> dict[str, str]:
 def delete_conversation(cid: str) -> dict[str, str]:
     get_service().store.delete_conversation(cid)
     return {"status": "deleted"}
+
+
+@router.post("/messages/{mid}/feedback")
+def rate_message(mid: str, body: RatingRequest) -> dict[str, Any]:
+    try:
+        return get_service().rate(mid, body.rating)
+    except LookupError as err:
+        raise HTTPException(status_code=404, detail=str(err)) from err
+
+
+@router.get("/assistant/gates")
+def gate_report() -> dict[str, Any]:
+    return get_service().gate_report()
 
 
 @router.get("/assistant/status")

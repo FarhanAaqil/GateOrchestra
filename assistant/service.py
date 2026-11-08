@@ -17,6 +17,7 @@ from assistant.gates import GATES, GateSet
 from assistant.keys import KeyPool, mask, persist_key, valid_key_shape
 from assistant.llm import Gateway, ProviderError
 from assistant.probe import ChatProbe
+from assistant.selector import GateSelector, Selection
 from assistant.store import Store
 
 
@@ -39,18 +40,59 @@ class AssistantService:
         self.store = store or Store(self.settings.db_path)
         self.gates = gates or GateSet()
         self.slots = threading.BoundedSemaphore(self.settings.max_concurrent)
+        self.selector = GateSelector(
+            self.store, self.settings.gate_margin, self.settings.gate_explore
+        )
+        self.last_selection: Selection | None = None
 
     # Routing decisions (extended by later phases)
 
     def choose_gate(self, mode: str | None) -> tuple[str, str]:
+        """A named gate if one is requested; otherwise the selector's pick."""
         requested = (mode or self.settings.gate_mode or "auto").strip()
         if requested in GATES and requested in self.gates.available():
-            return requested, "chosen in settings"
-        gate = self.gates.default_gate()
-        return gate, "default gate"
+            return requested, "chosen by you"
+        selection = self.selector.choose(self.gates.available())
+        self.last_selection = selection
+        return selection.gate, selection.reason
 
     def answer_role(self, decision: str, probe: ChatProbe) -> str:
+        """Model cascade: a confident, simple direct answer goes to the fast model."""
+        if (
+            decision == "STOP"
+            and probe.result.consistency_score >= 1.0
+            and probe.task_type in ("factual", "conversation", "creative")
+        ):
+            return "fast"
         return "answer"
+
+    def rate(self, message_id: str, rating: int) -> dict[str, Any]:
+        """Record a thumbs up (1), down (-1) or clear (0) on an assistant answer."""
+        message = self.store.message(message_id)
+        if message is None or message["role"] != "assistant":
+            raise LookupError("No such answer.")
+        if rating == 0:
+            self.store.clear_feedback(message_id)
+        else:
+            self.store.set_feedback(
+                message_id, 1 if rating > 0 else -1, message["meta"].get("gate")
+            )
+        return {"message_id": message_id, "rating": rating}
+
+    def gate_report(self) -> dict[str, Any]:
+        """Every gate's expected cost and rated accuracy, and which one auto would pick now."""
+        scores = self.selector.scores(self.gates.available())
+        best = max((s.accuracy for s in scores), default=0.0)
+        for s in scores:
+            s.eligible = s.accuracy >= best - self.selector.margin
+        eligible = [s for s in scores if s.eligible]
+        if eligible:
+            min(eligible, key=lambda s: (s.expected_tokens, s.gate)).chosen = True
+        return {
+            "margin": self.selector.margin,
+            "explore": self.selector.explore,
+            "gates": [s.as_dict() for s in scores],
+        }
 
     def tools(self) -> list[Tool]:
         """Tools for the research agent (ESCALATE)."""

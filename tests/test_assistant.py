@@ -611,3 +611,143 @@ def test_tool_errors_never_break_the_turn() -> None:
     boom = Tool("boom", "fails", {"type": "object"}, lambda args: 1 / 0)
     record = run_tool_call({"boom": boom}, {"function": {"name": "boom", "arguments": "{}"}})
     assert record["output"].startswith("Error: ZeroDivisionError")
+
+
+# Phase 2: automatic gate selection, feedback, model cascade
+
+
+def _turn(decision: str, tokens: int, verdicts: dict[str, str]) -> dict:
+    return {
+        "gate": "rule_based",
+        "decision": decision,
+        "total_tokens": tokens,
+        "verdicts": verdicts,
+    }
+
+
+def test_selector_cost_and_credit_math() -> None:
+    from assistant.selector import decision_costs, escalate_rates, feedback_counts
+
+    turns = [
+        _turn(
+            "STOP",
+            1000,
+            {
+                "rule_based": "STOP",
+                "learned": "STOP",
+                "always_stop": "STOP",
+                "always_escalate": "ESCALATE",
+            },
+        ),
+        _turn(
+            "ESCALATE",
+            3000,
+            {
+                "rule_based": "ESCALATE",
+                "learned": "STOP",
+                "always_stop": "STOP",
+                "always_escalate": "ESCALATE",
+            },
+        ),
+    ]
+    assert decision_costs(turns) == {"STOP": 1000.0, "ESCALATE": 3000.0}
+    gates = ["rule_based", "learned", "always_stop", "always_escalate"]
+    rates = escalate_rates(turns, gates)
+    assert rates == {"rule_based": 0.5, "learned": 0.0, "always_stop": 0.0, "always_escalate": 1.0}
+    rated = [{"rating": -1, **turns[0]}, {"rating": 1, **turns[1]}]
+    counts = feedback_counts(rated, gates)
+    # The bad STOP answer counts against every gate that would also have stopped.
+    assert counts["learned"] == {"up": 0, "down": 1}
+    assert counts["always_escalate"] == {"up": 1, "down": 0}
+    assert counts["rule_based"] == {"up": 1, "down": 1}
+
+
+def test_selector_picks_cheapest_gate_within_margin(tmp_path: Path) -> None:
+    import random
+
+    from assistant.selector import GateSelector
+
+    store = Store(tmp_path / "sel.db")
+    gates = ["rule_based", "always_stop", "always_escalate"]
+    cid = store.create_conversation("t")
+    easy = {"rule_based": "STOP", "always_stop": "STOP", "always_escalate": "ESCALATE"}
+    hard = {"rule_based": "ESCALATE", "always_stop": "STOP", "always_escalate": "ESCALATE"}
+    # (verdicts, route taken, rating): easy questions stopped fine; hard ones needed escalation.
+    history = [(easy, "STOP", 1)] * 6 + [(hard, "ESCALATE", 1)] * 3 + [(hard, "STOP", -1)] * 3
+    for verdicts, decision, rating in history:
+        meta = {
+            "gate": "rule_based",
+            "decision": decision,
+            "verdicts": verdicts,
+            "total_tokens": 900 if decision == "STOP" else 3000,
+        }
+        mid = store.add_message(cid, "assistant", "a", meta)
+        store.log_event("chat", meta)
+        store.set_feedback(mid, rating, "rule_based")
+    selection = GateSelector(store, margin=0.05, explore=0.0, rng=random.Random(0)).choose(gates)
+    by_gate = {s.gate: s for s in selection.scores}
+    assert by_gate["always_stop"].down == 3 and not by_gate["always_stop"].eligible
+    assert by_gate["rule_based"].accuracy > by_gate["always_escalate"].accuracy  # more evidence
+    assert by_gate["rule_based"].expected_tokens < by_gate["always_escalate"].expected_tokens
+    assert selection.gate == "rule_based"
+    assert GateSelector(store, explore=1.0, rng=random.Random(1)).choose(gates).explored
+
+
+def test_selector_with_no_data_prefers_the_cheapest_gate(tmp_path: Path) -> None:
+    from assistant.selector import GateSelector
+
+    selection = GateSelector(Store(tmp_path / "e.db"), explore=0.0).choose(
+        ["rule_based", "always_stop", "always_escalate"]
+    )
+    assert selection.gate == "always_stop" and "cheapest" in selection.reason
+
+
+def test_cascade_sends_confident_simple_answers_to_the_fast_model(
+    service: AssistantService,
+) -> None:
+    from assistant.probe import ChatProbe
+    from shared.schemas import ProbeResult
+
+    def probe(consistency: float, kind: str) -> ChatProbe:
+        result = ProbeResult(
+            task_id="t",
+            answer="a",
+            consistency_score=consistency,
+            tokens_used=10,
+            latency_ms=1.0,
+            raw_outputs=["a"],
+        )
+        return ChatProbe(result=result, task_type=kind, completions=[])
+
+    assert service.answer_role("STOP", probe(1.0, "factual")) == "fast"
+    assert service.answer_role("STOP", probe(0.5, "factual")) == "answer"
+    assert service.answer_role("STOP", probe(1.0, "code")) == "answer"
+    assert service.answer_role("ESCALATE", probe(1.0, "factual")) == "answer"
+
+
+def test_feedback_and_gate_report_api(service: AssistantService) -> None:
+    from api.main import app
+
+    client = TestClient(app)
+    with client.stream(
+        "POST", "/chat", json={"message": "Name a planet", "gate_mode": "rule_based"}
+    ) as response:
+        events = [
+            json.loads(line[6:]) for line in response.iter_lines() if line.startswith("data: ")
+        ]
+    mid = events[-1]["message_id"]
+    assert client.post(f"/messages/{mid}/feedback", json={"rating": 1}).json() == {
+        "message_id": mid,
+        "rating": 1,
+    }
+    stored = service.store.messages(events[0]["conversation_id"])
+    assert stored[-1]["rating"] == 1
+    report = client.get("/assistant/gates").json()
+    assert {g["gate"] for g in report["gates"]} == set(service.gates.available())
+    assert sum(g["chosen"] for g in report["gates"]) == 1
+    rule = next(g for g in report["gates"] if g["gate"] == "rule_based")
+    assert rule["up"] == 1
+    assert client.post(f"/messages/{mid}/feedback", json={"rating": 0}).status_code == 200
+    assert service.store.messages(events[0]["conversation_id"])[-1]["rating"] is None
+    assert client.post("/messages/nope/feedback", json={"rating": 1}).status_code == 404
+    assert client.post(f"/messages/{mid}/feedback", json={"rating": 5}).status_code == 422

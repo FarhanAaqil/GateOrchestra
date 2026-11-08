@@ -174,6 +174,7 @@ class ChatPipeline:
             Task(task_id=user_mid, question=text, context=context), probe.result
         )
         verdicts = svc.gates.decide_all(features)
+        selection_scores: list[dict[str, Any]] = []
         if probe.open_ended:
             gate, decision, reason = (
                 "triage",
@@ -183,12 +184,15 @@ class ChatPipeline:
         else:
             gate, reason = svc.choose_gate(gate_mode)
             decision = verdicts[gate].decision
+            if svc.last_selection is not None and svc.last_selection.gate == gate:
+                selection_scores = [sc.as_dict() for sc in svc.last_selection.scores]
         yield {
             "type": "gate",
             "gate": gate,
             "decision": decision,
             "reason": reason,
             "verdicts": {g: v.decision for g, v in verdicts.items()},
+            "selection": selection_scores,
             "features": features.model_dump(mode="json"),
         }
 
