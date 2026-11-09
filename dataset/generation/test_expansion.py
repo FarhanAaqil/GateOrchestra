@@ -13,8 +13,9 @@ Design rules, so these tasks do not repeat the original dataset's mistakes:
   * No question reuses an entity chain already in the train/validation splits
     (scripts/expand_test_split.py refuses near-duplicates).
 
-These tasks have NOT been reviewed by a person. dataset/masbench_mini/REVIEW.json
-records that the 161 original tasks were reviewed and these were not.
+A person reviewed the 161 original tasks; these 64 were read and fact-checked by
+the AI assistant at the owner's request. dataset/masbench_mini/REVIEW.json records
+who reviewed which tasks and what was found.
 """
 
 from __future__ import annotations

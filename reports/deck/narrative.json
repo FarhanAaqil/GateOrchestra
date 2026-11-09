@@ -8,5 +8,5 @@
   "ablation_text": "Consistency carries the logistic gate: removing it halves escalations (6% to 3%) and no other single feature changes a decision. Accuracy is unchanged, so we claim the dependence, not a benefit. With only 12% ESCALATE labels, the gate has little to learn beyond the probe's own agreement.",
   "conclusion_title": "What we found",
   "conclusion": "On Qwen2.5-3B, MAS is less accurate than CoT-SC and costs 25% more, so the gate's best move is to stop. It does: 97.9% accuracy against 92.2% for Always-MAS at 33% fewer tokens. The next test is a stronger model, where MAS may finally earn its cost.",
-  "conclusion_note": "RQ1: yes against Always-MAS, but only because MAS is not worth running here. RQ2: higher k raises validation savings without changing accuracy. RQ3: probe consistency is the only feature the logistic gate depends on. H1: not supported. The 64 added test tasks are easier than the original 32 and not yet human-reviewed."
+  "conclusion_note": "RQ1: yes against Always-MAS, but only because MAS is not worth running here. RQ2: higher k raises validation savings without changing accuracy. RQ3: probe consistency is the only feature the logistic gate depends on. H1: not supported. The 64 added test tasks are easier than the original 32 and were reviewed by the assistant, not a second person."
 }

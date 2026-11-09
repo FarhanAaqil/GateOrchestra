@@ -73,12 +73,14 @@ def test_arithmetic_golds_are_computed_not_typed() -> None:
 
 def test_review_record_matches_the_dataset() -> None:
     record = json.loads(REVIEW.read_text(encoding="utf-8"))
-    reviewed, unreviewed = set(record["reviewed_task_ids"]), set(record["not_reviewed"]["task_ids"])
+    added = record["assistant_reviewed"]
+    reviewed, by_assistant = set(record["reviewed_task_ids"]), set(added["task_ids"])
     everything = _ids("train") | _ids("val") | _ids("test")
     assert record["status"] == "reviewed" and record["reviewed_by"] and record["reviewed_on"]
-    assert not (reviewed & unreviewed)
-    assert reviewed | unreviewed == everything
-    assert unreviewed == {t["task_id"] for t in build_new_tasks()}
+    assert added["reviewed_by"] and added["reviewed_on"] and added["findings"]
+    assert not (reviewed & by_assistant)
+    assert reviewed | by_assistant == everything
+    assert by_assistant == {t["task_id"] for t in build_new_tasks()}
 
 
 def test_review_goes_stale_when_the_dataset_changes() -> None:

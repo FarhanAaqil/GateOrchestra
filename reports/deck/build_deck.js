@@ -318,7 +318,7 @@ if (pw && pw.n_pairs_pooled) {
 }
 text(s, story.limits || [
   { text: "One 3B model; a larger model may change the premise.", options: { bullet: true, breakLine: true } },
-  { text: "The 64 test tasks added late are easier than the original 32 and have not been read by a person.", options: { bullet: true, breakLine: true } },
+  { text: "The 64 test tasks added late are easier than the original 32 and were reviewed by the assistant, not a second person.", options: { bullet: true, breakLine: true } },
   { text: "Seeds share test tasks, so pooled tests overstate the evidence.", options: { bullet: true } },
 ], { x: 0.5, y: 3.1, w: 9, h: 1.8, fontSize: 14, color: HEX.ink, paraSpaceAfter: 6 });
 
