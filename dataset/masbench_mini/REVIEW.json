@@ -166,7 +166,9 @@
     "comp_036",
     "comp_038"
   ],
-  "not_reviewed": {
+  "assistant_reviewed": {
+    "reviewed_by": "Claude (AI assistant), at Farhan Aaqil Durrani's request",
+    "reviewed_on": "2026-11-10",
     "added_on": "2026-11-10",
     "task_ids": [
       "arith_041",
@@ -234,7 +236,9 @@
       "cmp_042",
       "cmp_043"
     ],
-    "note": "Written after the review to enlarge the test split from 32 to 96 tasks. Checked by code (computed arithmetic answers, answers supported by the stated context, duplicate and leakage audits, grader self-grading) but not read by a person."
+    "method": "Every question, context and gold answer was read. Each fact was checked against well-known reference values; all 20 arithmetic answers were recomputed independently of the generator; accents and symbols were checked in the raw files.",
+    "findings": "No corrections needed. Minor notes, left as is: bridge_060 uses the textbook claim that mercury is the only metal liquid at room temperature; comp_042 says Beethoven was born in 'Germany' although Bonn was then part of the Holy Roman Empire, which the context states and the euro answer follows; cmp_035 compares ocean areas using the 85 vs 70 million km2 figures stated in its context.",
+    "note": "Written after the human review to enlarge the test split from 32 to 96 tasks. Also checked by code (computed arithmetic answers, answers supported by the stated context, duplicate and leakage audits, grader self-grading). This is an AI review, not a second human one."
   },
   "dataset_sha256": "8e9f1942a8b5f8722f49b6f106dc72914e9019a2caec3e1090f858c45d0e5d6e"
 }

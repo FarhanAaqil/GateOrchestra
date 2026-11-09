@@ -45,8 +45,8 @@ What it shows:
 - **Little room for any gate.** An oracle would escalate only 2-5% of questions here. Probe consistency is
   the one feature the logistic gate depends on.
 - **The test set is near the ceiling.** The 64 tasks added late are easier than the original 32 (CoT-SC scores
-  98.4% on them vs 93.8%) and have not been read by a person, so the larger split sharpens the comparison
-  less than its size suggests. `dataset/masbench_mini/REVIEW.json` records which tasks were reviewed.
+  98.4% on them vs 93.8%) and were fact-checked by the assistant, not a second person, so the larger split sharpens the comparison
+  less than its size suggests. `dataset/masbench_mini/REVIEW.json` records who reviewed which tasks.
 
 To reproduce: `python scripts/final_benchmark.py` (resumable with `--resume`; `GATE_EVAL_WORKERS=3`
 runs three tasks at once against a local Ollama), then `python scripts/verify_final_results.py`,
