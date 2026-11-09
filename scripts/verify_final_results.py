@@ -29,10 +29,10 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
-from shared.config import FINAL_SEEDS  # noqa: E402
+from shared.config import FINAL_RESULTS_DIR, FINAL_SEEDS  # noqa: E402
 from shared.data_loader import dataset_sha256, load_split  # noqa: E402
 
-REAL_FINAL_DIR = ROOT / "results" / "real" / "final"
+REAL_FINAL_DIR = FINAL_RESULTS_DIR
 MASTER_RESULTS_PATH = REAL_FINAL_DIR / "master_results.json"
 
 REQUIRED_SEEDS = set(FINAL_SEEDS)

@@ -22,13 +22,17 @@ from typing import Any
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from evaluation.final_analysis import analyse  # noqa: E402
-from shared.config import LOGS_DIR  # noqa: E402
+from shared.config import (  # noqa: E402
+    FINAL_CHECKPOINTS_DIR,
+    FINAL_REPORTS_DIR,
+    FINAL_RESULTS_DIR,
+)
 from shared.data_loader import load_split  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-CHECKPOINTS = LOGS_DIR / "results" / "checkpoints"
-RESULTS = ROOT / "results" / "real" / "final"
-REPORTS = ROOT / "reports"
+CHECKPOINTS = FINAL_CHECKPOINTS_DIR
+RESULTS = FINAL_RESULTS_DIR
+REPORTS = FINAL_REPORTS_DIR
 
 
 def _pct(x: float | None, digits: int = 1) -> str:

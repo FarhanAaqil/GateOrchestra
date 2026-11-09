@@ -10,6 +10,7 @@ RULE: No magic numbers anywhere else in the codebase.
 from __future__ import annotations
 
 import os
+import re
 from pathlib import Path
 
 # Paths
@@ -46,6 +47,9 @@ GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
 GROQ_MODEL_NAME: str = os.getenv("GROQ_MODEL_NAME", "qwen/qwen3.8-27b")
 GROQ_API_BASE: str = os.getenv("GROQ_API_BASE", "https://api.groq.com/openai/v1")
 LLM_REQUEST_TIMEOUT_SECONDS: float = float(os.getenv("GATE_LLM_TIMEOUT", "300"))
+ACTIVE_MODEL_NAME: str = GROQ_MODEL_NAME if LLM_PROVIDER == "groq" else MODEL_NAME
+"""The model the benchmark actually calls, so run records name the right one."""
+ACTIVE_API_BASE: str = GROQ_API_BASE if LLM_PROVIDER == "groq" else MODEL_API_BASE
 PROBE_TOKEN_BUDGET: int = 1000
 """Completion-token budget for one whole CoT-SC probe (all samples together).
 
@@ -68,6 +72,17 @@ FINAL_SEEDS: tuple[int, ...] = (42, 123)
 """Seeds of the final benchmark. The first one calibrates the gate and router; every seed
 repeats the stochastic test evaluation. Both scripts/final_benchmark.py and
 scripts/verify_final_results.py read this, so they cannot disagree."""
+
+RUN_TAG: str = re.sub(r"[^A-Za-z0-9_.-]", "", os.getenv("GATE_RUN_TAG", ""))
+"""Names a benchmark run on another model (for example ``groq-gpt-oss-120b``). With a tag
+set, the run writes its results, checkpoints, gate, router and reports into folders of
+its own and never touches the default (untagged) Qwen2.5-3B artifacts, and the API and
+assistant never load its gate. Empty by default."""
+
+FINAL_RESULTS_DIR: Path = ROOT_DIR / "results" / "real" / (RUN_TAG or "final")
+FINAL_CHECKPOINTS_DIR: Path = LOGS_DIR / "results" / "checkpoints" / RUN_TAG
+FINAL_MODELS_DIR: Path = MODELS_DIR / RUN_TAG
+FINAL_REPORTS_DIR: Path = ROOT_DIR / "reports" / RUN_TAG
 
 # Gate Hyperparameters
 

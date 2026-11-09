@@ -16,6 +16,7 @@ import json
 import logging
 import os
 import re
+import threading
 import time
 import urllib.error
 import urllib.request
@@ -131,6 +132,45 @@ def rate_limit_delay(
     return min(wait + 0.25, MAX_RATE_LIMIT_WAIT_SECONDS)
 
 
+_groq_key_lock = threading.Lock()
+_groq_key_cursor = 0
+_groq_key_cooldowns: dict[str, float] = {}
+
+
+def groq_key_pool() -> list[str]:
+    """Groq keys to rotate over: GROQ_API_KEY plus the comma-separated GROQ_API_KEYS.
+
+    Groq limits are per account, so extra keys only add quota when they belong to
+    different accounts. Placeholder values and duplicates are skipped.
+    """
+    raw = [os.getenv("GROQ_API_KEY") or GROQ_API_KEY, *os.getenv("GROQ_API_KEYS", "").split(",")]
+    keys: list[str] = []
+    for item in raw:
+        key = item.strip()
+        if key and "your_" not in key and key not in keys:
+            keys.append(key)
+    return keys
+
+
+def _next_groq_key(pool: list[str]) -> tuple[str, float]:
+    """Round-robin over keys that are not cooling down; (key, seconds to wait if all are)."""
+    global _groq_key_cursor
+    with _groq_key_lock:
+        now = time.time()
+        for offset in range(len(pool)):
+            index = (_groq_key_cursor + offset) % len(pool)
+            if _groq_key_cooldowns.get(pool[index], 0.0) <= now:
+                _groq_key_cursor = index + 1
+                return pool[index], 0.0
+        soonest = min(pool, key=lambda k: _groq_key_cooldowns.get(k, 0.0))
+        return soonest, _groq_key_cooldowns.get(soonest, 0.0) - now
+
+
+def _cool_groq_key(key: str, seconds: float) -> None:
+    with _groq_key_lock:
+        _groq_key_cooldowns[key] = time.time() + seconds
+
+
 def call_groq(
     prompt: str,
     temperature: float = 0.7,
@@ -145,8 +185,10 @@ def call_groq(
     Returns:
         tuple of (response_text, total_tokens_used).
     """
-    key = api_key if api_key is not None else (os.getenv("GROQ_API_KEY") or GROQ_API_KEY)
-    if not key:
+    primary = os.getenv("GROQ_API_KEY") or GROQ_API_KEY
+    # The configured key stands for the whole pool; any other explicit key is used alone.
+    pool = [api_key] if api_key is not None and api_key != primary else groq_key_pool()
+    if not pool or not pool[0]:
         raise ValueError(
             "GROQ_API_KEY is not set. Please set the GROQ_API_KEY environment variable "
             "or pass api_key to use the Groq provider."
@@ -168,6 +210,9 @@ def call_groq(
     base_delay = 4.0
 
     for attempt in range(max_retries + 1):
+        key, wait_for_key = _next_groq_key(pool)
+        if wait_for_key > 0:
+            time.sleep(min(wait_for_key, MAX_RATE_LIMIT_WAIT_SECONDS))
         req = urllib.request.Request(
             url,
             data=data,
@@ -211,6 +256,14 @@ def call_groq(
 
             if e.code == 429 and attempt < max_retries:
                 delay = rate_limit_delay(e.headers.get("Retry-After"), err_msg, attempt, base_delay)
+                if len(pool) > 1:
+                    # Another key may have quota left: cool this one down and move on.
+                    _cool_groq_key(key, delay)
+                    logger.warning(
+                        f"[GroqProvider] A key was rate limited (429); rotating "
+                        f"(attempt {attempt + 1}/{max_retries})."
+                    )
+                    continue
                 logger.warning(
                     f"[GroqProvider] Rate limited (429). Retrying in {delay:.1f}s (attempt {attempt + 1}/{max_retries})..."
                 )

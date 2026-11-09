@@ -53,8 +53,9 @@ runs three tasks at once against a local Ollama), then `python scripts/verify_fi
 `python scripts/analyze_final_results.py`, `python scripts/make_figures.py` and
 `node reports/deck/build_deck.js`.
 
-The dataset corrections behind these numbers came from an automated audit and still need a person's
-review. `python scripts/dataset_review_sheet.py` writes a sign-off sheet locally (it is not published).
+A person reviewed the first 161 tasks after the automated audit; the 64 added test tasks were read and
+fact-checked by the assistant (`dataset/masbench_mini/REVIEW.json` says who reviewed what).
+`python scripts/dataset_review_sheet.py` writes a sign-off sheet locally (it is not published).
 
 ### Fixes made before the final benchmark
 
@@ -313,4 +314,20 @@ export GATE_API_BASE=http://localhost:11434
 $env:GROQ_API_KEY = "gsk_your_groq_api_key_here"
 $env:GATE_LLM_PROVIDER = "groq"
 $env:GROQ_MODEL_NAME = "qwen/qwen3.8-27b"
+```
+
+**Several Groq keys.** Add more with `GROQ_API_KEYS=key2,key3` (comma-separated). The benchmark rotates
+over them and moves to the next key on a rate limit. Groq limits are per account, so extra keys only help
+when they belong to different Groq accounts.
+
+**Benchmarking another model.** Set `GATE_RUN_TAG` (for example `groq-gpt-oss-120b`) together with the
+provider and model. The run then keeps its results (`results/real/<tag>/`), checkpoints, gate, router and
+reports (`reports/<tag>/`) apart from the default Qwen2.5-3B run, and the API never loads its gate:
+
+```powershell
+$env:GATE_RUN_TAG = "groq-gpt-oss-120b"
+$env:GATE_LLM_PROVIDER = "groq"
+$env:GROQ_MODEL_NAME = "openai/gpt-oss-120b"
+python scripts/final_benchmark.py --resume
+python scripts/verify_final_results.py
 ```

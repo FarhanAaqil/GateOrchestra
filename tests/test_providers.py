@@ -220,3 +220,65 @@ class TestRateLimitBackoff:
 
         assert call_groq("2+2?", api_key="k") == ("Final Answer: 4", 9)
         mock_sleep.assert_called_once_with(pytest.approx(2.25))
+
+
+class TestGroqKeyRotation:
+    @pytest.fixture(autouse=True)
+    def fresh_state(self, monkeypatch):
+        import agents.providers as providers
+
+        providers._groq_key_cooldowns.clear()
+        monkeypatch.setattr(providers, "_groq_key_cursor", 0)
+        monkeypatch.setattr(providers, "GROQ_API_KEY", "")
+        monkeypatch.setenv("GROQ_API_KEY", "key-a")
+        monkeypatch.setenv("GROQ_API_KEYS", "key-b, key-c ,key-a,your_key_here")
+        yield
+        providers._groq_key_cooldowns.clear()
+
+    @staticmethod
+    def _ok_response():
+        response = MagicMock()
+        response.read.return_value = json.dumps(
+            {"choices": [{"message": {"content": "ok"}}], "usage": {"total_tokens": 7}}
+        ).encode("utf-8")
+        response.__enter__.return_value = response
+        return response
+
+    def test_pool_skips_duplicates_and_placeholders(self):
+        from agents.providers import groq_key_pool
+
+        assert groq_key_pool() == ["key-a", "key-b", "key-c"]
+
+    @patch("urllib.request.urlopen")
+    def test_calls_rotate_round_robin(self, mock_urlopen):
+        mock_urlopen.return_value = self._ok_response()
+        for _ in range(4):
+            call_groq("hi", api_key="key-a")
+        used = [c[0][0].headers["Authorization"] for c in mock_urlopen.call_args_list]
+        assert used == ["Bearer key-a", "Bearer key-b", "Bearer key-c", "Bearer key-a"]
+
+    @patch("time.sleep")
+    @patch("urllib.request.urlopen")
+    def test_rate_limited_key_hands_over_to_the_next_without_sleeping(self, mock_urlopen, sleep):
+        import urllib.error
+
+        limited = urllib.error.HTTPError(
+            "https://api.groq.com", 429, "Too Many Requests", {"Retry-After": "30"}, None
+        )
+        limited.read = lambda: b'{"error": {"message": "rate limit"}}'  # type: ignore[method-assign]
+        mock_urlopen.side_effect = [limited, self._ok_response()]
+
+        text, tokens = call_groq("hi")
+
+        assert (text, tokens) == ("ok", 7)
+        used = [c[0][0].headers["Authorization"] for c in mock_urlopen.call_args_list]
+        assert used == ["Bearer key-a", "Bearer key-b"]
+        sleep.assert_not_called()
+
+    @patch("urllib.request.urlopen")
+    def test_a_different_explicit_key_is_used_alone(self, mock_urlopen):
+        mock_urlopen.return_value = self._ok_response()
+        for _ in range(3):
+            call_groq("hi", api_key="someone-elses-key")
+        used = {c[0][0].headers["Authorization"] for c in mock_urlopen.call_args_list}
+        assert used == {"Bearer someone-elses-key"}
