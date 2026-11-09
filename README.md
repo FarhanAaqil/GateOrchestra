@@ -127,7 +127,7 @@ key's state; keys are only ever shown by their last four characters.
 
 ```bash
 cp .env.example .env        # set GROQ_API_KEY, GATE_API_TOKEN and GATE_CORS_ORIGINS
-docker compose up --build   # console on http://localhost:8080
+docker compose up --build   # console on http://localhost:8080 (WEB_PORT=8088 if 8080 is taken)
 ```
 
 The console image (nginx) serves the app and forwards `/api/` to the API container on the same
@@ -144,13 +144,17 @@ Before exposing the stack publicly:
   is 30.
 - **`ASSISTANT_PROVIDERS`:** put at least two providers here (for example `groq,gemini`), so one
   provider's outage or rate limit does not stop the chat.
-- **Admin endpoints:** adding API keys and clearing the cache are accepted only from the host
-  itself, or with `GATE_ADMIN_TOKEN`.
+- **Admin endpoints:** adding API keys and clearing the cache are accepted from the host itself,
+  with `GATE_API_TOKEN` (the operator's token, once it is set), or with `GATE_ADMIN_TOKEN`.
+  Behind the proxy with no token set, nobody can add keys, so set `GATE_API_TOKEN`.
 - **Terminate TLS** at your host or a proxy in front of port 8080.
 - **Scrape `/metrics`** with Prometheus, or watch the Admin page.
 
-Conversations, ratings, usage and the cache live in SQLite at `logs/assistant.db`, which is mounted
-as a volume so restarts keep them. CI runs the Python and console tests, a browser smoke test
+Conversations, ratings, usage, the cache and any key added from the console live in the
+`gateorchestra-data` Docker volume (`/app/logs`, with keys in `keys.env`). It is a named volume
+rather than a folder of this repo because SQLite needs real file locking, which synced folders
+such as Google Drive do not provide. The compose API container has no Docker, so the Python code
+sandbox is off there; run the API on the host (`python scripts/dev.py`) to use it. CI runs the Python and console tests, a browser smoke test
 against the offline mock provider, and both Docker builds.
 
 ---

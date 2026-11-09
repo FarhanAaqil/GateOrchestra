@@ -10,9 +10,12 @@ from __future__ import annotations
 
 import hashlib
 import logging
+import os
 import re
 import threading
 from typing import Any
+
+from dotenv import dotenv_values
 
 from assistant import documents as docs
 from assistant.agent import Tool, calculator_tool
@@ -44,7 +47,7 @@ class AssistantService:
         gates: GateSet | None = None,
     ) -> None:
         self.settings = settings or get_settings()
-        self.pool = gateway.pool if gateway else KeyPool.from_env()
+        self.pool = gateway.pool if gateway else KeyPool.from_env(self._key_environment())
         self.gateway = gateway or Gateway(self.settings, self.pool)
         self.store = store or Store(self.settings.db_path)
         self.gates = gates or GateSet()
@@ -53,6 +56,20 @@ class AssistantService:
             self.store, self.settings.gate_margin, self.settings.gate_explore
         )
         self.last_selection: Selection | None = None
+
+    def _key_environment(self) -> dict[str, str]:
+        """The process environment plus keys saved earlier from the console.
+
+        Keys added through the popup live in ``settings.env_path``. The real
+        environment wins, so a key set by the operator is never overridden.
+        """
+        merged = dict(os.environ)
+        path = self.settings.env_path
+        if path.exists():
+            for name, value in (dotenv_values(path) or {}).items():
+                if value and not merged.get(name):
+                    merged[name] = value
+        return merged
 
     # Routing decisions (extended by later phases)
 

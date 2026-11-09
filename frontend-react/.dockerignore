@@ -1,0 +1,6 @@
+node_modules
+dist
+dist-*
+.vite
+*.log
+e2e
