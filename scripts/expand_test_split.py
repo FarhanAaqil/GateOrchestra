@@ -38,16 +38,28 @@ from shared.grading import is_correct  # noqa: E402
 
 SPLITS = ("train", "val", "test")
 MASBENCH = ROOT / "dataset" / "masbench_mini"
-CSV_FIELDS = ("task_id", "question", "context", "ground_truth", "depth_score", "parallel_score", "source_dataset")
+CSV_FIELDS = (
+    "task_id",
+    "question",
+    "context",
+    "ground_truth",
+    "depth_score",
+    "parallel_score",
+    "source_dataset",
+)
 NEAR_DUPLICATE = 0.8
 
 
 def _read_jsonl(path: Path) -> list[dict]:
-    return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
+    return [
+        json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()
+    ]
 
 
 def _write_jsonl(path: Path, rows: list[dict]) -> None:
-    path.write_text("\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8")
+    path.write_text(
+        "\n".join(json.dumps(r, ensure_ascii=False) for r in rows) + "\n", encoding="utf-8"
+    )
 
 
 def _words(text: str) -> set[str]:
@@ -59,8 +71,18 @@ def _jaccard(a: str, b: str) -> float:
     return len(x & y) / len(x | y) if x | y else 0.0
 
 
-_NUMBER_WORDS = {"1": "one", "2": "two", "3": "three", "4": "four", "5": "five", "6": "six", "7": "seven",
-                 "8": "eight", "9": "nine", "10": "ten"}
+_NUMBER_WORDS = {
+    "1": "one",
+    "2": "two",
+    "3": "three",
+    "4": "four",
+    "5": "five",
+    "6": "six",
+    "7": "seven",
+    "8": "eight",
+    "9": "nine",
+    "10": "ten",
+}
 
 
 def _supported_by_context(gold: str, context: str) -> bool:
@@ -74,7 +96,11 @@ def _supported_by_context(gold: str, context: str) -> bool:
         value = int(wanted.group(1).replace(",", ""))
         words = _NUMBER_WORDS.get(str(value))
         differences = {abs(a - b) for a in numbers for b in numbers}
-        return value in numbers or value in differences or bool(words and re.search(rf"\b{words}\b", text))
+        return (
+            value in numbers
+            or value in differences
+            or bool(words and re.search(rf"\b{words}\b", text))
+        )
     # Comparison golds are sentences: the winner's name must appear in the context.
     key = re.findall(r"[A-Za-z0-9]{4,}", gold)
     return any(k.lower() in text for k in key)
@@ -94,7 +120,9 @@ def check_tasks(new: list[dict], aliases: dict[str, list[str]]) -> list[str]:
         arithmetic = task["source_dataset"] == "template_arithmetic"
         for other_id, other in existing.items():
             same = task["question"].strip().lower() == other["question"].strip().lower()
-            if same or (not arithmetic and _jaccard(task["question"], other["question"]) >= NEAR_DUPLICATE):
+            if same or (
+                not arithmetic and _jaccard(task["question"], other["question"]) >= NEAR_DUPLICATE
+            ):
                 problems.append(f"{tid} repeats {other_id}: {task['question']!r}")
         accepted = [task["ground_truth"], *aliases.get(tid, [])]
         for answer in accepted:
@@ -112,8 +140,18 @@ def _upsert_jsonl(path: Path, new: list[dict]) -> int:
     by_id = {r["task_id"]: i for i, r in enumerate(rows)}
     added = 0
     for task in new:
-        row = {k: task[k] for k in ("task_id", "question", "context", "depth_score", "parallel_score",
-                                    "ground_truth", "source_dataset")}
+        row = {
+            k: task[k]
+            for k in (
+                "task_id",
+                "question",
+                "context",
+                "depth_score",
+                "parallel_score",
+                "ground_truth",
+                "source_dataset",
+            )
+        }
         if task["task_id"] in by_id:
             rows[by_id[task["task_id"]]] = row
         else:
@@ -154,10 +192,15 @@ def main() -> int:
         return 1
 
     report = {
-        "dataset/raw/tasks_raw.jsonl": _upsert_jsonl(ROOT / "dataset" / "raw" / "tasks_raw.jsonl", new),
+        "dataset/raw/tasks_raw.jsonl": _upsert_jsonl(
+            ROOT / "dataset" / "raw" / "tasks_raw.jsonl", new
+        ),
         "dataset/processed/tasks_cleaned.jsonl": _upsert_jsonl(
-            ROOT / "dataset" / "processed" / "tasks_cleaned.jsonl", new),
-        "dataset/masbench_mini/test/test.jsonl": _upsert_jsonl(MASBENCH / "test" / "test.jsonl", new),
+            ROOT / "dataset" / "processed" / "tasks_cleaned.jsonl", new
+        ),
+        "dataset/masbench_mini/test/test.jsonl": _upsert_jsonl(
+            MASBENCH / "test" / "test.jsonl", new
+        ),
         "exports/dataset/test.csv": _upsert_csv(ROOT / "exports" / "dataset" / "test.csv", new),
     }
     alias_path = MASBENCH / "answer_aliases.json"

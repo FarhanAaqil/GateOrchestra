@@ -64,6 +64,11 @@ VAL_SPLIT: float = 0.20  # ~30 tasks
 TEST_SPLIT: float = 0.20  # ~30 tasks  ← held-out, do not touch until Week 10
 RANDOM_SEED: int = 42
 
+FINAL_SEEDS: tuple[int, ...] = (42, 123)
+"""Seeds of the final benchmark. The first one calibrates the gate and router; every seed
+repeats the stochastic test evaluation. Both scripts/final_benchmark.py and
+scripts/verify_final_results.py read this, so they cannot disagree."""
+
 # Gate Hyperparameters
 
 GATE_ESCALATE_THRESHOLD: float = float(os.getenv("GATE_ESCALATE_THRESHOLD", "0.15"))
