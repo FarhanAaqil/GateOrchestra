@@ -28,12 +28,10 @@ OUT = ROOT / "docs" / "dataset" / "CORRECTIONS_REVIEW.md"
 _KEY = re.compile(r'^    "([a-z]+_\d+)": \{')
 
 # Uncorrected tasks a scan of every gold answer flagged as still debatable.
-WATCHLIST = {
-    "cmp_002": "Whether the Nile or the Amazon is longer depends on how it is measured; "
-    "some recent surveys put the Amazon ahead.",
-    "cmp_016": "The gold itself hedges ('slightly before or around the same time'); the two "
-    "civilisations are dated within a few centuries of each other.",
-}
+#
+# Both tasks flagged in the first review (cmp_002 and cmp_016) were rewritten after the human
+# review of November 2026, so the list is empty. Add a task id and a concern to flag one.
+WATCHLIST: dict[str, str] = {}
 
 
 def reasons() -> dict[str, str]:
@@ -89,13 +87,14 @@ def main() -> None:
             "- **Reviewer notes:**",
             "",
         ]
-    lines += [
-        "# Still debatable (not corrected)",
-        "",
-        "A scan of every gold answer for hedging, very long answers and time-sensitive",
-        "wording found these. Decide whether to rewrite or drop them.",
-        "",
-    ]
+    if WATCHLIST:
+        lines += [
+            "# Still debatable (not corrected)",
+            "",
+            "A scan of every gold answer for hedging, very long answers and time-sensitive",
+            "wording found these. Decide whether to rewrite or drop them.",
+            "",
+        ]
     for task_id, note in WATCHLIST.items():
         split, task = tasks[task_id]
         accepted = ", ".join(f"`{a}`" for a in aliases.get(task_id, ())) or "none"
