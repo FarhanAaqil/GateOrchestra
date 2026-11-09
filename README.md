@@ -14,37 +14,39 @@ GateOrchestra places a lightweight, trainable **gate** in front of a Multi-Agent
 
 **Research Goal:** ≥40% token savings vs. Always-MAS at ≤2 points accuracy cost, measured under equal token budgets (see the [Blueprint](Blueprint) hypotheses H1/RQ1–RQ3).
 
-**Outcome:** 38.5% savings with no accuracy cost on Qwen2.5-3B, but only because MAS was not better than the probe at this scale, so the gate learned to stop. See [Results](#results).
+**Outcome:** 33% token savings and higher accuracy than Always-MAS on Qwen2.5-3B (97.9% vs 92.2%), but only because MAS was not better than the probe at this scale, so the gate learned to stop. See [Results](#results).
 
 ---
 
 ## Results
 
 The final benchmark has run and passes `scripts/verify_final_results.py`: Qwen2.5-3B on a local GPU,
-32 held-out test tasks x 3 seeds (42, 123, 999), gate and router calibrated on 129 train/validation tasks
-run three times each. Full analysis: [`reports/final_analysis.md`](reports/final_analysis.md); write-up:
+96 held-out test tasks x 2 seeds (42, 123), gate and router calibrated on 129 train/validation tasks
+run three times each. (An earlier run on the original 32 test tasks, 3 seeds, reached the same conclusions and is archived in `results/real/archive/v1_test32/`.) Full analysis: [`reports/final_analysis.md`](reports/final_analysis.md); write-up:
 [`reports/research_report.md`](reports/research_report.md); slides:
 [`reports/deck/GateOrchestra_final.pptx`](reports/deck/GateOrchestra_final.pptx).
 
-| Method (test, 3 seeds) | Accuracy | Pooled 95% CI | Avg tokens / task | vs Always-MAS | Escalation |
+| Method (test, 2 seeds) | Accuracy | Pooled 95% CI | Avg tokens / task | vs Always-MAS | Escalation |
 | :--- | --: | :--- | --: | --: | --: |
-| CoT-SC-only | 95.8% | [89.8, 98.4] | 743 | -40.1% | 0% |
-| Always-MAS | 89.6% | [81.9, 94.2] | 1,241 | 0% | 100% |
-| RandomGate | 93.8% | [87.0, 97.1] | 852 | -31.2% | 9% |
-| RuleBasedGate | 82.3% | [73.5, 88.6] | 1,534 | +23.8% | 69% |
-| **GateOrchestra** | **95.8%** | [89.8, 98.4] | **764** | **-38.5%** | **1%** |
+| CoT-SC-only | 96.9% | [93.3, 98.6] | 722 | -38.3% | 0% |
+| Always-MAS | 92.2% | [87.5, 95.2] | 1,171 | 0% | 100% |
+| RandomGate | 96.4% | [92.7, 98.2] | 773 | -34.0% | 4% |
+| RuleBasedGate | 92.2% | [87.5, 95.2] | 1,493 | +27.6% | 70% |
+| **GateOrchestra** | **97.9%** | [94.8, 99.2] | **784** | **-33.0%** | **3%** |
 
 What it shows:
 
 - **The premise fails on a 3B model.** Over 387 graded calibration runs each, MAS was *less* accurate
-  than CoT-SC (79.8% vs 88.4%, sign test p = 0.008) and used 1.26x the tokens. A lenient grader that
-  forgives wordy MAS answers narrows the gap to 3.9 points, but MAS is never better.
-- **The gate learned the right policy.** It escalated 1% of test tasks, matching CoT-SC accuracy at
-  38.5% fewer tokens than Always-MAS (McNemar vs Always-MAS p = 0.07, pooled). The rule-based gate,
-  which escalates 69% of tasks, is significantly worse than CoT-SC (p = 0.001).
-- **Little room for any gate.** An oracle would escalate only 6% of questions here. Probe consistency is
+  than CoT-SC (80.1% vs 89.1%, sign test p = 0.003) and used 1.25x the tokens. A lenient grader that
+  forgives wordy MAS answers narrows the gap to 4.4 points, but MAS is never better.
+- **The gate learned the right policy.** It escalated 3% of test tasks, beating Always-MAS by 5.7 points
+  at 33% fewer tokens (pooled McNemar p = 0.007, optimistic because the seeds share tasks) and matching
+  CoT-SC. The rule-based gate, which escalates 70% of tasks, is significantly worse than CoT-SC (p = 0.004).
+- **Little room for any gate.** An oracle would escalate only 2-5% of questions here. Probe consistency is
   the one feature the logistic gate depends on.
-- **Power is limited.** 32 test tasks cannot separate methods within about 8 points even pooled over seeds.
+- **The test set is near the ceiling.** The 64 tasks added late are easier than the original 32 (CoT-SC scores
+  98.4% on them vs 93.8%) and have not been read by a person, so the larger split sharpens the comparison
+  less than its size suggests. `dataset/masbench_mini/REVIEW.json` records which tasks were reviewed.
 
 To reproduce: `python scripts/final_benchmark.py` (resumable with `--resume`; `GATE_EVAL_WORKERS=3`
 runs three tasks at once against a local Ollama), then `python scripts/verify_final_results.py`,
@@ -62,7 +64,7 @@ review. `python scripts/dataset_review_sheet.py` writes a sign-off sheet locally
 | Failed LLM calls | Sub-agents returned a fake answer with 0 tokens; failed probe samples voted with consistency 1.0 | `SubAgentError` / `ProbeError` are raised; failed samples lower consistency |
 | Majority vote | Jaccard ≥ 0.5 merged "30 / 60 / 45 square centimeters" | Uses the grader's equivalence (numbers compared by value) |
 | Grading | Two graders; "$500" correct for "$5.00", "15" correct for "5" | One grader (`shared/grading.py`) with numeric/unit handling and curated aliases |
-| Dataset | 37 tasks wrong, stale or ambiguous (e.g. the U.S. Capitol dome is not gold) | Corrected by `scripts/apply_dataset_corrections.py`; 81 tasks have answer aliases; a local review sheet lists them |
+| Dataset | 39 tasks wrong, stale or ambiguous (e.g. the U.S. Capitol dome is not gold) | Corrected by `scripts/apply_dataset_corrections.py`; 105 tasks have answer aliases; a local review sheet lists them |
 | MAS prompts | Debate/Reflexion dropped the context and previous draft after round 1 | Context and previous draft carried through every step |
 | Routing | "auto" router read dataset depth/parallel labels | LinUCB router learned from graded train/val runs, frozen for test; text-only features |
 | Budgets | Always-MAS capped at 1,500; escalations at k × probe tokens | Every MAS call capped at k × the paired probe's tokens |
@@ -127,7 +129,7 @@ key's state; keys are only ever shown by their last four characters.
 
 ```bash
 cp .env.example .env        # set GROQ_API_KEY, GATE_API_TOKEN and GATE_CORS_ORIGINS
-docker compose up --build   # console on http://localhost:8080
+docker compose up --build   # console on http://localhost:8080 (WEB_PORT=8088 if 8080 is taken)
 ```
 
 The console image (nginx) serves the app and forwards `/api/` to the API container on the same
@@ -144,13 +146,17 @@ Before exposing the stack publicly:
   is 30.
 - **`ASSISTANT_PROVIDERS`:** put at least two providers here (for example `groq,gemini`), so one
   provider's outage or rate limit does not stop the chat.
-- **Admin endpoints:** adding API keys and clearing the cache are accepted only from the host
-  itself, or with `GATE_ADMIN_TOKEN`.
+- **Admin endpoints:** adding API keys and clearing the cache are accepted from the host itself,
+  with `GATE_API_TOKEN` (the operator's token, once it is set), or with `GATE_ADMIN_TOKEN`.
+  Behind the proxy with no token set, nobody can add keys, so set `GATE_API_TOKEN`.
 - **Terminate TLS** at your host or a proxy in front of port 8080.
 - **Scrape `/metrics`** with Prometheus, or watch the Admin page.
 
-Conversations, ratings, usage and the cache live in SQLite at `logs/assistant.db`, which is mounted
-as a volume so restarts keep them. CI runs the Python and console tests, a browser smoke test
+Conversations, ratings, usage, the cache and any key added from the console live in the
+`gateorchestra-data` Docker volume (`/app/logs`, with keys in `keys.env`). It is a named volume
+rather than a folder of this repo because SQLite needs real file locking, which synced folders
+such as Google Drive do not provide. The compose API container has no Docker, so the Python code
+sandbox is off there; run the API on the host (`python scripts/dev.py`) to use it. CI runs the Python and console tests, a browser smoke test
 against the offline mock provider, and both Docker builds.
 
 ---
@@ -184,7 +190,7 @@ The gate is one of: the calibrated learned gate (logistic regression, GBT or MLP
 ```text
 gateorchestra/
 ├── shared/          # Contract layer: schemas, config, grading, token accounting, data loading
-├── dataset/         # MASBench-mini (161 tasks: 97/32/32), aliases, cleaning, validation, leakage audit
+├── dataset/         # MASBench-mini (225 tasks: 97/32/96), aliases, cleaning, validation, leakage audit
 ├── agents/          # Probe agent, sub-agents (ReAct, Debate, Reflexion), orchestrator, Groq/Ollama providers
 ├── gate/            # Classifiers (LogReg, GBT, MLP, Constant), rule-based gate, random gate, features
 ├── evaluation/      # Metrics, Wilson CIs, exact McNemar test
@@ -251,7 +257,7 @@ with no token in it.
 ## Final Benchmark
 
 ```bash
-# 1. Full benchmark: 32 test tasks × seeds 42, 123, 999 (real LLM calls; long-running, resumable)
+# 1. Full benchmark: 96 test tasks × seeds 42, 123 (real LLM calls; long-running, resumable)
 python scripts/final_benchmark.py            # add --resume to continue after an interruption
 python scripts/final_benchmark.py --n 5      # smoke test on a subset
 

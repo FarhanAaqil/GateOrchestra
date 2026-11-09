@@ -6,7 +6,7 @@ Checks results/real/final/master_results.json (written by
 scripts/final_benchmark.py) and fails unless:
 
   1. The file exists, parses, and has execution_mode == "real".
-  2. Every required seed (42, 123, 999) is present, with no null seeds, and
+  2. Every required seed (shared.config.FINAL_SEEDS) is present, with no null seeds, and
      each has exactly one per-seed result.
   3. Each per-seed result is a real run of the full test split on the
      current dataset (its dataset_sha256 matches the files on disk).
@@ -29,12 +29,13 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT))
 
+from shared.config import FINAL_SEEDS  # noqa: E402
 from shared.data_loader import dataset_sha256, load_split  # noqa: E402
 
 REAL_FINAL_DIR = ROOT / "results" / "real" / "final"
 MASTER_RESULTS_PATH = REAL_FINAL_DIR / "master_results.json"
 
-REQUIRED_SEEDS = {42, 123, 999}
+REQUIRED_SEEDS = set(FINAL_SEEDS)
 REQUIRED_METHODS = {
     "CoT-SC-only",
     "Always-MAS",

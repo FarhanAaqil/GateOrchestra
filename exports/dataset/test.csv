@@ -31,3 +31,67 @@ comp_031,What is the name of the sea that borders both the country that invented
 comp_035,"What sport was played at the stadium where the 2014 FIFA World Cup final was held, the year after the tournament?","The 2014 FIFA World Cup final was held at Estádio do Maracanã in Rio de Janeiro, Brazil. The stadium continues to host football matches. In 2015, football matches continued to be played there.",Football (soccer),4,1,musique_style
 comp_036,What is the largest lake in the country where the discoverer of polonium was born?,"Polonium was discovered by Marie Curie, who was born in Poland and named the element after it. Poland's largest lake is Lake Śniardwy.",Lake Śniardwy,4,1,musique_style
 comp_038,The world's highest mountain is named after a former Surveyor General of India. On the border of which two countries does it lie?,"Mount Everest is named after Sir George Everest, a former Surveyor General of India. The mountain lies on the border between Nepal and China (Tibet Autonomous Region).",Nepal and China,4,1,musique_style
+arith_041,"A bakery sells muffins at $3.25 each. If you buy 7 muffins and pay with a $50 bill, how much change do you receive?",,$27.25,3,1,template_arithmetic
+arith_042,A rectangle has a length of 18 cm and a width of 11 cm. What is its area?,,198 square centimeters,2,1,template_arithmetic
+arith_043,A triangle has a base of 14 cm and a height of 9 cm. What is its area?,,63 square centimeters,3,1,template_arithmetic
+arith_044,A jacket costs $120 and is on sale for 35% off. What is the sale price?,,$78.00,3,1,template_arithmetic
+arith_045,"A bacteria colony doubles every 3 hours. If it starts with 500 bacteria, how many are there after 12 hours?",,"8,000",3,1,template_arithmetic
+arith_046,A cyclist rides 72 km in 4 hours. What is the average speed in km/h?,,18 km/h,2,1,template_arithmetic
+arith_047,How many seconds are there in 3.5 hours?,,"12,600 seconds",2,1,template_arithmetic
+arith_048,"What is the simple interest on $2,500 at 6% per year for 4 years?",,$600.00,3,1,template_arithmetic
+arith_049,"The scores of five students are 72, 85, 90, 64 and 79. What is the average score?",,78,3,1,template_arithmetic
+arith_050,A recipe for 12 cookies uses 180 g of flour. How much flour is needed for 30 cookies?,,450 grams,3,1,template_arithmetic
+arith_051,"If the temperature is 35°C, what is it in Fahrenheit?",,95°F,3,1,template_arithmetic
+arith_052,A printer prints 24 pages per minute. How many pages does it print in 2.5 hours?,,"3,600 pages",3,1,template_arithmetic
+arith_053,Notebooks cost $4.50 each and pens cost $1.25 each. What is the total cost of 6 notebooks and 8 pens?,,$37.00,4,1,template_arithmetic
+arith_054,"A town of 40,000 people grows by 15% in a year. What is the new population?",,"46,000",3,1,template_arithmetic
+arith_055,A car travels at 60 km/h for 2.5 hours and then at 80 km/h for 1.5 hours. How far does it travel in total?,,270 km,4,1,template_arithmetic
+arith_056,A box measures 12 cm by 8 cm by 5 cm. What is its volume?,,480 cubic centimeters,2,1,template_arithmetic
+arith_057,"A machine bought for $8,000 loses 10% of its value each year. What is it worth after 3 years?",,"$5,832.00",4,1,template_arithmetic
+arith_058,"Pipe A fills a tank in 6 hours and pipe B fills it in 3 hours. Working together, how many hours do they take to fill the tank?",,2 hours,4,1,template_arithmetic
+arith_059,"The ratio of boys to girls in a class is 3:5. If there are 40 students, how many are girls?",,25,3,1,template_arithmetic
+arith_060,A 750 g jar of jam costs $6.00. How much would 2 kg cost at the same price per gram?,,$16.00,4,1,template_arithmetic
+bridge_052,In which city was the architect of the Sydney Opera House born?,The Sydney Opera House was designed by Jørn Utzon. Jørn Utzon was born in Copenhagen.,Copenhagen,3,1,hotpotqa_style
+bridge_053,What was the native language of the author of 'One Hundred Years of Solitude'?,'One Hundred Years of Solitude' was written by Gabriel García Márquez. García Márquez's native language was Spanish.,Spanish,3,1,hotpotqa_style
+bridge_054,In which year was the composer of 'The Four Seasons' born?,'The Four Seasons' was composed by Antonio Vivaldi. Vivaldi was born in 1678.,1678,3,1,hotpotqa_style
+bridge_055,Which sport did the athlete with the most Olympic gold medals in history compete in?,"Michael Phelps holds the record for the most Olympic gold medals, with 23. Michael Phelps competed in swimming.",Swimming,3,1,hotpotqa_style
+bridge_056,On which continent is the site of Machu Picchu located?,Machu Picchu is located in Peru. Peru is a country in South America.,South America,3,1,hotpotqa_style
+bridge_057,Who painted the portrait of Lisa Gherardini that hangs in the Louvre?,"The Mona Lisa, a portrait of Lisa Gherardini, hangs in the Louvre. The Mona Lisa was painted by Leonardo da Vinci.",Leonardo da Vinci,3,1,hotpotqa_style
+bridge_058,What is the official language of the country whose capital is Lisbon?,Lisbon is the capital of Portugal. The official language of Portugal is Portuguese.,Portuguese,3,1,hotpotqa_style
+bridge_059,Which river flows through the capital of Egypt?,Cairo is the capital of Egypt. The Nile River flows through Cairo.,Nile,3,1,hotpotqa_style
+bridge_060,What is the chemical symbol of the only metal that is liquid at room temperature?,Mercury is the only metal that is liquid at room temperature. The chemical symbol of mercury is Hg.,Hg,3,1,hotpotqa_style
+bridge_061,What currency is used in the country that contains Mount Fuji?,Mount Fuji is located in Japan. The currency of Japan is the yen.,Yen,3,1,hotpotqa_style
+bridge_062,Which ocean lies along the eastern coast of the continent where the Amazon River is found?,The Amazon River is in South America. The Atlantic Ocean lies along the eastern coast of South America.,Atlantic Ocean,3,1,hotpotqa_style
+bridge_063,In which year did the author of 'Pride and Prejudice' die?,'Pride and Prejudice' was written by Jane Austen. Jane Austen died in 1817.,1817,3,1,hotpotqa_style
+bridge_064,What is the official language of the country where the Acropolis stands?,"The Acropolis stands in Athens, Greece. The official language of Greece is Greek.",Greek,3,1,hotpotqa_style
+bridge_065,Who was President of the United States when Apollo 11 landed on the Moon?,Apollo 11 landed on the Moon in July 1969. Richard Nixon was President of the United States in July 1969.,Richard Nixon,3,1,hotpotqa_style
+bridge_066,In what year was the scientist who discovered Jupiter's four largest moons born?,Galileo Galilei discovered Jupiter's four largest moons in 1610. Galileo was born in 1564.,1564,3,1,hotpotqa_style
+bridge_067,Which sea lies along the southern coast of the country where the city of Odessa is located?,Odessa is a city in Ukraine. Ukraine's southern coast lies on the Black Sea.,Black Sea,3,1,hotpotqa_style
+comp_040,What is the capital of the country where the author of 'Don Quixote' was born?,"'Don Quixote' was written by Miguel de Cervantes. Cervantes was born in Alcalá de Henares, Spain. The capital of Spain is Madrid.",Madrid,5,1,musique_style
+comp_041,What is the capital of the country where the inventor of the World Wide Web was born?,"The World Wide Web was invented by Tim Berners-Lee. He was born in London, in the United Kingdom. The capital of the United Kingdom is London.",London,5,1,musique_style
+comp_042,What currency is used in the country where the composer of the Ninth Symphony with the 'Ode to Joy' was born?,"Ludwig van Beethoven composed the Ninth Symphony, which ends with the 'Ode to Joy'. Beethoven was born in Bonn, Germany. Germany's currency is the euro.",Euro,5,1,musique_style
+comp_043,What is the official language of the country where the painter of 'The Starry Night' was born?,'The Starry Night' was painted by Vincent van Gogh. Van Gogh was born in the Netherlands. The official language of the Netherlands is Dutch.,Dutch,5,1,musique_style
+comp_044,What currency is used in the country where the inventor of dynamite was born?,"Alfred Nobel invented dynamite. Nobel was born in Stockholm, Sweden. The currency of Sweden is the Swedish krona.",Swedish krona,5,1,musique_style
+comp_045,How many years after the first Moon landing did the Berlin Wall fall?,The first Moon landing took place in 1969. The Berlin Wall fell in 1989.,20 years,4,1,musique_style
+comp_046,"According to the years given, how many years did Wolfgang Amadeus Mozart live?",Mozart was born in 1756 and died in 1791.,35 years,4,1,musique_style
+comp_047,How many years after William Shakespeare's death did Isaac Newton publish the Principia?,William Shakespeare died in 1616. Isaac Newton published the Principia in 1687.,71 years,4,1,musique_style
+comp_048,In which country is the tallest mountain in Africa located?,The tallest mountain in Africa is Mount Kilimanjaro. Mount Kilimanjaro is located in Tanzania.,Tanzania,4,1,musique_style
+comp_049,In which city does the ceremony for the prize awarded by the Norwegian Nobel Committee take place?,The Nobel Peace Prize is awarded by the Norwegian Nobel Committee. The Nobel Peace Prize ceremony takes place in Oslo.,Oslo,4,1,musique_style
+comp_050,Which element has an atomic number equal to the number of planets in the solar system?,The solar system has eight planets. The element with atomic number 8 is oxygen.,Oxygen,4,1,musique_style
+comp_051,How many moons does the planet named after the Roman god of war have?,"Mars is named after the Roman god of war. Mars has two moons, Phobos and Deimos.",2,4,1,musique_style
+comp_052,Which gas that plants absorb during photosynthesis is also released by burning fossil fuels?,Plants absorb carbon dioxide during photosynthesis. Burning fossil fuels releases carbon dioxide.,Carbon dioxide,4,1,musique_style
+comp_053,What is the capital of the largest country in South America by area?,Brazil is the largest country in South America by area. The capital of Brazil is Brasília.,Brasília,4,1,musique_style
+comp_054,Which river flows through the city that houses the Louvre?,The Louvre is a museum in Paris. The Seine flows through Paris.,Seine,4,1,musique_style
+comp_055,In which year did the president who signed the Emancipation Proclamation die?,Abraham Lincoln signed the Emancipation Proclamation in 1863. Lincoln died in 1865.,1865,4,1,musique_style
+cmp_032,Which mountain is taller: Mount Everest or K2?,"Mount Everest is 8,849 m tall. K2 is 8,611 m tall.",Mount Everest is taller than K2,3,2,template_comparison
+cmp_033,Which planet has the larger diameter: Uranus or Neptune?,"Uranus has an equatorial diameter of about 51,100 km. Neptune has an equatorial diameter of about 49,500 km.",Uranus has a larger diameter than Neptune,3,2,template_comparison
+cmp_034,Which river is longer: the Danube or the Rhine?,"The Danube is about 2,850 km long. The Rhine is about 1,230 km long.",The Danube is longer than the Rhine,3,2,template_comparison
+cmp_035,Which ocean is larger: the Atlantic or the Indian?,The Atlantic Ocean covers about 85 million square kilometers. The Indian Ocean covers about 70 million square kilometers.,The Atlantic is larger than the Indian Ocean,3,2,template_comparison
+cmp_036,Which came first: Gutenberg's printing press or Columbus's first voyage to the Americas?,Johannes Gutenberg introduced his printing press around 1440. Christopher Columbus made his first voyage to the Americas in 1492.,Gutenberg's printing press came first,3,2,template_comparison
+cmp_037,Who was born earlier: Marie Curie or Albert Einstein?,Marie Curie was born in 1867. Albert Einstein was born in 1879.,Marie Curie was born earlier,3,2,template_comparison
+cmp_038,"As of 2023, which country had the larger population: Canada or Australia?","As of 2023, Canada had about 40 million people. As of 2023, Australia had about 26 million people.",Canada had a larger population than Australia,3,2,template_comparison
+cmp_039,Which metal is denser: gold or silver?,Gold has a density of about 19.3 grams per cubic centimeter. Silver has a density of about 10.5 grams per cubic centimeter.,Gold is denser than silver,3,2,template_comparison
+cmp_040,Which planet is hotter on average: Mercury or Venus?,Venus has an average surface temperature of about 464 degrees Celsius. Mercury has an average surface temperature of about 167 degrees Celsius.,Venus is hotter than Mercury,3,2,template_comparison
+cmp_041,Which is older: the Great Pyramid of Giza or the Parthenon?,The Great Pyramid of Giza was built around 2560 BCE. The Parthenon was completed in 432 BCE.,The Great Pyramid of Giza is older than the Parthenon,3,2,template_comparison
+cmp_042,Which has the higher boiling point at sea level: ethanol or water?,Ethanol boils at 78 degrees Celsius at sea level. Water boils at 100 degrees Celsius at sea level.,Water has a higher boiling point than ethanol,3,2,template_comparison
+cmp_043,Which flight route is longer: London to New York or London to Tokyo?,"The distance from London to New York is about 5,570 km. The distance from London to Tokyo is about 9,560 km.",London to Tokyo is longer than London to New York,3,2,template_comparison

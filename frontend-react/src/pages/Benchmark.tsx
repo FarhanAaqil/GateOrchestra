@@ -97,7 +97,7 @@ export default function Benchmark() {
   return (
     <Page>
       <PageHeader number="04" kicker="MASBench-mini" title={<>The <span className="mark-lemon">benchmark</span></>}>
-        {rows.length || 161} tasks with heuristic Depth (1–5) and Parallel (1–4) labels, split into train, validation and a held-out
+        {rows.length || '…'} tasks with heuristic Depth (1–5) and Parallel (1–4) labels, split into train, validation and a held-out
         test set. The labels are for analysis only; the gate and the router never read them.
       </PageHeader>
 

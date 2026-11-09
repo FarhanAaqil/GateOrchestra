@@ -1,32 +1,32 @@
 {
   "is_valid": true,
-  "total_tasks": 161,
-  "passed_count": 161,
+  "total_tasks": 225,
+  "passed_count": 225,
   "failed_count": 0,
   "errors": [],
   "warnings": [],
   "statistics": {
     "source_distribution": {
-      "hotpotqa_style": 51,
-      "musique_style": 39,
-      "template_arithmetic": 40,
-      "template_comparison": 31
+      "hotpotqa_style": 67,
+      "musique_style": 55,
+      "template_arithmetic": 60,
+      "template_comparison": 43
     },
     "depth_distribution": {
-      "3": 98,
-      "4": 42,
-      "5": 10,
-      "2": 9,
+      "3": 137,
+      "4": 58,
+      "5": 15,
+      "2": 13,
       "1": 2
     },
     "parallel_distribution": {
-      "1": 122,
-      "2": 31,
+      "1": 174,
+      "2": 43,
       "3": 8
     },
-    "avg_question_length": 86.2,
-    "avg_answer_length": 30.9
+    "avg_question_length": 82.7,
+    "avg_answer_length": 21.0
   },
   "min_size_met": true,
-  "timestamp": "2026-09-28T17:03:28.821487+00:00"
+  "timestamp": "2026-11-09T21:14:28.578930+00:00"
 }

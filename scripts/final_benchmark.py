@@ -7,7 +7,7 @@ Runs the full 3-seed evaluation and writes a master_results.json
 to results/real/final/.
 
 Usage:
-    python scripts/final_benchmark.py              # full dataset, seeds 42/123/999
+    python scripts/final_benchmark.py              # full dataset, the seeds in shared.config.FINAL_SEEDS
     python scripts/final_benchmark.py --n 5        # quick smoke test
     python scripts/final_benchmark.py --dry-run    # validate config only
 
@@ -34,8 +34,9 @@ sys.path.insert(0, str(ROOT))
 
 from evaluation.metrics import mcnemar_exact, wilson_confidence_interval  # noqa: E402
 from scripts.run_final_evaluation import run_evaluation  # noqa: E402
+from shared.config import FINAL_SEEDS  # noqa: E402
 
-SEEDS = [42, 123, 999]
+SEEDS = list(FINAL_SEEDS)
 REAL_FINAL_DIR = ROOT / "results" / "real" / "final"
 REAL_FINAL_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -53,7 +54,7 @@ def main() -> None:
         nargs="+",
         type=int,
         default=SEEDS,
-        help="Seeds to run (default: 42 123 999)",
+        help="Seeds to run (default: shared.config.FINAL_SEEDS)",
     )
     parser.add_argument(
         "--dry-run",

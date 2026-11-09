@@ -518,7 +518,7 @@ RAW_TASKS: list[dict] = [
     {
         "question": "The author of 'To Kill a Mockingbird' was awarded the Presidential Medal of Freedom by which US president?",
         "answer": "George W. Bush",
-        "context": "'To Kill a Mockingbird' was written by Harper Lee. Harper Lee received the Presidential Medal of Freedom in 2007 from President George W. Bush, and also received it in 2016 posthumously. She received it in 2007 from George W. Bush.",
+        "context": "'To Kill a Mockingbird' was written by Harper Lee. Harper Lee received the Presidential Medal of Freedom in 2007 from President George W. Bush.",
         "source": "musique_style",
         "task_type": "multihop_compositional",
         "hop_hint": 2,
@@ -1108,9 +1108,9 @@ RAW_TASKS: list[dict] = [
         "hop_hint": 2,
     },
     {
-        "question": "Which river is longer: the Nile or the Amazon?",
+        "question": "By the lengths most often cited in reference works, which river is longer: the Nile or the Amazon?",
         "answer": "The Nile (6,650 km) is generally considered longer than the Amazon (6,400 km)",
-        "context": None,
+        "context": "Reference works most often give the Nile's length as about 6,650 km and the Amazon's as about 6,400 km.",
         "source": "template_comparison",
         "task_type": "comparison",
         "hop_hint": 2,
@@ -1220,9 +1220,9 @@ RAW_TASKS: list[dict] = [
         "hop_hint": 2,
     },
     {
-        "question": "Which ancient civilization came first: the Egyptian or the Mesopotamian?",
-        "answer": "Mesopotamian civilization (c. 3500 BCE) is generally considered to have emerged slightly before or around the same time as Egyptian civilization (c. 3100 BCE)",
-        "context": None,
+        "question": "Which ancient civilization emerged first: the Egyptian or the Mesopotamian?",
+        "answer": "Mesopotamian civilization (c. 3500 BCE) emerged before Egyptian civilization (c. 3100 BCE)",
+        "context": "Sumerian civilization in Mesopotamia emerged around 3500 BCE. Egyptian civilization is usually dated from the unification of Upper and Lower Egypt around 3100 BCE.",
         "source": "template_comparison",
         "task_type": "comparison",
         "hop_hint": 2,

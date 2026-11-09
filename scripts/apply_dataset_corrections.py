@@ -124,9 +124,14 @@ CORRECTIONS: dict[str, dict[str, str]] = {
     # --- Second audit (November 2026) ---
     # The answer key contradicted the task's own context.
     "bridge_021": {"ground_truth": "Hinduism"},
-    # The context says Bush presented the medal in 2007, but the key said Obama.
-    # REVIEW: the context also claims a 2016 posthumous award, which looks false.
-    "comp_008": {"ground_truth": "George W. Bush"},
+    # The context says Bush presented the medal in 2007, but the key said Obama. The same
+    # context also claimed a 2016 posthumous award, which is false (Harper Lee received the
+    # medal once, in 2007); the human review confirmed it and that sentence is removed.
+    "comp_008": {
+        "ground_truth": "George W. Bush",
+        "context": "'To Kill a Mockingbird' was written by Harper Lee. Harper Lee received the "
+        "Presidential Medal of Freedom in 2007 from President George W. Bush.",
+    },
     # Skiing was not invented in Switzerland.
     "bridge_015": {
         "question": "What is the currency of the country where the Red Cross was founded?",
@@ -279,6 +284,23 @@ CORRECTIONS: dict[str, dict[str, str]] = {
         "of India. The mountain lies on the border between Nepal and China (Tibet "
         "Autonomous Region).",
         "ground_truth": "Nepal and China",
+    },
+    # --- Human review (November 2026): the debatable tasks the review sheet flagged ---
+    # Reference works disagree on river lengths, so the question now pins the figures it uses.
+    "cmp_002": {
+        "question": "By the lengths most often cited in reference works, which river is longer: "
+        "the Nile or the Amazon?",
+        "context": "Reference works most often give the Nile's length as about 6,650 km and the "
+        "Amazon's as about 6,400 km.",
+    },
+    # The old gold hedged ("slightly before or around the same time"); the context now dates both.
+    "cmp_016": {
+        "question": "Which ancient civilization emerged first: the Egyptian or the Mesopotamian?",
+        "context": "Sumerian civilization in Mesopotamia emerged around 3500 BCE. Egyptian "
+        "civilization is usually dated from the unification of Upper and Lower Egypt around "
+        "3100 BCE.",
+        "ground_truth": "Mesopotamian civilization (c. 3500 BCE) emerged before Egyptian "
+        "civilization (c. 3100 BCE)",
     },
 }
 

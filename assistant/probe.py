@@ -18,7 +18,7 @@ from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
 
 from agents.probe_agent import ProbeAgent, answers_equivalent, extract_answer
-from assistant.llm import Completion, Gateway, Message
+from assistant.llm import Completion, Gateway, Message, ProviderError, json_generation_failed
 from shared.schemas import ProbeResult
 
 PROBE_SYSTEM = (
@@ -87,8 +87,25 @@ def run_probe(
     ]
 
     def sample(_: int) -> Completion:
+        try:
+            return gateway.complete(
+                "probe", messages, max_tokens=max_tokens, temperature=0.8, json_mode=True
+            )
+        except ProviderError as err:
+            if not json_generation_failed(err):
+                raise
+        # A reasoning model can spend the whole budget thinking before it writes the JSON
+        # (likelier on long requests). Retry with room to finish, then without JSON mode,
+        # which parse_sample tolerates.
+        try:
+            return gateway.complete(
+                "probe", messages, max_tokens=max_tokens * 3, temperature=0.8, json_mode=True
+            )
+        except ProviderError as err:
+            if not json_generation_failed(err):
+                raise
         return gateway.complete(
-            "probe", messages, max_tokens=max_tokens, temperature=0.8, json_mode=True
+            "probe", messages, max_tokens=max_tokens * 3, temperature=0.8, json_mode=False
         )
 
     first_round = min(2, samples)

@@ -101,7 +101,11 @@ class AssistantSettings:
     db_path: Path = field(
         default_factory=lambda: Path(_env("ASSISTANT_DB_PATH", str(LOGS_DIR / "assistant.db")))
     )
-    env_path: Path = ROOT_DIR / ".env"
+    # Where keys added from the console are saved. Locally that is .env; in Docker point it
+    # at the data volume (ASSISTANT_ENV_PATH=/app/logs/keys.env), which the API can write.
+    env_path: Path = field(
+        default_factory=lambda: Path(_env("ASSISTANT_ENV_PATH", str(ROOT_DIR / ".env")))
+    )
 
 
 def get_settings() -> AssistantSettings:

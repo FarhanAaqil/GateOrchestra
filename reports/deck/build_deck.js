@@ -22,6 +22,13 @@ const a = JSON.parse(fs.readFileSync(ANALYSIS, "utf8"));
 const m = JSON.parse(fs.readFileSync(MASTER, "utf8"));
 const story = fs.existsSync(NARRATIVE) ? JSON.parse(fs.readFileSync(NARRATIVE, "utf8")) : {};
 
+// Dataset sizes come from the split files, so the deck can never disagree with the data.
+const countRows = (split) =>
+  fs.readFileSync(path.join(ROOT, "dataset", "masbench_mini", split, `${split}.jsonl`), "utf8")
+    .split("\n").filter(Boolean).length;
+const SIZE = { train: countRows("train"), val: countRows("val"), test: countRows("test") };
+SIZE.total = SIZE.train + SIZE.val + SIZE.test;
+
 // The console's palette: navy dominates, ice for content, ember as the accent.
 const THEME = {
   name: "GateOrchestra",
@@ -152,8 +159,8 @@ qs.forEach(([k, q], i) => {
 pres.addSection({ title: "Method" });
 s = content("How we measured it", "Method");
 const p = a.premise;
-stat(s, 0.5, 1.3, 2.1, "161", "tasks: 97 train,\n32 val, 32 test", HEX.navy);
-stat(s, 2.8, 1.3, 2.1, `${m.seeds.length}`, "seeds, each on all\n32 test tasks", HEX.navy);
+stat(s, 0.5, 1.3, 2.1, `${SIZE.total}`, `tasks: ${SIZE.train} train,\n${SIZE.val} val, ${SIZE.test} test`, HEX.navy);
+stat(s, 2.8, 1.3, 2.1, `${m.seeds.length}`, `seeds, each on all\n${SIZE.test} test tasks`, HEX.navy);
 stat(s, 5.1, 1.3, 2.1, "3B", "Qwen2.5-3B on a\nlocal GPU (Ollama)", HEX.navy);
 stat(s, 7.4, 1.3, 2.1, `${p ? p.n_runs : "?"}`, "graded runs per system\nfor calibration", HEX.ember);
 text(s, [
@@ -257,7 +264,7 @@ if (cls) {
   const mine = ab.filter((r) => r.classifier === cls);
   const base = mine.find((r) => r.dropped === "none");
   const drops = mine.filter((r) => r.dropped !== "none");
-  const deltas = drops.map((r) => 100 * (r.accuracy - base.accuracy));
+  const deltas = drops.map((r) => 100 * (r.escalation_rate - base.escalation_rate));
   const lo = Math.floor(Math.min(0, ...deltas)) - 1;
   const hi = Math.ceil(Math.max(0, ...deltas)) + 1;
   s.addChart(pres.charts.BAR, [{ name: "Change", labels: drops.map((r) => r.dropped.replace(/_/g, " ")),
@@ -265,7 +272,7 @@ if (cls) {
     x: 0.5, y: 1.15, w: 5.6, h: 3.9, barDir: "bar", chartColors: [HEX.cyan], invertedColors: [HEX.wine],
     showValue: true, catAxisLabelPos: "low", dataLabelPosition: "outEnd", dataLabelFormatCode: "+0.0;-0.0;0.0",
     valAxisMinVal: lo, valAxisMaxVal: hi, showLegend: false, showTitle: true,
-    title: `Accuracy change with one feature removed (${cls})`, ...AXIS });
+    title: `Escalation-rate change (pts) with one feature removed (${cls})`, ...AXIS });
   stat(s, 6.4, 1.2, 3.1, pct(base.accuracy), `${cls} gate with all 8 features (validation)`, HEX.navy);
   text(s, story.ablation_text || "Each feature is set to a constant in training and validation, "
     + "then the gate is retrained on the real labels.",
@@ -295,19 +302,23 @@ if (a.budget) text(s, [
 
 // 11. Power
 pres.addSection({ title: "Conclusion" });
-s = content("How much 32 test tasks can tell us", "Conclusion");
+s = content(`How much ${SIZE.test} test tasks can tell us`, "Conclusion");
 const pw = (a.power || []).find((r) => r.method === "GateOrchestra");
 if (pw && pw.n_pairs_pooled) {
   const mde = (x) => (x == null ? "n/a" : `${x.toFixed(0)} pts`);
-  stat(s, 0.5, 1.3, 2.85, mde(pw.mde_pts_per_seed),
-    "smallest gap one seed can detect\n(80% power; n/a = none)", HEX.wine);
+  const perSeed = (a.power || []).map((r) => r.mde_pts_per_seed).filter((x) => x != null);
+  const perSeedText = perSeed.length
+    ? `${Math.min(...perSeed).toFixed(0)}-${Math.max(...perSeed).toFixed(0)} pts`
+    : "n/a";
+  stat(s, 0.5, 1.3, 2.85, perSeedText,
+    "smallest gap one seed can detect\n(80% power, one seed)", HEX.wine);
   stat(s, 3.575, 1.3, 2.85, mde(pw.mde_pts_pooled), "same, pooled over seeds\n(optimistic)", HEX.navy);
   stat(s, 6.65, 1.3, 2.85, `${pw.observed_diff_pts >= 0 ? "+" : ""}${pw.observed_diff_pts.toFixed(1)} pts`,
     "observed: GateOrchestra minus Always-MAS", HEX.ember);
 }
 text(s, story.limits || [
   { text: "One 3B model; a larger model may change the premise.", options: { bullet: true, breakLine: true } },
-  { text: "Dataset corrections came from an automated audit and still need human review.", options: { bullet: true, breakLine: true } },
+  { text: "The 64 test tasks added late are easier than the original 32 and have not been read by a person.", options: { bullet: true, breakLine: true } },
   { text: "Seeds share test tasks, so pooled tests overstate the evidence.", options: { bullet: true } },
 ], { x: 0.5, y: 3.1, w: 9, h: 1.8, fontSize: 14, color: HEX.ink, paraSpaceAfter: 6 });
 

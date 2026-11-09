@@ -145,6 +145,11 @@ def tool_use_failed(err: Exception) -> bool:
     return "tool_use_failed" in text or "tool call validation failed" in text
 
 
+def json_generation_failed(err: Exception) -> bool:
+    """Groq could not finish a JSON-mode reply (usually: the token budget ran out first)."""
+    return "json_validate_failed" in str(err) or "Failed to generate JSON" in str(err)
+
+
 def _chunk_error(chunk: dict[str, Any]) -> None:
     """Raise if a streamed chunk carries an error instead of tokens."""
     error = chunk.get("error")

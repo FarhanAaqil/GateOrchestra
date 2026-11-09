@@ -25,6 +25,7 @@ Adding a key is accepted only from this machine, or with the admin token
 
 from __future__ import annotations
 
+import hmac
 import json
 import os
 from collections.abc import Iterator
@@ -35,6 +36,7 @@ from fastapi.responses import PlainTextResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from assistant.pipeline import ChatPipeline
+from assistant.security import api_token, token_ok
 from assistant.service import KeyRejected, get_service
 
 router = APIRouter()
@@ -75,12 +77,17 @@ def _require_admin(request: Request) -> None:
     token = os.getenv("GATE_ADMIN_TOKEN", "")
     supplied = request.headers.get("x-admin-token", "")
     host = request.client.host if request.client else ""
-    if token and supplied == token:
+    if token and supplied and hmac.compare_digest(supplied, token):
+        return
+    # With GATE_API_TOKEN set, the middleware has already required it on this request, so
+    # whoever got here holds the operator's token (single-tenant deployments).
+    if api_token() and token_ok(request.headers.get("authorization")):
         return
     if host in LOCAL_HOSTS and not request.headers.get("x-forwarded-for"):
         return
     raise HTTPException(
-        status_code=403, detail="Keys can only be added from this machine or with the admin token."
+        status_code=403,
+        detail="Keys can only be added from this machine, with the API token, or with the admin token.",
     )
 
 

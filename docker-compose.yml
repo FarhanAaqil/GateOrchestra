@@ -1,24 +1,33 @@
 # GateOrchestra: API + console.
 #   cp .env.example .env    # add GROQ_API_KEY (and GATE_API_TOKEN for a public server)
 #   docker compose up --build
-# Console: http://localhost:8080 . The API is only reachable through it.
+# Console: http://localhost:8080 (set WEB_PORT=8088 if 8080 is taken). The API is only
+# reachable through it.
+#
+# All writable state (conversations, ratings, the answer cache, run history and any API
+# key added from the console) lives in the "gateorchestra-data" named volume. A named
+# volume, not a bind mount, because SQLite needs real file locking, which synced or
+# network folders (Google Drive, OneDrive) do not provide.
 services:
   api:
     build: .
     env_file: .env
     environment:
       ASSISTANT_DB_PATH: /app/logs/assistant.db
-      GATE_CORS_ORIGINS: http://localhost:8080
+      ASSISTANT_ENV_PATH: /app/logs/keys.env
+      GATE_CORS_ORIGINS: http://localhost:${WEB_PORT:-8080}
     volumes:
-      - ./logs:/app/logs
-      - ./.env:/app/.env
+      - gateorchestra-data:/app/logs
     restart: unless-stopped
 
   web:
     build: ./frontend-react
     ports:
-      - "8080:80"
+      - "${WEB_PORT:-8080}:80"
     depends_on:
       api:
         condition: service_healthy
     restart: unless-stopped
+
+volumes:
+  gateorchestra-data:

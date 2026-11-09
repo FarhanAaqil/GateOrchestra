@@ -1036,3 +1036,110 @@ def test_stats_metrics_and_cache_clear(service: AssistantService) -> None:
     text = client.get("/metrics").text
     assert "gateorchestra_turns 2" in text and "gateorchestra_cache_hits 1" in text
     assert client.delete("/assistant/cache").json() == {"cleared": 1}
+
+
+def test_keys_saved_from_the_console_are_loaded_again_on_restart(
+    tmp_path: Path, monkeypatch
+) -> None:
+    for name in ("GROQ_API_KEY", "GROQ_API_KEYS", "GEMINI_API_KEY", "GEMINI_API_KEYS"):
+        monkeypatch.delenv(name, raising=False)
+    saved = tmp_path / "keys.env"
+    persist_key(saved, "groq", KEY_A)
+    persist_key(saved, "groq", KEY_B)
+    svc = AssistantService(settings(tmp_path, providers=["groq"]), gates=GateSet())
+    object.__setattr__(svc.settings, "env_path", saved)
+    pool = KeyPool.from_env(svc._key_environment())
+    assert {s.key for s in pool.keys["groq"]} == {KEY_A, KEY_B}
+    # A key in the real environment is never overridden by the saved file.
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_" + "z" * 40)
+    first = KeyPool.from_env(svc._key_environment()).keys["groq"][0].key
+    assert first == "gsk_" + "z" * 40
+
+
+def test_state_paths_can_be_moved_for_containers(monkeypatch, tmp_path: Path) -> None:
+    monkeypatch.setenv("ASSISTANT_ENV_PATH", str(tmp_path / "keys.env"))
+    monkeypatch.setenv("ASSISTANT_DB_PATH", str(tmp_path / "data" / "a.db"))
+    from assistant.config import get_settings
+
+    s = get_settings()
+    assert s.env_path == tmp_path / "keys.env" and s.db_path == tmp_path / "data" / "a.db"
+
+
+JSON_FAIL = ProviderError(
+    "bad_request",
+    'HTTP 400: {"error": {"code": "json_validate_failed", "message": "Failed to generate JSON"}}',
+)
+
+
+class FlakyJsonGateway:
+    """Probe model that cannot finish its JSON on the first calls."""
+
+    def __init__(self, failures: int) -> None:
+        self.failures = failures
+        self.calls: list[tuple[int, bool]] = []
+
+    def complete(self, role, messages, **kw):
+        self.calls.append((kw["max_tokens"], kw["json_mode"]))
+        if self.failures > 0 and kw["json_mode"]:
+            self.failures -= 1
+            raise JSON_FAIL
+        return Completion(
+            text='{"type": "factual", "answer": "Paris"}',
+            provider="groq",
+            model="m",
+            prompt_tokens=5,
+            completion_tokens=5,
+        )
+
+
+def test_probe_retries_with_more_room_when_the_model_runs_out_of_budget() -> None:
+    gw = FlakyJsonGateway(failures=1)
+    probe = run_probe(gw, "Capital of France?", [], max_tokens=400)
+    assert probe.result.answer == "Paris"
+    assert (400, True) in gw.calls and (1200, True) in gw.calls  # first try, then 3x headroom
+
+
+def test_probe_falls_back_to_plain_text_when_json_keeps_failing() -> None:
+    gw = FlakyJsonGateway(failures=99)
+    probe = run_probe(gw, "Capital of France?", [], max_tokens=400)
+    assert probe.result.answer == "Paris"  # parsed from the plain-mode reply
+    assert (1200, False) in gw.calls
+
+
+def test_other_provider_errors_are_not_swallowed_by_the_probe_retry() -> None:
+    class Down:
+        def complete(self, role, messages, **kw):
+            raise ProviderError("bad_request", "HTTP 400: messages invalid")
+
+    with pytest.raises(ProviderError):
+        run_probe(Down(), "hi", [])
+
+
+def test_operator_token_lets_a_proxied_deployment_add_keys(
+    service: AssistantService, monkeypatch
+) -> None:
+    from api.main import app
+
+    client = TestClient(app)
+    monkeypatch.setattr(service.gateway, "validate_key", lambda p, k: ["m"])
+    proxied = {"x-forwarded-for": "203.0.113.9"}
+    body = {"provider": "groq", "key": KEY_B}
+    # Behind a proxy with no token configured, nobody remote may add keys.
+    assert client.post("/assistant/keys", json=body, headers=proxied).status_code == 403
+    monkeypatch.setenv("GATE_API_TOKEN", "operator-token-value")
+    auth = {"Authorization": "Bearer operator-token-value", **proxied}
+    assert client.post("/assistant/keys", json=body, headers=auth).status_code == 200
+    # The admin token still works, and a wrong token is refused outright.
+    monkeypatch.setenv("GATE_ADMIN_TOKEN", "admin-token-value")
+    admin = {
+        "Authorization": "Bearer operator-token-value",
+        "x-admin-token": "admin-token-value",
+        **proxied,
+    }
+    assert client.post("/assistant/keys", json=body, headers=admin).status_code == 200
+    assert (
+        client.post(
+            "/assistant/keys", json=body, headers={"Authorization": "Bearer nope", **proxied}
+        ).status_code
+        == 401
+    )
