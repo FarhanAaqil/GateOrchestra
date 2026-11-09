@@ -43,6 +43,8 @@ htmlcov/
 dataset/masbench_mini/**/*.json
 # Small curated grading data: part of the dataset, so it must be versioned.
 !dataset/masbench_mini/answer_aliases.json
+# The record of who reviewed the dataset, and which tasks nobody has.
+!dataset/masbench_mini/REVIEW.json
 logs/*.json
 logs/*.jsonl
 logs/*.db
