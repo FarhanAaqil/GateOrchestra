@@ -16,23 +16,39 @@ import {
   ServerCog,
   Zap,
 } from 'lucide-react'
-import { useState, type ReactNode } from 'react'
-import { NavLink } from 'react-router-dom'
+import { useEffect, useState, type ReactNode } from 'react'
+import { NavLink, useLocation } from 'react-router-dom'
 import { setToken } from '../lib/auth'
+import { chatApi } from '../lib/chat'
 import { useApp } from '../lib/context'
 import Background from '../three/Background'
 
-const NAV = [
-  { to: '/chat', label: 'Chat', icon: MessagesSquare },
-  { to: '/', label: 'Overview', icon: LayoutDashboard },
-  { to: '/run', label: 'Run a Task', icon: Play },
-  { to: '/gate', label: 'Gate Inspector', icon: Gauge },
-  { to: '/benchmark', label: 'Benchmark', icon: Database },
-  { to: '/baselines', label: 'Baselines', icon: BarChart3 },
-  { to: '/results', label: 'Results', icon: FlaskConical },
-  { to: '/tokens', label: 'Token Accountant', icon: Coins },
-  { to: '/admin', label: 'Admin', icon: ServerCog },
-  { to: '/about', label: 'About', icon: Info },
+const NAV_GROUPS = [
+  {
+    label: 'Assistant',
+    items: [
+      { to: '/chat', label: 'Chat', icon: MessagesSquare },
+      { to: '/run', label: 'Run a Task', icon: Play },
+    ],
+  },
+  {
+    label: 'Research',
+    items: [
+      { to: '/', label: 'Overview', icon: LayoutDashboard },
+      { to: '/results', label: 'Results', icon: FlaskConical },
+      { to: '/benchmark', label: 'Benchmark', icon: Database },
+      { to: '/baselines', label: 'Baselines', icon: BarChart3 },
+      { to: '/gate', label: 'Gate Inspector', icon: Gauge },
+      { to: '/tokens', label: 'Token Accountant', icon: Coins },
+    ],
+  },
+  {
+    label: 'System',
+    items: [
+      { to: '/admin', label: 'Admin', icon: ServerCog },
+      { to: '/about', label: 'About', icon: Info },
+    ],
+  },
 ]
 
 function BrandMark() {
@@ -58,7 +74,10 @@ function Sidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onTo
           </button>
         ) : null}
       </div>
-      {NAV.map(({ to, label, icon: Icon }) => (
+      {NAV_GROUPS.map((group) => (
+        <div key={group.label} className="flex flex-col gap-1" role="group" aria-label={group.label}>
+          {collapsed ? <div className="mx-3 my-1 h-px bg-ice/10" aria-hidden /> : <p className="px-3.5 pb-0.5 pt-3 font-mono text-[10px] uppercase tracking-widest text-sky/60">{group.label}</p>}
+      {group.items.map(({ to, label, icon: Icon }) => (
         <NavLink
           key={to}
           to={to}
@@ -81,6 +100,8 @@ function Sidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onTo
             </>
           )}
         </NavLink>
+      ))}
+        </div>
       ))}
       {onToggle && collapsed ? (
         <button onClick={onToggle} className="mt-auto rounded-lg p-2 text-sky/70 hover:bg-ice/10 hover:text-ice" aria-label="Expand sidebar">
@@ -122,18 +143,40 @@ function TokenPrompt() {
   )
 }
 
+/** The model that answers chat turns. The benchmark model is a different thing and is shown elsewhere. */
+function useChatModel(active: boolean, online: boolean): string | null {
+  const [model, setModel] = useState<string | null>(null)
+  useEffect(() => {
+    if (!active || !online) return
+    let cancelled = false
+    chatApi
+      .status()
+      .then((s) => {
+        if (cancelled) return
+        const fast = s.models.fast?.split('/').pop()
+        const answer = s.models.answer?.split('/').pop()
+        setModel(fast && answer && fast !== answer ? `${fast} · ${answer}` : (answer ?? fast ?? null))
+      })
+      .catch(() => undefined)
+    return () => { cancelled = true }
+  }, [active, online])
+  return model
+}
+
 function TopBar({ onMenu }: { onMenu: () => void }) {
   const { backend, models, performanceMode, setPerformanceMode } = useApp()
+  const onChat = useLocation().pathname.startsWith('/chat')
+  const chatModel = useChatModel(onChat, backend === 'online')
   return (
     <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-sky/60 bg-ice/80 px-4 py-3 backdrop-blur-xl md:px-8">
       <button onClick={onMenu} className="rounded-lg p-2 text-navy hover:bg-soft md:hidden" aria-label="Open menu">
         <Menu className="h-5 w-5" />
       </button>
       <div className="flex min-w-0 items-center gap-2 font-mono text-xs">
-        <span className="hidden text-navy/60 sm:inline">Model</span>
-        <span className="truncate rounded-full bg-navy px-3 py-1 text-ice">
-          {models ? models.default_model : '—'}
-          <span className="text-cyan"> · {models?.current_provider ?? '…'}</span>
+        <span className="hidden text-navy/60 sm:inline">{onChat ? 'Chat models' : 'Benchmark model'}</span>
+        <span className="truncate rounded-full bg-navy px-3 py-1 text-ice" title={onChat ? 'The smaller model answers directly; the larger one writes answers after research' : 'The model used in the recorded benchmark'}>
+          {onChat ? (chatModel ?? '—') : models ? models.default_model : '—'}
+          {onChat ? null : <span className="text-cyan"> · {models?.current_provider ?? '…'}</span>}
         </span>
       </div>
       <div className="ml-auto flex items-center gap-2">
