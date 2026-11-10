@@ -34,10 +34,10 @@ sys.path.insert(0, str(ROOT))
 
 from evaluation.metrics import mcnemar_exact, wilson_confidence_interval  # noqa: E402
 from scripts.run_final_evaluation import run_evaluation  # noqa: E402
-from shared.config import FINAL_SEEDS  # noqa: E402
+from shared.config import FINAL_RESULTS_DIR, FINAL_SEEDS  # noqa: E402
 
 SEEDS = list(FINAL_SEEDS)
-REAL_FINAL_DIR = ROOT / "results" / "real" / "final"
+REAL_FINAL_DIR = FINAL_RESULTS_DIR
 REAL_FINAL_DIR.mkdir(parents=True, exist_ok=True)
 
 

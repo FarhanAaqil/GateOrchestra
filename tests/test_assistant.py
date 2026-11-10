@@ -52,7 +52,8 @@ def test_pool_rotates_cools_down_and_masks() -> None:
 
 def test_persist_key_appends_without_duplicates(tmp_path: Path, monkeypatch) -> None:
     for name in ("GROQ_API_KEY", "GROQ_API_KEYS", "GEMINI_API_KEY", "GEMINI_API_KEYS"):
-        monkeypatch.delenv(name, raising=False)
+        # setenv, not delenv: persist_key writes os.environ, and only a recorded change is undone.
+        monkeypatch.setenv(name, "")
     env = tmp_path / ".env"
     env.write_text("GATE_LLM_PROVIDER=ollama\nGROQ_API_KEY=" + KEY_A + "\n", encoding="utf-8")
     persist_key(env, "groq", KEY_B)
@@ -1042,7 +1043,8 @@ def test_keys_saved_from_the_console_are_loaded_again_on_restart(
     tmp_path: Path, monkeypatch
 ) -> None:
     for name in ("GROQ_API_KEY", "GROQ_API_KEYS", "GEMINI_API_KEY", "GEMINI_API_KEYS"):
-        monkeypatch.delenv(name, raising=False)
+        # setenv, not delenv: persist_key writes os.environ, and only a recorded change is undone.
+        monkeypatch.setenv(name, "")
     saved = tmp_path / "keys.env"
     persist_key(saved, "groq", KEY_A)
     persist_key(saved, "groq", KEY_B)

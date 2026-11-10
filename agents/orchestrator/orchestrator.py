@@ -27,7 +27,7 @@ from agents.orchestrator.sub_agents import (
     ReflexionAgent,
 )
 from gate.feature_extractor import estimate_task_structure
-from shared.config import MAS_ROUTER, MODEL_NAME, MODELS_DIR
+from shared.config import ACTIVE_MODEL_NAME, FINAL_MODELS_DIR, MAS_ROUTER, MODELS_DIR
 from shared.schemas import Task
 
 logger = logging.getLogger(__name__)
@@ -70,7 +70,7 @@ class MASOrchestrator:
         bandit_state_path: str | Path | None = None,
         warmstart_traces: list[dict] | list[tuple[Task, str, float]] | str | Path | None = None,
     ) -> None:
-        self.model_name = model_name or MODEL_NAME
+        self.model_name = model_name or ACTIVE_MODEL_NAME
         self.default_strategy = default_strategy
         self.provider = provider
         self.api_key = api_key
@@ -248,7 +248,7 @@ def request_orchestrator() -> MASOrchestrator:
 
 def bandit_state_path(seed: int) -> Path:
     """Where benchmark calibration on ``seed`` saves the learned bandit."""
-    return MODELS_DIR / f"bandit_seed_{seed}.json"
+    return FINAL_MODELS_DIR / f"bandit_seed_{seed}.json"
 
 
 def trained_bandit_path() -> Path | None:

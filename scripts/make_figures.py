@@ -23,9 +23,13 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
 ROOT = Path(__file__).resolve().parent.parent
-MASTER = ROOT / "results" / "real" / "final" / "master_results.json"
-ANALYSIS = ROOT / "reports" / "final_analysis.json"
-OUT = ROOT / "reports" / "figures"
+sys.path.insert(0, str(ROOT))
+
+from shared.config import FINAL_REPORTS_DIR, FINAL_RESULTS_DIR  # noqa: E402
+
+MASTER = FINAL_RESULTS_DIR / "master_results.json"
+ANALYSIS = FINAL_REPORTS_DIR / "final_analysis.json"
+OUT = FINAL_REPORTS_DIR / "figures"
 
 # The console's palette.
 INK, NAVY, SKY, EMBER, WINE, TANGERINE, CYAN, ICE = (

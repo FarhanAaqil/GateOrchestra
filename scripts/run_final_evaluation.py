@@ -52,17 +52,19 @@ from gate.rule_based_gate import RuleBasedGate
 from gate.train_gate import calibrate_gate
 from integration.pipeline import run_pipeline
 from shared.config import (
+    ACTIVE_API_BASE,
+    ACTIVE_MODEL_NAME,
     COT_SC_N_SAMPLES,
     COT_SC_TEMPERATURE,
+    FINAL_CHECKPOINTS_DIR,
+    FINAL_MODELS_DIR,
+    FINAL_RESULTS_DIR,
     K_DEFAULT,
     K_VALUES,
     LLM_PROVIDER,
     LLM_REQUEST_TIMEOUT_SECONDS,
     LOGS_DIR,
     MAS_ROUTER,
-    MODEL_API_BASE,
-    MODEL_NAME,
-    MODELS_DIR,
     N_REPEATS,
     PROBE_TOKEN_BUDGET,
     TAU_ACC,
@@ -74,13 +76,14 @@ from shared.token_logger import TokenAccountant
 
 RESULTS_DIR = LOGS_DIR / "results"
 RESULTS_DIR.mkdir(parents=True, exist_ok=True)
-CHECKPOINTS_DIR = RESULTS_DIR / "checkpoints"
+CHECKPOINTS_DIR = FINAL_CHECKPOINTS_DIR
 CHECKPOINTS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Canonical results directory for final real-mode output
 ROOT_DIR = Path(__file__).resolve().parent.parent
-REAL_FINAL_DIR = ROOT_DIR / "results" / "real" / "final"
+REAL_FINAL_DIR = FINAL_RESULTS_DIR
 REAL_FINAL_DIR.mkdir(parents=True, exist_ok=True)
+FINAL_MODELS_DIR.mkdir(parents=True, exist_ok=True)
 
 # Tasks evaluated concurrently. A local Ollama serves parallel requests at a
 # higher combined throughput, so 3 workers finish the benchmark much sooner.
@@ -126,8 +129,8 @@ def _run_metadata(
             "test": [task.task_id for task in test_tasks],
         },
         "config": {
-            "model_name": MODEL_NAME,
-            "model_api_base": MODEL_API_BASE,
+            "model_name": ACTIVE_MODEL_NAME,
+            "model_api_base": ACTIVE_API_BASE,
             "llm_provider": LLM_PROVIDER,
             "llm_timeout_seconds": LLM_REQUEST_TIMEOUT_SECONDS,
             "probe_token_budget": PROBE_TOKEN_BUDGET,
@@ -1034,7 +1037,7 @@ def run_evaluation(
     gate_model_path = (
         Path(saved_gate_training["model_path"])
         if saved_gate_training
-        else MODELS_DIR / f"best_gate_seed_{seed}.pkl"
+        else FINAL_MODELS_DIR / f"best_gate_seed_{seed}.pkl"
     )
     if saved_gate_training and gate_model_path.exists():
         best_gate = GateClassifier.load(gate_model_path)
