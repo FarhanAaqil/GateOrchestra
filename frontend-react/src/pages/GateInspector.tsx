@@ -122,9 +122,13 @@ export default function GateInspector() {
           ) : importance.data?.available ? (
             <ImportanceChart rows={importance.data.importances} />
           ) : (
-            <p className="rounded-2xl border border-dashed border-sky px-4 py-8 text-center text-sm text-navy/70">
-              {importance.data?.reason ?? importance.error ?? 'Unavailable.'}
-            </p>
+            <div className="rounded-2xl border border-dashed border-sky px-4 py-5 text-sm text-navy/75">
+              <p>{importance.data?.reason ?? importance.error ?? 'Unavailable.'}</p>
+              <p className="mt-2 text-xs text-navy/60">
+                Some gate types cannot report per-feature importance. Section 8.4 of the research report tests which features the gate
+                depends on by removing them one at a time.
+              </p>
+            </div>
           )}
         </Card>
         <Card tilt={false}>
@@ -143,7 +147,11 @@ export default function GateInspector() {
                 ))}
             </dl>
           ) : (
-            <EmptyState title="No gated run yet">Run RuleBasedGate, RandomGate or GateOrchestra to see the 8 features.</EmptyState>
+            <EmptyState title="No gated run yet">
+              Try a question on{' '}
+              <Link to="/run" className="font-semibold text-wine underline underline-offset-4">Run a Task</Link>{' '}
+              with GateOrchestra, the rule-based gate or the random gate to see the 8 features the gate looks at.
+            </EmptyState>
           )}
         </Card>
       </div>

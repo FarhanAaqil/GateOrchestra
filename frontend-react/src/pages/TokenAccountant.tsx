@@ -3,6 +3,7 @@ import { RefreshCw } from 'lucide-react'
 import { Card, EmptyState, ErrorNote, Page, PageHeader, SkeletonTable } from '../components/ui'
 import { api } from '../lib/api'
 import { METHOD_LABELS, num, STRATEGY_LABELS } from '../lib/format'
+import { friendlyRunLabel } from '../lib/runs'
 import { rise } from '../lib/motion'
 import { useApi } from '../lib/useApi'
 
@@ -37,11 +38,11 @@ export default function TokenAccountant() {
           <p className="mt-2 font-mono text-5xl font-semibold text-ice">{runs.length}</p>
         </Card>
         <Card>
-          <p className="flex items-center gap-2 text-sm text-navy/60"><span className="h-2.5 w-2.5 rounded-full bg-sky" /> Probe tokens</p>
+          <p className="flex items-center gap-2 text-sm text-navy/60"><span className="h-2.5 w-2.5 rounded-full bg-sky" /> Quick-check tokens</p>
           <p className="mt-2 font-mono text-5xl font-semibold text-ink">{num(totals.probe)}</p>
         </Card>
         <Card>
-          <p className="flex items-center gap-2 text-sm text-navy/60"><span className="h-2.5 w-2.5 rounded-full bg-ember" /> MAS tokens</p>
+          <p className="flex items-center gap-2 text-sm text-navy/60"><span className="h-2.5 w-2.5 rounded-full bg-ember" /> Agent-team tokens</p>
           <p className="mt-2 font-mono text-5xl font-semibold text-wine">{num(totals.mas)}</p>
         </Card>
       </div>
@@ -60,13 +61,13 @@ export default function TokenAccountant() {
           <table className="w-full min-w-[860px] text-left text-sm">
             <thead className="bg-navy font-mono text-xs uppercase tracking-wider text-sky">
               <tr>
-                <th className="px-5 py-3.5">Task</th>
+                <th className="px-5 py-3.5">Run</th>
                 <th className="px-5 py-3.5">Method</th>
                 <th className="px-5 py-3.5">Path</th>
-                <th className="px-5 py-3.5">Spend</th>
-                <th className="px-5 py-3.5 text-right">Probe</th>
-                <th className="px-5 py-3.5 text-right">MAS</th>
-                <th className="px-5 py-3.5 text-right">Cap</th>
+                <th className="px-5 py-3.5">Where the tokens went</th>
+                <th className="px-5 py-3.5 text-right" title="Tokens used by the quick check">Quick check</th>
+                <th className="px-5 py-3.5 text-right" title="Tokens used by the multi-agent team">Agent team</th>
+                <th className="px-5 py-3.5 text-right" title="The most the agent team was allowed to spend">Limit</th>
                 <th className="px-5 py-3.5 text-right">Total</th>
                 <th className="px-5 py-3.5">Outcome</th>
               </tr>
@@ -75,13 +76,13 @@ export default function TokenAccountant() {
               {runs.map((r, i) => {
                 const cap = r.gate_decision?.token_budget_cap ?? null
                 const over = cap != null && (r.mas_tokens ?? 0) > cap
-                const path = r.mas_tokens ? `MAS${r.mas_strategy ? ` · ${STRATEGY_LABELS[r.mas_strategy]}` : ''}` : 'CoT-SC'
+                const path = r.mas_tokens ? `Agent team${r.mas_strategy ? ` · ${STRATEGY_LABELS[r.mas_strategy]}` : ''}` : 'Quick answer'
                 return (
                   <tr key={`${r.task_id}-${i}`} className="border-t border-sky/60 hover:bg-ice">
-                    <td className="px-5 py-3 font-mono text-xs text-ink">{r.task_id}</td>
+                    <td className="px-5 py-3 text-xs text-ink" title={r.task_id}>{friendlyRunLabel(r.task_id)}</td>
                     <td className="px-5 py-3 text-ink">{METHOD_LABELS[r.method]}</td>
                     <td className="px-5 py-3">
-                      <span className={`rounded-full px-2.5 py-0.5 font-mono text-[11px] ${r.mas_tokens ? 'bg-ember text-soft' : 'bg-sky text-ink'}`}>{path}</span>
+                      <span className={`whitespace-nowrap rounded-full px-2.5 py-0.5 font-mono text-[11px] ${r.mas_tokens ? 'bg-ember text-soft' : 'bg-sky text-ink'}`}>{path}</span>
                     </td>
                     <td className="px-5 py-3"><SpendBar probe={r.probe_tokens ?? 0} mas={r.mas_tokens ?? 0} over={over} max={maxSpend} /></td>
                     <td className="px-5 py-3 text-right font-mono">{num(r.probe_tokens)}</td>
