@@ -105,6 +105,8 @@ class TestGroqProvider:
 
     def test_call_groq_missing_api_key_raises(self, monkeypatch):
         monkeypatch.setenv("GROQ_API_KEY", "")
+        monkeypatch.setenv("GROQ_API_KEYS", "")
+        monkeypatch.setattr("agents.providers.GROQ_API_KEY", "")
         with pytest.raises(ValueError, match="GROQ_API_KEY is not set"):
             call_groq(prompt="Test", api_key="")
 
