@@ -281,6 +281,26 @@ With 96 test tasks per seed and about 8-10% of tasks discordant between a method
 
 The extra tasks helped less than their number suggests. They are easier than the original ones: pooled over seeds, CoT-SC scores **98.4%** on the 64 added tasks (126 of 128 runs) against **93.8%** on the original 32 (60 of 64), and GateOrchestra 99.2% against 95.3%. With every method near the ceiling there are few disagreements to learn from. A harder test set would sharpen the comparison more than a larger easy one.
 
+### 8.9 A stronger model: Qwen3.8-27B on Groq
+
+To see whether the conclusion survives a model about nine times larger, the benchmark was repeated on `qwen/qwen3.8-27b` (hosted on Groq) with **one seed (42) and one calibration repeat** instead of two seeds and three repeats, because Groq limits qwen to 1,000 output tokens per minute per account. It is a reduced run, with its own folders (`results/real/groq-qwen3-27b/`, `reports/groq-qwen3-27b/`), and `verify_final_results.py` reports it as PARTIAL for that reason. The probe budget was raised to 2,400 tokens (800 per sample); see below.
+
+| Method | Test accuracy | Avg tokens | Escalation |
+|:--|--:|--:|--:|
+| CoT-SC-only | 99.0% (95/96) | 721 | 0% |
+| Always-MAS | 95.8% (92/96) | 754 | 100% |
+| RandomGate | 99.0% | 721 | 0% |
+| RuleBasedGate | 96.9% | 1,259 | 66% |
+| **GateOrchestra** | **99.0%** | **721** | **0%** |
+
+On the 129 calibration tasks CoT-SC scored 99.2% (128) against MAS's 96.9% (125); MAS was better on 1 task and worse on 4 (sign test p = 0.375). An oracle would escalate 1 of 129 tasks. **The premise fails here too, for a different reason than on the 3B model:** the dataset is nearly solved by three-sample self-consistency, so there is almost nothing for MAS or a gate to win. The gate escalated nothing, which was correct, and matched CoT-SC. With one repeat the router only ever tried ReAct, so Debate and Reflexion were not evaluated on this model.
+
+**A measurement trap worth recording.** A 40-task pilot with the default 1,000-token probe budget showed the opposite picture for qwen: CoT-SC 87.5% against MAS 97.5% (MAS fixed 4 tasks and broke none). Inspection showed that in 4 of the 5 CoT-SC failures none of the three samples reached a final answer: qwen reasons at length and the 333-token-per-sample limit cut it off, while MAS runs with a larger budget. Raising the probe budget to 2,400 let every sample finish, and the gap disappeared. A fixed probe budget tuned on a small model can therefore make a larger model's CoT-SC look worse than it is, and `GATE_PROBE_TOKEN_BUDGET` is recorded in the run identity so such runs are never mixed. The pilot on the two `gpt-oss` models (same 1,000-token budget) was not usable for the same reason, and `gpt-oss-20b` also failed 7 of 40 tasks because it sometimes answers a ReAct prompt with an unrequested tool call.
+
+**`gpt-oss-120b` was not finished.** Its full run completed calibration and the test CoT-SC pass, then hit Groq's daily limit of 200,000 tokens per account and was stopped. The checkpoint is kept and resumes with `GATE_RUN_TAG=groq-gpt-oss-120b` once the quota recovers; no `gpt-oss-120b` benchmark result is reported here.
+
+Caveats: one seed gives no between-run spread; the test split still contains the 64 easier added tasks, which makes the ceiling effect stronger; and a single hosted model says little about models in general.
+
 ---
 
 ## 9. Error Analysis
@@ -314,7 +334,7 @@ On Qwen2.5-3B, the multi-agent system is not worth its cost: it is less accurate
 
 ## 12. Future Work
 
-1. Rerun the benchmark on a stronger model (Qwen2.5-7B or larger, local or hosted) where MAS may beat the probe; the runner, analysis, figures and deck regenerate from one command each.
+1. Finish the `gpt-oss-120b` run and repeat the qwen run with more seeds and three calibration repeats once the hosted quotas allow it (Section 8.9). Both reduced stronger-model results point to the same problem as the 3B model: the dataset is too easy for them, so a harder benchmark is the next step (item 2).
 2. Add harder test tasks, so methods are separated by more than a handful of disagreements.
 3. Make MAS answers concise (a shared final-answer step), then rerun to separate reasoning errors from formatting.
 4. Have a second person read the 64 added tasks.

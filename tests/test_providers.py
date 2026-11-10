@@ -284,3 +284,38 @@ class TestGroqKeyRotation:
             call_groq("hi", api_key="someone-elses-key")
         used = {c[0][0].headers["Authorization"] for c in mock_urlopen.call_args_list}
         assert used == {"Bearer someone-elses-key"}
+
+
+class TestGroqToolChoiceError:
+    @staticmethod
+    def _tool_choice_error():
+        import urllib.error
+
+        error = urllib.error.HTTPError("https://api.groq.com", 400, "Bad Request", {}, None)
+        error.read = lambda: b'{"error": {"message": "Tool choice is none, but model called a tool"}}'  # type: ignore[method-assign]
+        return error
+
+    @patch("urllib.request.urlopen")
+    def test_samples_the_same_model_again_instead_of_switching(self, mock_urlopen):
+        ok = MagicMock()
+        ok.read.return_value = json.dumps(
+            {"choices": [{"message": {"content": "fine"}}], "usage": {"total_tokens": 9}}
+        ).encode("utf-8")
+        ok.__enter__.return_value = ok
+        mock_urlopen.side_effect = [self._tool_choice_error(), ok]
+
+        text, _ = call_groq("hi", model_name="openai/gpt-oss-20b", api_key="k")
+
+        assert text == "fine"
+        models = {json.loads(c[0][0].data)["model"] for c in mock_urlopen.call_args_list}
+        assert models == {"openai/gpt-oss-20b"}
+
+    @patch("urllib.request.urlopen")
+    def test_gives_up_with_an_error_rather_than_using_another_model(self, mock_urlopen):
+        mock_urlopen.side_effect = lambda *a, **k: (_ for _ in ()).throw(self._tool_choice_error())
+
+        with pytest.raises(RuntimeError, match="Tool choice is none"):
+            call_groq("hi", model_name="openai/gpt-oss-20b", api_key="k")
+
+        models = {json.loads(c[0][0].data)["model"] for c in mock_urlopen.call_args_list}
+        assert models == {"openai/gpt-oss-20b"}

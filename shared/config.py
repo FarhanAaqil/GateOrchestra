@@ -50,12 +50,16 @@ LLM_REQUEST_TIMEOUT_SECONDS: float = float(os.getenv("GATE_LLM_TIMEOUT", "300"))
 ACTIVE_MODEL_NAME: str = GROQ_MODEL_NAME if LLM_PROVIDER == "groq" else MODEL_NAME
 """The model the benchmark actually calls, so run records name the right one."""
 ACTIVE_API_BASE: str = GROQ_API_BASE if LLM_PROVIDER == "groq" else MODEL_API_BASE
-PROBE_TOKEN_BUDGET: int = 1000
+PROBE_TOKEN_BUDGET: int = int(os.getenv("GATE_PROBE_TOKEN_BUDGET", "1000"))
 """Completion-token budget for one whole CoT-SC probe (all samples together).
 
 Split evenly across samples: 1000 // 3 = 333 completion tokens per sample,
 which is what every recorded real run used. Reported probe tokens are the
 provider's true totals (prompt + completion), so they exceed this figure.
+
+GATE_PROBE_TOKEN_BUDGET raises it for models that reason at length: with the default, a
+long-winded model is cut off before its final answer. It is recorded in the run identity,
+and MAS budgets scale with the probe's tokens, so comparisons stay equal-budget.
 """
 
 COT_SC_N_SAMPLES: int = 3  # Number of CoT-SC samples per probe run

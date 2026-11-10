@@ -101,8 +101,9 @@ def call_ollama(
 
 # 2. Groq Caller (Cloud OpenAI-compatible API)
 
-GROQ_MAX_RETRIES = 10
+GROQ_MAX_RETRIES = int(os.getenv("GATE_GROQ_MAX_RETRIES", "10"))
 MAX_RATE_LIMIT_WAIT_SECONDS = 90.0
+TOOL_CHOICE_RETRIES = 3
 _TRY_AGAIN_RE = re.compile(r"try again in\s+(?:(\d+)m)?\s*(\d+(?:\.\d+)?)\s*(ms|s)", re.IGNORECASE)
 
 
@@ -270,19 +271,15 @@ def call_groq(
                 time.sleep(delay)
                 continue
 
-            if e.code == 400 and "Tool choice is none" in err_msg and model != "qwen/qwen3.8-27b":
+            if e.code == 400 and "Tool choice is none" in err_msg and attempt < TOOL_CHOICE_RETRIES:
+                # gpt-oss now and then answers with a tool call although none is offered.
+                # Sampling again usually fixes it; never switch to another model, because
+                # that would silently mix two models' answers into one benchmark run.
                 logger.warning(
-                    f"[GroqProvider] Tool choice error on {model}. Retrying with qwen/qwen3.8-27b..."
+                    f"[GroqProvider] {model} made an unrequested tool call; sampling again "
+                    f"(attempt {attempt + 1}/{TOOL_CHOICE_RETRIES})."
                 )
-                return call_groq(
-                    prompt,
-                    temperature,
-                    max_tokens,
-                    model_name="qwen/qwen3.8-27b",
-                    api_key=api_key,
-                    api_base=api_base,
-                    timeout=timeout,
-                )
+                continue
 
             logger.error(f"[GroqProvider] Groq API returned HTTP {e.code}: {err_msg}")
             raise RuntimeError(
