@@ -6,18 +6,12 @@ import { Card, ErrorNote, Page, PageHeader } from '../components/ui'
 import { api } from '../lib/api'
 import { useApp } from '../lib/context'
 import { FEATURE_LABELS, STRATEGY_LABELS } from '../lib/format'
+import { METHODS, budgetLabel, methodInfo, runBlockReason } from '../lib/methods'
 import { rise } from '../lib/motion'
 import { FIELD } from '../lib/styles'
 import type { MethodId, RunResult, Task } from '../lib/types'
 import GateView from '../three/GateView'
 
-const METHODS: { id: MethodId; label: string }[] = [
-  { id: 'GateOrchestra', label: 'GateOrchestra (learned gate)' },
-  { id: 'RuleBasedGate', label: 'Rule-based gate' },
-  { id: 'RandomGate', label: 'Random gate' },
-  { id: 'CoT-SC', label: 'CoT-SC only' },
-  { id: 'Always-MAS', label: 'Always-MAS' },
-]
 const RUN_TIMEOUT_MS = 5 * 60 * 1000
 
 // Step badge colours: sky = probe, navy/cyan = gate side, ember = MAS, tangerine = tokens.
@@ -28,7 +22,7 @@ const BADGE = {
   tangerine: 'bg-tangerine text-ink',
 }
 
-function Stage({ index, title, badge, children }: { index: number; title: string; badge: keyof typeof BADGE; children: ReactNode }) {
+function Stage({ index, title, hint, badge, children }: { index: number; title: string; hint?: string; badge: keyof typeof BADGE; children: ReactNode }) {
   return (
     <motion.section
       initial={{ opacity: 0, x: -16 }}
@@ -39,7 +33,8 @@ function Stage({ index, title, badge, children }: { index: number; title: string
       <span className={`absolute left-5 top-5 grid h-8 w-8 place-items-center rounded-full font-mono text-sm font-semibold md:top-6 ${BADGE[badge]}`}>
         {index + 1}
       </span>
-      <h3 className="mb-3 text-lg font-bold text-ink">{title}</h3>
+      <h3 className="text-lg font-bold text-ink">{title}</h3>
+      {hint ? <p className="mb-3 mt-0.5 text-xs text-navy/60">{hint}</p> : <div className="mb-3" />}
       {children}
     </motion.section>
   )
@@ -77,7 +72,7 @@ function Pipeline({ result, k, probeBudget }: { result: RunResult; k: number; pr
   return (
     <div className="space-y-4">
       {result.probe ? (
-        <Stage index={index++} title="Probe agent · CoT-SC" badge="sky">
+        <Stage index={index++} title="Quick check" hint="The model answers three times; agreement between the answers is a sign it is sure (CoT-SC)." badge="sky">
           <p className="text-sm text-navy/60">Majority answer</p>
           <p className="font-mono text-lg text-ink">{result.probe.answer}</p>
           <div className="mt-3 flex items-center gap-3">
@@ -97,13 +92,13 @@ function Pipeline({ result, k, probeBudget }: { result: RunResult; k: number; pr
       ) : null}
 
       {result.features ? (
-        <Stage index={index++} title="Feature extractor" badge="navy">
+        <Stage index={index++} title="What the gate looks at" hint="Eight facts about the question and the quick check, measured before any extra work." badge="navy">
           <FeatureGrid features={result.features} />
         </Stage>
       ) : null}
 
       {decision ? (
-        <Stage index={index++} title="Gate classifier" badge="navy">
+        <Stage index={index++} title="Gate decision" hint="STOP keeps the quick answer. ESCALATE hands the question to the agent team." badge="navy">
           <div className="flex flex-wrap items-center gap-2">
             <span className={`rounded-full px-4 py-1.5 font-mono text-sm font-bold ${decision.decision === 'STOP' ? 'bg-navy text-cyan' : 'bg-ember text-soft'}`}>
               {decision.decision}
@@ -124,7 +119,7 @@ function Pipeline({ result, k, probeBudget }: { result: RunResult; k: number; pr
 
       <Stage
         index={index++}
-        title={result.mas_tokens ? `Result · ${result.mas_strategy ? STRATEGY_LABELS[result.mas_strategy] : 'MAS'} orchestrator` : 'Result · CoT-SC answer'}
+        title={result.mas_tokens ? `Answer from the agent team (${result.mas_strategy ? STRATEGY_LABELS[result.mas_strategy] : 'MAS'})` : 'Answer from the quick check'}
         badge={result.mas_tokens ? 'ember' : 'sky'}
       >
         <div className="flex flex-wrap items-center gap-3">
@@ -157,17 +152,17 @@ function Pipeline({ result, k, probeBudget }: { result: RunResult; k: number; pr
         ) : null}
       </Stage>
 
-      <Stage index={index} title="Token accountant" badge="tangerine">
+      <Stage index={index} title="What it cost" hint="Tokens are the unit models charge in. The agent team is capped at a multiple of the quick check." badge="tangerine">
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
           <TokenGauge probeTokens={result.probe_tokens} masTokens={result.mas_tokens} cap={masCap} size={180} />
           <dl className="grid flex-1 grid-cols-2 gap-x-3 gap-y-2 font-mono text-sm">
             <dt className="text-navy/60">Total spent</dt>
             <dd className="text-ink">{result.tokens_spent}</dd>
             <dt className="text-navy/60">Path</dt>
-            <dd className="text-ink">{result.mas_tokens ? 'escalated to MAS' : 'single agent'}</dd>
+            <dd className="text-ink">{result.mas_tokens ? 'escalated to the agent team' : 'answered by the quick check'}</dd>
             <dt className="text-navy/60">Latency</dt>
             <dd className="text-ink">{result.latency_ms != null ? `${(result.latency_ms / 1000).toFixed(1)} s` : '—'}</dd>
-            <dt className="text-navy/60">Probe budget</dt>
+            <dt className="text-navy/60">Quick-check budget</dt>
             <dd className="text-ink">{probeBudget ? `${probeBudget} completion tok` : '—'}</dd>
           </dl>
         </div>
@@ -262,12 +257,13 @@ export default function RunTask() {
   }
 
   const decision = result ? (result.gate_decision?.decision ?? (result.mas_tokens ? 'ESCALATE' : 'STOP')) : null
+  const blockReason = runBlockReason(question, backend, running)
 
   return (
     <Page>
       <PageHeader number="02" kicker="Live pipeline" title="Run a task">
-        Send one question through the real pipeline. <span className="mark-lemon">Offline simulation</span> exercises the routing
-        without an LLM and is never graded.
+        Send one question through the real pipeline and watch each step. <span className="mark-lemon">Offline simulation</span> tests
+        the routing without calling a model and is never graded.
       </PageHeader>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)]">
@@ -291,25 +287,24 @@ export default function RunTask() {
               <input value={groundTruth} onChange={(e) => setGroundTruth(e.target.value)} placeholder="Ground truth (enables grading)" className={`${FIELD} mt-2 text-sm`} />
             </details>
 
-            <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className="text-sm font-medium text-navy">
-                Method
-                <select value={method} onChange={(e) => setMethod(e.target.value as MethodId)} className={`${FIELD} mt-1.5`}>
+            <div className="mt-4 space-y-3">
+              <label className="block text-sm font-medium text-navy">
+                How to answer
+                <select value={method} onChange={(e) => setMethod(e.target.value as MethodId)} className={`${FIELD} mt-1.5`} aria-describedby="method-summary">
                   {METHODS.map((m) => (
                     <option key={m.id} value={m.id} disabled={m.id === 'GateOrchestra' && !gateAvailable}>
                       {m.label}
-                      {m.id === 'GateOrchestra' && !gateAvailable ? ' — no trained gate yet' : ''}
+                      {m.id === 'GateOrchestra' && !gateAvailable ? ' (no trained gate yet)' : ''}
                     </option>
                   ))}
                 </select>
               </label>
-              <label className="text-sm font-medium text-navy">
-                Escalation multiplier k
+              <p id="method-summary" className="-mt-1 text-xs text-navy/65">{methodInfo(method).summary}</p>
+              <label className="block text-sm font-medium text-navy">
+                Budget for the agent team
                 <select value={k} onChange={(e) => setK(Number(e.target.value))} className={`${FIELD} mt-1.5`}>
                   {(models?.k_values ?? [2, 3, 5]).map((v) => (
-                    <option key={v} value={v}>
-                      k = {v} (MAS cap = {v} × probe tokens)
-                    </option>
+                    <option key={v} value={v}>{budgetLabel(v)}</option>
                   ))}
                 </select>
               </label>
@@ -323,8 +318,8 @@ export default function RunTask() {
               {method === 'GateOrchestra' && threshold != null ? (
                 <span className="rounded-full bg-tangerine px-3 py-1 font-mono text-xs text-ink">threshold {threshold.toFixed(2)}</span>
               ) : null}
-              <button onClick={pickTask} className="inline-flex items-center gap-1.5 rounded-full border border-sky px-3.5 py-2 text-sm text-navy hover:bg-ice">
-                <Dice5 className="h-4 w-4" /> Benchmark task
+              <button onClick={pickTask} title="Fill in a random question from the validation set, with its answer so the run can be graded" className="inline-flex items-center gap-1.5 rounded-full border border-sky px-3.5 py-2 text-sm text-navy hover:bg-ice">
+                <Dice5 className="h-4 w-4" /> Try a benchmark question
               </button>
               <div className="ml-auto flex gap-2">
                 {running ? (
@@ -334,7 +329,8 @@ export default function RunTask() {
                 ) : null}
                 <button
                   onClick={run}
-                  disabled={!question.trim() || running || backend !== 'online'}
+                  disabled={!!blockReason || running}
+                  aria-describedby="run-hint"
                   className="inline-flex items-center gap-2 rounded-full bg-ember px-6 py-2.5 text-sm font-bold text-soft glow-ember transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
@@ -342,6 +338,7 @@ export default function RunTask() {
                 </button>
               </div>
             </div>
+            {blockReason ? <p id="run-hint" className="mt-2 text-right text-xs text-navy/65">{blockReason}</p> : null}
           </Card>
 
           {error ? <ErrorNote message={error} /> : null}

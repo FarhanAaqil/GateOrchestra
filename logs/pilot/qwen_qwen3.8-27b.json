@@ -1,0 +1,458 @@
+{
+  "summary": {
+    "model": "qwen/qwen3.8-27b",
+    "provider": "groq",
+    "tasks": 40,
+    "errors": 0,
+    "cot_sc_accuracy": 0.875,
+    "mas_accuracy": 0.975,
+    "mas_fixes_cot_failures": 4,
+    "mas_breaks_cot_successes": 0,
+    "oracle_escalation_share": 0.1,
+    "avg_tokens_cot_sc": 759,
+    "avg_tokens_mas": 706,
+    "seconds": 483
+  },
+  "rows": [
+    {
+      "task_id": "arith_005",
+      "cot": {
+        "correct": false,
+        "tokens": 1142
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 929
+      }
+    },
+    {
+      "task_id": "arith_006",
+      "cot": {
+        "correct": true,
+        "tokens": 686
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 450
+      }
+    },
+    {
+      "task_id": "arith_007",
+      "cot": {
+        "correct": true,
+        "tokens": 795
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 419
+      }
+    },
+    {
+      "task_id": "arith_012",
+      "cot": {
+        "correct": true,
+        "tokens": 1066
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 820
+      }
+    },
+    {
+      "task_id": "arith_014",
+      "cot": {
+        "correct": false,
+        "tokens": 1224
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 518
+      }
+    },
+    {
+      "task_id": "arith_019",
+      "cot": {
+        "correct": true,
+        "tokens": 869
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 436
+      }
+    },
+    {
+      "task_id": "arith_033",
+      "cot": {
+        "correct": true,
+        "tokens": 1215
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 919
+      }
+    },
+    {
+      "task_id": "bridge_001",
+      "cot": {
+        "correct": true,
+        "tokens": 431
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1147
+      }
+    },
+    {
+      "task_id": "bridge_003",
+      "cot": {
+        "correct": true,
+        "tokens": 492
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 854
+      }
+    },
+    {
+      "task_id": "bridge_007",
+      "cot": {
+        "correct": true,
+        "tokens": 556
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 778
+      }
+    },
+    {
+      "task_id": "bridge_010",
+      "cot": {
+        "correct": true,
+        "tokens": 359
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 726
+      }
+    },
+    {
+      "task_id": "bridge_021",
+      "cot": {
+        "correct": true,
+        "tokens": 452
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 587
+      }
+    },
+    {
+      "task_id": "bridge_033",
+      "cot": {
+        "correct": true,
+        "tokens": 660
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 792
+      }
+    },
+    {
+      "task_id": "bridge_040",
+      "cot": {
+        "correct": true,
+        "tokens": 517
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 733
+      }
+    },
+    {
+      "task_id": "bridge_041",
+      "cot": {
+        "correct": true,
+        "tokens": 436
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 506
+      }
+    },
+    {
+      "task_id": "bridge_045",
+      "cot": {
+        "correct": true,
+        "tokens": 389
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 479
+      }
+    },
+    {
+      "task_id": "bridge_049",
+      "cot": {
+        "correct": true,
+        "tokens": 396
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 511
+      }
+    },
+    {
+      "task_id": "bridge_050",
+      "cot": {
+        "correct": true,
+        "tokens": 456
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 837
+      }
+    },
+    {
+      "task_id": "cmp_001",
+      "cot": {
+        "correct": false,
+        "tokens": 1182
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 645
+      }
+    },
+    {
+      "task_id": "cmp_002",
+      "cot": {
+        "correct": true,
+        "tokens": 576
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 526
+      }
+    },
+    {
+      "task_id": "cmp_016",
+      "cot": {
+        "correct": true,
+        "tokens": 700
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 626
+      }
+    },
+    {
+      "task_id": "cmp_018",
+      "cot": {
+        "correct": true,
+        "tokens": 769
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 474
+      }
+    },
+    {
+      "task_id": "cmp_022",
+      "cot": {
+        "correct": true,
+        "tokens": 897
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 733
+      }
+    },
+    {
+      "task_id": "cmp_024",
+      "cot": {
+        "correct": true,
+        "tokens": 656
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 725
+      }
+    },
+    {
+      "task_id": "cmp_027",
+      "cot": {
+        "correct": false,
+        "tokens": 1185
+      },
+      "mas": {
+        "correct": false,
+        "tokens": 2299
+      }
+    },
+    {
+      "task_id": "comp_006",
+      "cot": {
+        "correct": true,
+        "tokens": 612
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 636
+      }
+    },
+    {
+      "task_id": "comp_007",
+      "cot": {
+        "correct": true,
+        "tokens": 468
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 878
+      }
+    },
+    {
+      "task_id": "comp_008",
+      "cot": {
+        "correct": true,
+        "tokens": 669
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 851
+      }
+    },
+    {
+      "task_id": "comp_010",
+      "cot": {
+        "correct": true,
+        "tokens": 700
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 993
+      }
+    },
+    {
+      "task_id": "comp_022",
+      "cot": {
+        "correct": true,
+        "tokens": 767
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 575
+      }
+    },
+    {
+      "task_id": "comp_023",
+      "cot": {
+        "correct": true,
+        "tokens": 563
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 772
+      }
+    },
+    {
+      "task_id": "comp_024",
+      "cot": {
+        "correct": true,
+        "tokens": 594
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 866
+      }
+    },
+    {
+      "task_id": "arith_001",
+      "cot": {
+        "correct": true,
+        "tokens": 690
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 415
+      }
+    },
+    {
+      "task_id": "arith_002",
+      "cot": {
+        "correct": true,
+        "tokens": 624
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 428
+      }
+    },
+    {
+      "task_id": "arith_003",
+      "cot": {
+        "correct": true,
+        "tokens": 1041
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 521
+      }
+    },
+    {
+      "task_id": "arith_009",
+      "cot": {
+        "correct": true,
+        "tokens": 988
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 478
+      }
+    },
+    {
+      "task_id": "arith_010",
+      "cot": {
+        "correct": false,
+        "tokens": 1269
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 576
+      }
+    },
+    {
+      "task_id": "arith_011",
+      "cot": {
+        "correct": true,
+        "tokens": 1056
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 475
+      }
+    },
+    {
+      "task_id": "arith_015",
+      "cot": {
+        "correct": true,
+        "tokens": 1008
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 775
+      }
+    },
+    {
+      "task_id": "arith_017",
+      "cot": {
+        "correct": true,
+        "tokens": 1212
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 538
+      }
+    }
+  ]
+}

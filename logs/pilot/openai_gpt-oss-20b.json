@@ -1,0 +1,451 @@
+{
+  "summary": {
+    "model": "openai/gpt-oss-20b",
+    "provider": "groq",
+    "tasks": 33,
+    "errors": 7,
+    "cot_sc_accuracy": 0.97,
+    "mas_accuracy": 0.848,
+    "mas_fixes_cot_failures": 0,
+    "mas_breaks_cot_successes": 4,
+    "oracle_escalation_share": 0.0,
+    "avg_tokens_cot_sc": 825,
+    "avg_tokens_mas": 998,
+    "seconds": 252
+  },
+  "rows": [
+    {
+      "task_id": "arith_005",
+      "cot": {
+        "correct": true,
+        "tokens": 1112
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1498
+      }
+    },
+    {
+      "task_id": "arith_006",
+      "cot": {
+        "correct": true,
+        "tokens": 723
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 452
+      }
+    },
+    {
+      "task_id": "arith_007",
+      "cot": {
+        "correct": true,
+        "tokens": 694
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 954
+      }
+    },
+    {
+      "task_id": "arith_012",
+      "cot": {
+        "correct": true,
+        "tokens": 816
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1037
+      }
+    },
+    {
+      "task_id": "arith_014",
+      "cot": {
+        "correct": true,
+        "tokens": 783
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1055
+      }
+    },
+    {
+      "task_id": "arith_019",
+      "cot": {
+        "correct": true,
+        "tokens": 727
+      },
+      "mas": {
+        "correct": false,
+        "tokens": 2731
+      }
+    },
+    {
+      "task_id": "arith_033",
+      "cot": {
+        "correct": true,
+        "tokens": 953
+      },
+      "mas": {
+        "error": "SubAgentError: ReActAgent LLM call failed: Groq API Error (400): Tool choice is none, but model called a tool. Please verify model 'ope"
+      }
+    },
+    {
+      "task_id": "bridge_001",
+      "cot": {
+        "correct": true,
+        "tokens": 694
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1156
+      }
+    },
+    {
+      "task_id": "bridge_003",
+      "cot": {
+        "correct": true,
+        "tokens": 753
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 441
+      }
+    },
+    {
+      "task_id": "bridge_007",
+      "cot": {
+        "correct": true,
+        "tokens": 770
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 577
+      }
+    },
+    {
+      "task_id": "bridge_010",
+      "cot": {
+        "correct": true,
+        "tokens": 671
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 506
+      }
+    },
+    {
+      "task_id": "bridge_021",
+      "cot": {
+        "correct": true,
+        "tokens": 869
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 488
+      }
+    },
+    {
+      "task_id": "bridge_033",
+      "cot": {
+        "correct": true,
+        "tokens": 779
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 390
+      }
+    },
+    {
+      "task_id": "bridge_040",
+      "cot": {
+        "correct": true,
+        "tokens": 602
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 347
+      }
+    },
+    {
+      "task_id": "bridge_041",
+      "cot": {
+        "correct": true,
+        "tokens": 778
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1133
+      }
+    },
+    {
+      "task_id": "bridge_045",
+      "cot": {
+        "correct": true,
+        "tokens": 693
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 406
+      }
+    },
+    {
+      "task_id": "bridge_049",
+      "cot": {
+        "correct": true,
+        "tokens": 638
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 494
+      }
+    },
+    {
+      "task_id": "bridge_050",
+      "cot": {
+        "correct": true,
+        "tokens": 772
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 469
+      }
+    },
+    {
+      "task_id": "cmp_001",
+      "cot": {
+        "correct": false,
+        "tokens": 1249
+      },
+      "mas": {
+        "correct": false,
+        "tokens": 3056
+      }
+    },
+    {
+      "task_id": "cmp_002",
+      "cot": {
+        "correct": true,
+        "tokens": 801
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 454
+      }
+    },
+    {
+      "task_id": "cmp_016",
+      "cot": {
+        "correct": true,
+        "tokens": 1112
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 635
+      }
+    },
+    {
+      "task_id": "cmp_018",
+      "cot": {
+        "correct": true,
+        "tokens": 993
+      },
+      "mas": {
+        "correct": false,
+        "tokens": 3060
+      }
+    },
+    {
+      "task_id": "cmp_022",
+      "cot": {
+        "correct": true,
+        "tokens": 946
+      },
+      "mas": {
+        "correct": false,
+        "tokens": 2908
+      }
+    },
+    {
+      "task_id": "cmp_024",
+      "cot": {
+        "correct": true,
+        "tokens": 663
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 562
+      }
+    },
+    {
+      "task_id": "cmp_027",
+      "cot": {
+        "correct": true,
+        "tokens": 1191
+      },
+      "mas": {
+        "error": "SubAgentError: ReActAgent LLM call failed: Groq API Error (400): Tool choice is none, but model called a tool. Please verify model 'ope"
+      }
+    },
+    {
+      "task_id": "comp_006",
+      "cot": {
+        "correct": true,
+        "tokens": 900
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 532
+      }
+    },
+    {
+      "task_id": "comp_007",
+      "cot": {
+        "correct": true,
+        "tokens": 778
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 442
+      }
+    },
+    {
+      "task_id": "comp_008",
+      "cot": {
+        "correct": true,
+        "tokens": 1057
+      },
+      "mas": {
+        "correct": false,
+        "tokens": 678
+      }
+    },
+    {
+      "task_id": "comp_010",
+      "cot": {
+        "correct": true,
+        "tokens": 940
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 489
+      }
+    },
+    {
+      "task_id": "comp_022",
+      "cot": {
+        "correct": true,
+        "tokens": 830
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 556
+      }
+    },
+    {
+      "task_id": "comp_023",
+      "cot": {
+        "correct": true,
+        "tokens": 771
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 479
+      }
+    },
+    {
+      "task_id": "comp_024",
+      "cot": {
+        "correct": true,
+        "tokens": 819
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1028
+      }
+    },
+    {
+      "task_id": "arith_001",
+      "cot": {
+        "correct": true,
+        "tokens": 876
+      },
+      "mas": {
+        "error": "SubAgentError: ReActAgent LLM call failed: Groq API Error (400): Tool choice is none, but model called a tool. Please verify model 'ope"
+      }
+    },
+    {
+      "task_id": "arith_002",
+      "cot": {
+        "correct": true,
+        "tokens": 778
+      },
+      "mas": {
+        "error": "SubAgentError: ReActAgent LLM call failed: Groq API Error (400): Tool choice is none, but model called a tool. Please verify model 'ope"
+      }
+    },
+    {
+      "task_id": "arith_003",
+      "cot": {
+        "correct": true,
+        "tokens": 900
+      },
+      "mas": {
+        "error": "SubAgentError: ReActAgent LLM call failed: Groq API Error (400): Tool choice is none, but model called a tool. Please verify model 'ope"
+      }
+    },
+    {
+      "task_id": "arith_009",
+      "cot": {
+        "correct": true,
+        "tokens": 691
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1092
+      }
+    },
+    {
+      "task_id": "arith_010",
+      "cot": {
+        "correct": true,
+        "tokens": 972
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1176
+      }
+    },
+    {
+      "task_id": "arith_011",
+      "cot": {
+        "correct": true,
+        "tokens": 915
+      },
+      "mas": {
+        "error": "SubAgentError: ReActAgent LLM call failed: Groq API Error (400): Tool choice is none, but model called a tool. Please verify model 'ope"
+      }
+    },
+    {
+      "task_id": "arith_015",
+      "cot": {
+        "correct": true,
+        "tokens": 830
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1639
+      }
+    },
+    {
+      "task_id": "arith_017",
+      "cot": {
+        "correct": false,
+        "tokens": 1377
+      },
+      "mas": {
+        "error": "SubAgentError: ReActAgent LLM call failed: Groq API Error (400): Tool choice is none, but model called a tool. Please verify model 'ope"
+      }
+    }
+  ]
+}

@@ -2,8 +2,18 @@ import { animate, motion, useMotionValue, useReducedMotion, useSpring } from 'fr
 import { AlertTriangle, CheckCircle2, CircleDashed, Info } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
+import { GLOSSARY, type GlossaryTerm } from '../lib/glossary'
 import { rise, stagger } from '../lib/motion'
 import type { ResultsStatus } from '../lib/types'
+
+/** A technical term with its plain-language meaning on hover or keyboard focus. */
+export function Term({ term, children }: { term: GlossaryTerm; children: ReactNode }) {
+  return (
+    <abbr title={GLOSSARY[term]} tabIndex={0} className="cursor-help underline decoration-dotted underline-offset-4">
+      {children}
+    </abbr>
+  )
+}
 
 /** Card that tilts slightly toward the pointer. `navy` is the dark control-room panel. */
 export function Card({

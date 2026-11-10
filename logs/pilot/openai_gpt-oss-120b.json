@@ -1,0 +1,458 @@
+{
+  "summary": {
+    "model": "openai/gpt-oss-120b",
+    "provider": "groq",
+    "tasks": 40,
+    "errors": 0,
+    "cot_sc_accuracy": 0.875,
+    "mas_accuracy": 0.85,
+    "mas_fixes_cot_failures": 3,
+    "mas_breaks_cot_successes": 4,
+    "oracle_escalation_share": 0.075,
+    "avg_tokens_cot_sc": 1012,
+    "avg_tokens_mas": 1404,
+    "seconds": 181
+  },
+  "rows": [
+    {
+      "task_id": "arith_005",
+      "cot": {
+        "correct": true,
+        "tokens": 1185
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1347
+      }
+    },
+    {
+      "task_id": "arith_006",
+      "cot": {
+        "correct": true,
+        "tokens": 938
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 943
+      }
+    },
+    {
+      "task_id": "arith_007",
+      "cot": {
+        "correct": true,
+        "tokens": 780
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 762
+      }
+    },
+    {
+      "task_id": "arith_012",
+      "cot": {
+        "correct": false,
+        "tokens": 1113
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1966
+      }
+    },
+    {
+      "task_id": "arith_014",
+      "cot": {
+        "correct": true,
+        "tokens": 989
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 972
+      }
+    },
+    {
+      "task_id": "arith_019",
+      "cot": {
+        "correct": true,
+        "tokens": 836
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 889
+      }
+    },
+    {
+      "task_id": "arith_033",
+      "cot": {
+        "correct": true,
+        "tokens": 1268
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1481
+      }
+    },
+    {
+      "task_id": "bridge_001",
+      "cot": {
+        "correct": true,
+        "tokens": 771
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1403
+      }
+    },
+    {
+      "task_id": "bridge_003",
+      "cot": {
+        "correct": true,
+        "tokens": 938
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 871
+      }
+    },
+    {
+      "task_id": "bridge_007",
+      "cot": {
+        "correct": true,
+        "tokens": 776
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 945
+      }
+    },
+    {
+      "task_id": "bridge_010",
+      "cot": {
+        "correct": true,
+        "tokens": 830
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 829
+      }
+    },
+    {
+      "task_id": "bridge_021",
+      "cot": {
+        "correct": true,
+        "tokens": 896
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 931
+      }
+    },
+    {
+      "task_id": "bridge_033",
+      "cot": {
+        "correct": true,
+        "tokens": 920
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 907
+      }
+    },
+    {
+      "task_id": "bridge_040",
+      "cot": {
+        "correct": true,
+        "tokens": 802
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 850
+      }
+    },
+    {
+      "task_id": "bridge_041",
+      "cot": {
+        "correct": true,
+        "tokens": 902
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1003
+      }
+    },
+    {
+      "task_id": "bridge_045",
+      "cot": {
+        "correct": true,
+        "tokens": 774
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1302
+      }
+    },
+    {
+      "task_id": "bridge_049",
+      "cot": {
+        "correct": true,
+        "tokens": 827
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1288
+      }
+    },
+    {
+      "task_id": "bridge_050",
+      "cot": {
+        "correct": true,
+        "tokens": 798
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1017
+      }
+    },
+    {
+      "task_id": "cmp_001",
+      "cot": {
+        "correct": true,
+        "tokens": 1353
+      },
+      "mas": {
+        "correct": false,
+        "tokens": 3056
+      }
+    },
+    {
+      "task_id": "cmp_002",
+      "cot": {
+        "correct": true,
+        "tokens": 964
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 904
+      }
+    },
+    {
+      "task_id": "cmp_016",
+      "cot": {
+        "correct": true,
+        "tokens": 1170
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1795
+      }
+    },
+    {
+      "task_id": "cmp_018",
+      "cot": {
+        "correct": true,
+        "tokens": 1154
+      },
+      "mas": {
+        "correct": false,
+        "tokens": 2387
+      }
+    },
+    {
+      "task_id": "cmp_022",
+      "cot": {
+        "correct": true,
+        "tokens": 1125
+      },
+      "mas": {
+        "correct": false,
+        "tokens": 2577
+      }
+    },
+    {
+      "task_id": "cmp_024",
+      "cot": {
+        "correct": true,
+        "tokens": 935
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1690
+      }
+    },
+    {
+      "task_id": "cmp_027",
+      "cot": {
+        "correct": false,
+        "tokens": 1356
+      },
+      "mas": {
+        "correct": false,
+        "tokens": 2947
+      }
+    },
+    {
+      "task_id": "comp_006",
+      "cot": {
+        "correct": true,
+        "tokens": 1049
+      },
+      "mas": {
+        "correct": false,
+        "tokens": 2884
+      }
+    },
+    {
+      "task_id": "comp_007",
+      "cot": {
+        "correct": true,
+        "tokens": 923
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1578
+      }
+    },
+    {
+      "task_id": "comp_008",
+      "cot": {
+        "correct": false,
+        "tokens": 1078
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1601
+      }
+    },
+    {
+      "task_id": "comp_010",
+      "cot": {
+        "correct": true,
+        "tokens": 1195
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 954
+      }
+    },
+    {
+      "task_id": "comp_022",
+      "cot": {
+        "correct": true,
+        "tokens": 963
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 2162
+      }
+    },
+    {
+      "task_id": "comp_023",
+      "cot": {
+        "correct": true,
+        "tokens": 806
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 1415
+      }
+    },
+    {
+      "task_id": "comp_024",
+      "cot": {
+        "correct": true,
+        "tokens": 988
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 918
+      }
+    },
+    {
+      "task_id": "arith_001",
+      "cot": {
+        "correct": true,
+        "tokens": 987
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 851
+      }
+    },
+    {
+      "task_id": "arith_002",
+      "cot": {
+        "correct": true,
+        "tokens": 903
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 861
+      }
+    },
+    {
+      "task_id": "arith_003",
+      "cot": {
+        "correct": true,
+        "tokens": 1299
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 862
+      }
+    },
+    {
+      "task_id": "arith_009",
+      "cot": {
+        "correct": true,
+        "tokens": 1035
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 956
+      }
+    },
+    {
+      "task_id": "arith_010",
+      "cot": {
+        "correct": false,
+        "tokens": 1416
+      },
+      "mas": {
+        "correct": false,
+        "tokens": 2175
+      }
+    },
+    {
+      "task_id": "arith_011",
+      "cot": {
+        "correct": true,
+        "tokens": 965
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 937
+      }
+    },
+    {
+      "task_id": "arith_015",
+      "cot": {
+        "correct": true,
+        "tokens": 1096
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 859
+      }
+    },
+    {
+      "task_id": "arith_017",
+      "cot": {
+        "correct": false,
+        "tokens": 1377
+      },
+      "mas": {
+        "correct": true,
+        "tokens": 2085
+      }
+    }
+  ]
+}

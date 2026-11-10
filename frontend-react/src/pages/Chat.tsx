@@ -1,17 +1,19 @@
-import { ArrowUp, ChevronDown, Copy, FileText, Loader2, MessageSquarePlus, Paperclip, Square, ThumbsDown, ThumbsUp, Trash2, Wrench, X } from 'lucide-react'
+import { ArrowUp, Check, ChevronDown, Copy, History, Loader2, Paperclip, Square, ThumbsDown, ThumbsUp, Wrench, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
+import ChatSidebar from '../components/ChatSidebar'
 import KeyDialog from '../components/KeyDialog'
 import { Markdown } from '../components/Markdown'
 import { GATE_LABELS, chatApi, streamChat, type ChatEvent, type ChatMessage, type Conversation, type GateScore, type KeyAttempt, type ToolCall, type TurnMeta, type UploadedDocument } from '../lib/chat'
 import { useApp } from '../lib/context'
+import { describeRoute, formatSeconds } from '../lib/route'
 
 const GATE_MODE_KEY = 'gateorchestra.gateMode'
 const GATE_MODES = [
-  { id: 'auto', label: 'Auto (cheapest accurate gate)' },
+  { id: 'auto', label: 'Auto (recommended)' },
   { id: 'learned', label: 'Learned gate' },
   { id: 'rule_based', label: 'Rule-based gate' },
   { id: 'always_stop', label: 'Always answer directly' },
-  { id: 'always_escalate', label: 'Always use the research agent' },
+  { id: 'always_escalate', label: 'Always research with tools' },
 ]
 const SUGGESTIONS = [
   'Explain how a hash map works, with a Python example',
@@ -37,24 +39,36 @@ function readMode(): string {
 }
 
 function RouteBadges({ meta }: { meta: Partial<TurnMeta> }) {
-  if (meta.stopped) return <p className="mt-2 font-mono text-[11px] text-wine">stopped</p>
-  if (!meta.gate) return null
-  const escalated = meta.decision === 'ESCALATE'
+  if (meta.stopped) return <p className="mt-2 text-xs text-wine">Stopped</p>
+  const route = describeRoute(meta)
+  if (!route) return null
   return (
-    <div className="mt-2 flex flex-wrap items-center gap-1.5 font-mono text-[11px] text-navy/70">
-      <span className={`rounded-full px-2 py-0.5 ${escalated ? 'bg-ember text-ink' : 'bg-cyan/30 text-navy'}`}>
-        {meta.decision}
-      </span>
-      <span className="rounded-full border border-sky px-2 py-0.5" title={meta.gate_reason}>{GATE_LABELS[meta.gate] ?? meta.gate}</span>
-      {meta.task_type ? <span className="rounded-full border border-sky px-2 py-0.5">{meta.task_type}</span> : null}
-      {meta.total_tokens != null ? (
-        <span className="rounded-full border border-sky px-2 py-0.5" title={meta.tokens ? `probe ${meta.tokens.probe} · agent ${meta.tokens.agent} · answer ${meta.tokens.answer}` : undefined}>
-          {meta.total_tokens.toLocaleString()} tok
+    <div className="mt-2 min-w-0 text-xs text-navy/70">
+      <div className="flex flex-wrap items-center gap-1.5">
+        <span
+          className={`rounded-full px-2.5 py-0.5 font-medium ${route.escalated ? 'bg-ember text-ink' : meta.cached ? 'bg-lemon text-ink' : 'bg-cyan/30 text-navy'}`}
+          title={route.explanation}
+        >
+          {route.headline}
         </span>
-      ) : null}
-      {meta.latency_ms != null ? <span className="rounded-full border border-sky px-2 py-0.5">{(meta.latency_ms / 1000).toFixed(1)} s</span> : null}
-      {meta.cached ? <span className="rounded-full bg-lemon px-2 py-0.5 text-ink">cached</span> : null}
-      {meta.models?.answer ? <span className="hidden rounded-full border border-sky px-2 py-0.5 sm:inline" title={Object.entries(meta.models).map(([k, v]) => `${k}: ${v}`).join('\n')}>{meta.models.answer.split(':').pop()}</span> : null}
+        {meta.total_tokens != null ? <span className="rounded-full border border-sky px-2 py-0.5">{meta.total_tokens.toLocaleString()} tokens</span> : null}
+        {meta.latency_ms != null ? <span className="rounded-full border border-sky px-2 py-0.5">{formatSeconds(meta.latency_ms)}</span> : null}
+      </div>
+      <details className="group mt-1">
+        <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-navy/60 hover:text-navy">
+          How this was answered
+          <ChevronDown className="h-3 w-3 transition-transform group-open:rotate-180" />
+        </summary>
+        <p className="mt-1 text-navy/70">{route.explanation}</p>
+        <dl className="mt-1.5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5">
+          {route.details.map((d) => (
+            <div key={d.label} className="contents">
+              <dt className="text-navy/50">{d.label}</dt>
+              <dd className="break-words text-navy">{d.value}</dd>
+            </div>
+          ))}
+        </dl>
+      </details>
     </div>
   )
 }
@@ -80,7 +94,13 @@ function ToolList({ tools }: { tools: ToolCall[] }) {
 }
 
 function AssistantBubble({ message, onRate }: { message: ChatMessage; onRate: (id: string, rating: -1 | 0 | 1) => void }) {
-  const copy = () => navigator.clipboard?.writeText(message.content).catch(() => undefined)
+  const [copied, setCopied] = useState(false)
+  const copy = () => {
+    navigator.clipboard?.writeText(message.content).then(() => {
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1500)
+    }).catch(() => undefined)
+  }
   const rateable = !message.id.startsWith('stopped-') && !message.meta?.stopped
   const rating = message.rating ?? 0
   return (
@@ -89,12 +109,12 @@ function AssistantBubble({ message, onRate }: { message: ChatMessage; onRate: (i
       {message.meta?.tools?.length ? <ToolList tools={message.meta.tools} /> : null}
       <div className="flex items-start justify-between gap-2">
         <RouteBadges meta={message.meta ?? {}} />
-        <div className="mt-1.5 flex shrink-0 items-center gap-0.5">
+        <div className="flex shrink-0 items-center">
           {rateable ? (
             <>
               <button
                 onClick={() => onRate(message.id, rating === 1 ? 0 : 1)}
-                className={`rounded-lg p-1 hover:bg-ice ${rating === 1 ? 'text-navy' : 'text-navy/40'}`}
+                className={`rounded-lg p-2 hover:bg-ice ${rating === 1 ? 'text-navy' : 'text-navy/55'}`}
                 aria-label="Helpful"
                 aria-pressed={rating === 1}
               >
@@ -102,7 +122,7 @@ function AssistantBubble({ message, onRate }: { message: ChatMessage; onRate: (i
               </button>
               <button
                 onClick={() => onRate(message.id, rating === -1 ? 0 : -1)}
-                className={`rounded-lg p-1 hover:bg-ice ${rating === -1 ? 'text-wine' : 'text-navy/40'}`}
+                className={`rounded-lg p-2 hover:bg-ice ${rating === -1 ? 'text-wine' : 'text-navy/55'}`}
                 aria-label="Not helpful"
                 aria-pressed={rating === -1}
               >
@@ -110,8 +130,8 @@ function AssistantBubble({ message, onRate }: { message: ChatMessage; onRate: (i
               </button>
             </>
           ) : null}
-          <button onClick={copy} className="rounded-lg p-1 text-navy/50 opacity-0 transition-opacity hover:bg-ice hover:text-navy group-hover:opacity-100" aria-label="Copy answer">
-            <Copy className="h-4 w-4" />
+          <button onClick={copy} className="rounded-lg p-2 text-navy/55 transition-opacity hover:bg-ice hover:text-navy focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100" aria-label={copied ? 'Copied' : 'Copy answer'} title={copied ? 'Copied' : 'Copy answer'}>
+            {copied ? <Check className="h-4 w-4 text-navy" /> : <Copy className="h-4 w-4" />}
           </button>
         </div>
       </div>
@@ -153,12 +173,23 @@ function RoutingPanel({ scores, margin }: { scores: GateScore[]; margin: number 
   )
 }
 
+function useElapsedSeconds(): number {
+  const [seconds, setSeconds] = useState(0)
+  useEffect(() => {
+    const started = Date.now()
+    const timer = window.setInterval(() => setSeconds(Math.floor((Date.now() - started) / 1000)), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
+  return seconds
+}
+
 function LiveBubble({ live }: { live: Live }) {
+  const elapsed = useElapsedSeconds()
   const steps = [
-    { id: 'probe', label: live.probe ? `Probe: ${live.probe.task_type}, ${Math.round(live.probe.consistency * 100)}% agree` : 'Probing…' },
-    { id: 'gate', label: live.gate ? `${GATE_LABELS[live.gate.gate] ?? live.gate.gate} → ${live.gate.decision}` : 'Gate' },
+    { id: 'probe', label: live.probe ? `Quick check: ${live.probe.task_type}, ${Math.round(live.probe.consistency * 100)}% agree` : 'Quick check…' },
+    { id: 'gate', label: live.gate ? `${GATE_LABELS[live.gate.gate] ?? live.gate.gate}: ${live.gate.decision === 'ESCALATE' ? 'research' : 'answer directly'}` : 'Deciding' },
     ...(live.gate?.decision === 'ESCALATE' || live.tools.length ? [{ id: 'tools', label: live.tools.length ? `${live.tools.length} tool call(s)` : 'Researching…' }] : []),
-    { id: 'writing', label: 'Writing' },
+    { id: 'writing', label: 'Writing answer' },
   ]
   const order = ['probe', 'gate', 'tools', 'writing']
   return (
@@ -174,7 +205,16 @@ function LiveBubble({ live }: { live: Live }) {
           )
         })}
       </div>
-      {live.text ? <Markdown text={live.text + ' ▍'} /> : <div className="h-5 w-16 animate-pulse rounded bg-sky/40 motion-reduce:animate-none" />}
+      {live.text ? (
+        <Markdown text={live.text + ' ▍'} />
+      ) : (
+        <div className="flex items-center gap-3">
+          <div className="h-5 w-16 animate-pulse rounded bg-sky/40 motion-reduce:animate-none" />
+          <span className="text-xs text-navy/60" role="status">
+            {elapsed < 8 ? `Working… ${elapsed} s` : `Still working… ${elapsed} s. Harder questions take longer.`}
+          </span>
+        </div>
+      )}
       <ToolList tools={live.tools} />
     </div>
   )
@@ -194,6 +234,7 @@ export default function Chat() {
   const [documents, setDocuments] = useState<UploadedDocument[]>([])
   const [selectedDocs, setSelectedDocs] = useState<string[]>([])
   const [uploading, setUploading] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
   const abortRef = useRef<AbortController | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
@@ -273,6 +314,7 @@ export default function Chat() {
 
   const openConversation = async (id: string) => {
     if (live) return
+    setHistoryOpen(false)
     setActiveId(id)
     setError(null)
     try {
@@ -284,10 +326,16 @@ export default function Chat() {
 
   const newChat = () => {
     if (live) return
+    setHistoryOpen(false)
     setActiveId(null)
     setMessages([])
     setError(null)
     inputRef.current?.focus()
+  }
+
+  const renameConversation = async (id: string, title: string) => {
+    await chatApi.rename(id, title).catch((err: Error) => setError(err.message))
+    loadConversations()
   }
 
   const deleteConversation = async (id: string) => {
@@ -366,55 +414,58 @@ export default function Chat() {
 
   return (
     <div className="mx-auto grid h-[calc(100vh-7.5rem)] w-full max-w-7xl gap-4 lg:grid-cols-[250px_minmax(0,1fr)]">
-      <aside className="card hidden min-h-0 flex-col p-3 lg:flex" aria-label="Conversations">
-        <button onClick={newChat} className="mb-3 inline-flex items-center justify-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-soft">
-          <MessageSquarePlus className="h-4 w-4" /> New chat
-        </button>
-        <ul className="min-h-0 flex-1 space-y-1 overflow-y-auto">
-          {conversations.map((c) => (
-            <li key={c.id} className="group flex items-center">
-              <button
-                onClick={() => openConversation(c.id)}
-                className={`min-w-0 flex-1 truncate rounded-xl px-3 py-2 text-left text-sm ${c.id === activeId ? 'bg-navy text-ice' : 'text-navy hover:bg-ice'}`}
-                title={c.title}
-              >
-                {c.title}
-              </button>
-              <button onClick={() => deleteConversation(c.id)} className="ml-1 rounded-lg p-1.5 text-navy/40 opacity-0 hover:bg-wine/10 hover:text-wine group-hover:opacity-100" aria-label={`Delete ${c.title}`}>
-                <Trash2 className="h-3.5 w-3.5" />
-              </button>
-            </li>
-          ))}
-          {!conversations.length ? <li className="px-3 py-2 text-xs text-navy/50">No conversations yet.</li> : null}
-        </ul>
-        <div className="mt-3 border-t border-sky/60 pt-3">
-          <p className="mb-1.5 flex items-center justify-between px-1 text-xs font-semibold text-navy">
-            Documents
-            <span className="font-normal text-navy/50">{selectedDocs.length}/{documents.length} in use</span>
-          </p>
-          <ul className="max-h-40 space-y-1 overflow-y-auto" aria-label="Documents">
-            {documents.map((d) => (
-              <li key={d.id} className="group flex items-center gap-1.5 rounded-lg px-1 py-1 text-xs text-navy hover:bg-ice">
-                <input type="checkbox" checked={selectedDocs.includes(d.id)} onChange={() => toggleDoc(d.id)} aria-label={`Use ${d.name}`} className="accent-[#1B263B]" />
-                <FileText className="h-3.5 w-3.5 shrink-0 text-wine" />
-                <span className="min-w-0 flex-1 truncate" title={`${d.name} · ${d.chunks} passages`}>{d.name}</span>
-                <button onClick={() => removeDoc(d.id)} className="rounded p-0.5 text-navy/40 opacity-0 hover:text-wine group-hover:opacity-100" aria-label={`Remove ${d.name}`}>
-                  <X className="h-3 w-3" />
-                </button>
-              </li>
-            ))}
-            {!documents.length ? <li className="px-1 text-xs text-navy/50">Attach a file to ask about it.</li> : null}
-          </ul>
-        </div>
+      <aside className="card hidden min-h-0 flex-col p-3 lg:flex" aria-label="Conversation history">
+        <ChatSidebar
+          conversations={conversations}
+          activeId={activeId}
+          busy={!!live}
+          documents={documents}
+          selectedDocs={selectedDocs}
+          onOpen={openConversation}
+          onNew={newChat}
+          onDelete={deleteConversation}
+          onRename={renameConversation}
+          onToggleDoc={toggleDoc}
+          onRemoveDoc={removeDoc}
+        />
       </aside>
+
+      {historyOpen ? (
+        <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Conversation history">
+          <div className="absolute inset-0 bg-navy/50" onClick={() => setHistoryOpen(false)} />
+          <div className="absolute inset-y-0 left-0 flex w-[85%] max-w-sm flex-col bg-soft p-3 shadow-xl">
+            <button onClick={() => setHistoryOpen(false)} className="mb-2 self-end rounded-lg p-2 text-navy hover:bg-ice" aria-label="Close history">
+              <X className="h-4 w-4" />
+            </button>
+            <div className="min-h-0 flex-1">
+              <ChatSidebar
+                conversations={conversations}
+          activeId={activeId}
+          busy={!!live}
+          documents={documents}
+          selectedDocs={selectedDocs}
+          onOpen={openConversation}
+          onNew={newChat}
+          onDelete={deleteConversation}
+          onRename={renameConversation}
+          onToggleDoc={toggleDoc}
+          onRemoveDoc={removeDoc}
+              />
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       <section className="card flex min-h-0 flex-col p-0" aria-label="Chat">
         <div className="flex flex-wrap items-center gap-2 border-b border-sky/60 px-4 py-2.5">
           <h1 className="font-display text-lg font-bold text-ink">Chat</h1>
-          <button onClick={newChat} className="rounded-full border border-sky px-3 py-1 text-xs text-navy hover:bg-ice lg:hidden">New chat</button>
+          <button onClick={() => setHistoryOpen(true)} className="inline-flex items-center gap-1.5 rounded-full border border-sky px-3 py-1 text-xs text-navy hover:bg-ice lg:hidden">
+            <History className="h-3.5 w-3.5" /> History
+          </button>
+          <button onClick={newChat} disabled={!!live} className="rounded-full border border-sky px-3 py-1 text-xs text-navy hover:bg-ice disabled:opacity-50 lg:hidden">New chat</button>
           <label className="ml-auto flex items-center gap-2 text-xs text-navy/70">
-            Routing
-            <select value={gateMode} onChange={(e) => setGateMode(e.target.value)} className="rounded-full border border-sky bg-soft px-2.5 py-1 text-xs text-ink">
+            Mode
+            <select value={gateMode} onChange={(e) => setGateMode(e.target.value)} disabled={!!live} className="max-w-[11rem] rounded-full border border-sky bg-soft px-2.5 py-1 text-xs text-ink disabled:opacity-60 sm:max-w-none" title="How the assistant decides how much effort a question needs">
               {GATE_MODES.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
           </label>
@@ -427,8 +478,13 @@ export default function Chat() {
             <div className="mx-auto mt-6 max-w-2xl text-center">
               <h2 className="text-3xl font-bold text-ink">Ask anything</h2>
               <p className="mt-2 text-sm text-navy/70">
-                A quick probe checks how sure a single answer would be; the gate sends hard questions to a research agent with tools.
+                Easy questions get a direct answer. Harder ones are researched with tools first, so you get accuracy without paying for effort you do not need.
               </p>
+              <ul className="mt-3 flex flex-wrap justify-center gap-1.5 text-xs text-navy/70" aria-label="What it can do">
+                {['Attach files and ask about them', 'Looks facts up on Wikipedia', 'Runs Python safely', 'Learns from your 👍 / 👎'].map((t) => (
+                  <li key={t} className="rounded-full border border-sky px-2.5 py-0.5">{t}</li>
+                ))}
+              </ul>
               <div className="mt-6 grid gap-2 sm:grid-cols-2">
                 {SUGGESTIONS.map((s) => (
                   <button key={s} onClick={() => send(s)} disabled={backend !== 'online'} className="rounded-2xl border border-sky bg-soft px-4 py-3 text-left text-sm text-navy hover:bg-ice disabled:opacity-50">
@@ -485,7 +541,7 @@ export default function Chat() {
               onChange={(e) => setInput(e.target.value)}
               onKeyDown={onKeyDown}
               rows={Math.min(6, Math.max(1, input.split('\n').length))}
-              placeholder={backend === 'online' ? 'Message GateOrchestra…  (Enter to send, Shift+Enter for a new line)' : 'Connecting to the API…'}
+              placeholder={backend === 'online' ? 'Ask a question…' : 'Connecting to the API…'}
               aria-label="Message"
               className="max-h-40 min-h-[2.25rem] flex-1 resize-none bg-transparent py-1.5 text-sm text-ink outline-none"
             />
@@ -499,6 +555,9 @@ export default function Chat() {
               </button>
             )}
           </div>
+          <p className="mx-auto mt-1.5 hidden max-w-3xl px-3 text-[11px] text-navy/55 sm:block">
+            Enter to send · Shift+Enter for a new line · Answers can be wrong, so check anything important.
+          </p>
         </div>
       </section>
 
