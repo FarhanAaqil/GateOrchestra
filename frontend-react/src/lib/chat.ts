@@ -114,7 +114,7 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
 
 /** Send one message and receive the turn's events as they stream in. */
 export async function streamChat(
-  body: { message: string; conversation_id?: string | null; gate_mode?: string | null; document_ids?: string[] | null },
+  body: { message: string; conversation_id?: string | null; gate_mode?: string | null; document_ids?: string[] | null; replace_last?: boolean },
   onEvent: (event: ChatEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {

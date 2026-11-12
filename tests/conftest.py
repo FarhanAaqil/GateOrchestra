@@ -22,6 +22,12 @@ def _no_real_llm_calls(monkeypatch: pytest.MonkeyPatch) -> None:
 
 
 @pytest.fixture(autouse=True)
+def _no_background_warm_up(monkeypatch: pytest.MonkeyPatch) -> None:
+    """The server loads spaCy in the background at start-up; tests do not need that."""
+    monkeypatch.setenv("ASSISTANT_WARMUP", "0")
+
+
+@pytest.fixture(autouse=True)
 def _isolated_api_history(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
     """Keep each test's API run history in its own file, never in logs/."""
     import sys

@@ -48,6 +48,9 @@ class ChatRequest(BaseModel):
     conversation_id: str | None = None
     gate_mode: str | None = Field(default=None, description="auto, or a gate name to force")
     document_ids: list[str] | None = None
+    replace_last: bool = Field(
+        default=False, description="drop the last question and answer first (regenerate or edit)"
+    )
 
 
 class RenameRequest(BaseModel):
@@ -105,6 +108,7 @@ def chat(body: ChatRequest) -> StreamingResponse:
                     body.conversation_id,
                     gate_mode=body.gate_mode,
                     document_ids=body.document_ids,
+                    replace_last=body.replace_last,
                 )
             )
         finally:

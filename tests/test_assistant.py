@@ -709,10 +709,10 @@ def test_cascade_sends_confident_simple_answers_to_the_fast_model(
     from assistant.probe import ChatProbe
     from shared.schemas import ProbeResult
 
-    def probe(consistency: float, kind: str) -> ChatProbe:
+    def probe(consistency: float, kind: str, answer: str = "a") -> ChatProbe:
         result = ProbeResult(
             task_id="t",
-            answer="a",
+            answer=answer,
             consistency_score=consistency,
             tokens_used=10,
             latency_ms=1.0,
@@ -724,6 +724,11 @@ def test_cascade_sends_confident_simple_answers_to_the_fast_model(
     assert service.answer_role("STOP", probe(0.5, "factual")) == "answer"
     assert service.answer_role("STOP", probe(1.0, "code")) == "answer"
     assert service.answer_role("ESCALATE", probe(1.0, "factual")) == "answer"
+    # Long or list answers and creative requests need the larger model.
+    long_answer = "La hojarasca, El otono del patriarca, Cronica de una muerte anunciada"
+    assert service.answer_role("STOP", probe(1.0, "factual", long_answer)) == "answer"
+    assert service.answer_role("STOP", probe(1.0, "creative")) == "answer"
+    assert service.answer_role("STOP", probe(1.0, "factual", "Gabriel Garcia Marquez")) == "fast"
 
 
 def test_feedback_and_gate_report_api(service: AssistantService) -> None:
