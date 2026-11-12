@@ -1,6 +1,6 @@
 # GateOrchestra API (FastAPI + the chat assistant).
 # Build:  docker build -t gateorchestra-api .
-# Run:    docker run --env-file .env -p 8000:8000 gateorchestra-api
+# Run:    docker run --env-file .env -p 3700:3700 gateorchestra-api
 # Secrets come from the environment at run time; none are baked into the image.
 FROM python:3.12-slim
 
@@ -28,8 +28,8 @@ RUN pip install . && python -m spacy download en_core_web_sm \
     && mkdir -p /app/logs && chown -R app /app/logs
 
 USER app
-EXPOSE 8000
+EXPOSE 3700
 HEALTHCHECK --interval=30s --timeout=5s --retries=3 \
-    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/health', timeout=4)"
+    CMD python -c "import urllib.request; urllib.request.urlopen('http://127.0.0.1:3700/health', timeout=4)"
 
-CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "8000", "--proxy-headers", "--forwarded-allow-ips", "*"]
+CMD ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "3700", "--proxy-headers", "--forwarded-allow-ips", "*"]
