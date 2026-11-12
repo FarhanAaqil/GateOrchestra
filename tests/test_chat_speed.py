@@ -355,3 +355,25 @@ def test_a_chat_that_starts_with_hi_is_named_after_the_first_real_question(
     list(ChatPipeline(service).run("And the second tallest?", cid))
     title = next(c["title"] for c in service.store.list_conversations(10) if c["id"] == cid)
     assert title == "What is the tallest mountain?"
+
+
+def test_the_question_remembers_which_documents_it_used(service: AssistantService) -> None:
+    import base64
+
+    from fastapi.testclient import TestClient
+
+    from api.main import app
+
+    client = TestClient(app)
+    doc = client.post(
+        "/documents",
+        json={
+            "name": "notes.txt",
+            "content_base64": base64.b64encode(b"The launch code is ORCHID-7. " * 20).decode(),
+        },
+    ).json()
+    events = list(ChatPipeline(service).run("What is the launch code?", document_ids=[doc["id"]]))
+    stored = service.store.messages(events[0]["conversation_id"])
+    assert stored[0]["role"] == "user" and stored[0]["meta"]["documents"] == ["notes.txt"]
+    plain = list(ChatPipeline(service).run("What is the tallest mountain?"))
+    assert service.store.messages(plain[0]["conversation_id"])[0]["meta"] == {}

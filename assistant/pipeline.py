@@ -96,7 +96,10 @@ class ChatPipeline:
         replaced = self._last_exchange_ids(cid) if replace_last and conversation_id else []
         kept = [r for r in store.messages(cid) if r["id"] not in replaced]
         history = _history_for_model(kept[-settings.history_messages :])
-        user_mid = store.add_message(cid, "user", text)
+        attached = [d["name"] for d in store.documents() if d["id"] in (document_ids or [])]
+        user_mid = store.add_message(
+            cid, "user", text, {"documents": attached} if attached else None
+        )
         if conversation_id and not is_small_talk(text):
             asked = [r["content"] for r in kept if r["role"] == "user"]
             if asked and all(is_small_talk(q) for q in asked):

@@ -24,6 +24,7 @@ export interface TurnMeta {
   cached?: boolean
   stopped?: boolean
   verdicts?: Record<string, string>
+  documents?: string[]
 }
 
 export interface ChatMessage {
