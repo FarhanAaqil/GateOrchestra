@@ -44,11 +44,10 @@ What it shows:
   CoT-SC. The rule-based gate, which escalates 70% of tasks, is significantly worse than CoT-SC (p = 0.004).
 - **Little room for any gate.** An oracle would escalate only 2-5% of questions here. Probe consistency is
   the one feature the logistic gate depends on.
-- **A stronger model changes little.** A reduced run on Qwen3.8-27B (1 seed, 1 calibration repeat) scores
-  99.0% for CoT-SC and 95.8% for Always-MAS on the test split; the gate escalates nothing, which is correct
-  (report Section 8.9). A first pilot suggested MAS helped qwen, but that came from a probe budget that cut
-  its answers off, and it disappeared once answers could finish. The `gpt-oss-120b` run hit Groq's daily
-  token limit and is not finished.
+- **Stronger models change little.** Reduced runs (1 seed, 1 calibration repeat) on Qwen3.8-27B and gpt-oss-120b
+  both score 99.0% for CoT-SC and 95.8% for Always-MAS on the test split; the gate escalates nothing and matches
+  CoT-SC, at 54% fewer tokens than Always-MAS on gpt-oss-120b (report Section 8.9). A first pilot suggested MAS
+  helped qwen, but that came from a probe budget that cut its answers off. The Results page can switch between runs.
 - **The test set is near the ceiling.** The 64 tasks added late are easier than the original 32 (CoT-SC scores
   98.4% on them vs 93.8%) and were fact-checked by the assistant, not a second person, so the larger split sharpens the comparison
   less than its size suggests. `dataset/masbench_mini/REVIEW.json` records who reviewed which tasks.

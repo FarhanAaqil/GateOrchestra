@@ -19,6 +19,7 @@ import logging
 import os
 import sys
 import threading
+from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
@@ -72,11 +73,33 @@ from shared.token_logger import TokenAccountant  # noqa: E402
 logger = logging.getLogger(__name__)
 
 MASTER_RESULTS_PATH = ROOT / "results" / "real" / "final" / "master_results.json"
+RESULTS_ROOT = ROOT / "results" / "real"
+RUN_LABELS = {
+    "final": "Qwen2.5-3B, main benchmark (2 seeds)",
+    "groq-qwen3-27b": "Qwen3.8-27B, reduced run (1 seed)",
+    "groq-gpt-oss-120b": "gpt-oss-120b, reduced run (1 seed)",
+}
 RANDOM_GATE_ESCALATION_RATE = 0.5
 
 # Application & State
 
+
+def _warm_up_assistant() -> None:
+    """Start loading the chat's question analyser so the first message is not slow."""
+    if os.getenv("ASSISTANT_WARMUP", "1") != "0":
+        from assistant.service import get_service
+
+        get_service().warm_up()
+
+
+@asynccontextmanager
+async def _lifespan(_app: FastAPI):
+    _warm_up_assistant()
+    yield
+
+
 app = FastAPI(
+    lifespan=_lifespan,
     title="GateOrchestra API",
     description="API bridge for the GateOrchestra multi-agent gating pipeline",
     version="1.2.0",
@@ -124,16 +147,37 @@ def _load_split_cached(split: str) -> list[Task]:
     return _cached(f"split:{split}", _split_paths(split), lambda: load_split(split))  # type: ignore[arg-type]
 
 
-def _verified_master() -> tuple[dict[str, Any], list[str], list[str]]:
-    """master_results.json with its verification outcome (cached until it changes)."""
+def available_runs() -> list[str]:
+    """Benchmark runs with results on disk: the main run first, then tagged runs."""
+    runs = ["final"] if MASTER_RESULTS_PATH.exists() else []
+    if RESULTS_ROOT.exists():
+        for child in sorted(RESULTS_ROOT.iterdir()):
+            if child.name != "final" and (child / "master_results.json").exists():
+                runs.append(child.name)
+    return runs
+
+
+def _run_path(run: str | None) -> Path:
+    """The master_results.json of ``run``; only runs found on disk are accepted."""
+    if not run or run == "final":
+        return MASTER_RESULTS_PATH
+    if run not in available_runs():
+        raise HTTPException(status_code=404, detail=f"No benchmark run called {run!r}.")
+    return RESULTS_ROOT / run / "master_results.json"
+
+
+def _verified_master(run: str | None = None) -> tuple[dict[str, Any], list[str], list[str]]:
+    """A run's master_results.json with its verification outcome (cached until it changes)."""
     from scripts.verify_final_results import verify_master_results  # noqa: PLC0415
 
+    path = _run_path(run)
+
     def build() -> tuple[dict[str, Any], list[str], list[str]]:
-        data = json.loads(MASTER_RESULTS_PATH.read_text(encoding="utf-8"))
-        errors, partial = verify_master_results(MASTER_RESULTS_PATH, allow_partial=True)
+        data = json.loads(path.read_text(encoding="utf-8"))
+        errors, partial = verify_master_results(path, allow_partial=True)
         return data, errors, partial
 
-    return _cached(f"master:{MASTER_RESULTS_PATH}", [MASTER_RESULTS_PATH], build)
+    return _cached(f"master:{path}", [path], build)
 
 
 # Cached learned gate instance to avoid repeated disk reads
@@ -378,22 +422,39 @@ def clear_history() -> dict[str, str]:
 # Benchmark Results Endpoint
 
 
+@app.get("/results/runs")
+def list_runs() -> dict[str, Any]:
+    """The benchmark runs the Results page can show."""
+    runs = []
+    for run in available_runs():
+        data = json.loads(_run_path(run).read_text(encoding="utf-8"))
+        runs.append(
+            {
+                "id": run,
+                "label": RUN_LABELS.get(run, run),
+                "seeds": data.get("seeds", []),
+                "main": run == "final",
+            }
+        )
+    return {"runs": runs}
+
+
 @app.get("/demo/summary")
-def get_demo_summary() -> dict[str, Any]:
+def get_demo_summary(run: str | None = Query(default=None, max_length=80)) -> dict[str, Any]:
     """Return the recorded real benchmark results and whether they pass verification.
 
     Nothing here is hardcoded: the numbers come from
     results/real/final/master_results.json, checked by
     scripts/verify_final_results.py.
     """
-    if not MASTER_RESULTS_PATH.exists():
+    if not _run_path(run).exists():
         return {
             "status": "no_results",
             "message": "No real benchmark results yet. Run scripts/final_benchmark.py.",
             "aggregated": [],
         }
 
-    data, errors, partial = _verified_master()
+    data, errors, partial = _verified_master(run)
     if errors:
         status = "unverified"
     elif partial:
@@ -607,7 +668,7 @@ def gate_importance() -> dict[str, Any]:
 
 
 @app.get("/results/detail")
-def results_detail() -> dict[str, Any]:
+def results_detail(run: str | None = Query(default=None, max_length=80)) -> dict[str, Any]:
     """Per-task outcomes and derived views of the recorded benchmark results."""
     empty: dict[str, list[Any]] = {
         "per_task": [],
@@ -616,9 +677,10 @@ def results_detail() -> dict[str, Any]:
         "k_sweep": [],
         "gates": [],
     }
-    if not MASTER_RESULTS_PATH.exists():
+    path = _run_path(run)
+    if not path.exists():
         return {"status": "no_results", **empty}
-    master, errors, partial = _verified_master()
+    master, errors, partial = _verified_master(run)
     status = "unverified" if errors else "partial" if partial else "verified"
 
     def build() -> dict[str, Any]:
@@ -629,5 +691,5 @@ def results_detail() -> dict[str, Any]:
         }
         return build_results_detail(master, labels)
 
-    paths = [MASTER_RESULTS_PATH, *(p for s in ("train", "val", "test") for p in _split_paths(s))]
-    return {"status": status, **_cached("results_detail", paths, build)}
+    paths = [path, *(p for s in ("train", "val", "test") for p in _split_paths(s))]
+    return {"status": status, **_cached(f"results_detail:{path}", paths, build)}

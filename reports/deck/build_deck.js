@@ -300,6 +300,45 @@ if (a.budget) text(s, [
     + `by at most ${a.budget.max_overshoot_pct.toFixed(1)}%. The cap is checked on a chars/4 prompt estimate.` },
 ], { x: 5.0, y: 3.0, w: 4.5, h: 1.4, fontSize: 13, color: HEX.navy });
 
+// 10b. Stronger models (reduced runs, read from their own result files)
+const TAGGED = [
+  { id: "final", label: "Qwen2.5-3B (main, 2 seeds)", file: MASTER },
+  { id: "groq-qwen3-27b", label: "Qwen3.8-27B (1 seed)" },
+  { id: "groq-gpt-oss-120b", label: "gpt-oss-120b (1 seed)" },
+].map((r) => ({ ...r, file: r.file || path.join(ROOT, "results", "real", r.id, "master_results.json") }))
+  .filter((r) => fs.existsSync(r.file))
+  .map((r) => ({ ...r, data: JSON.parse(fs.readFileSync(r.file, "utf8")) }));
+if (TAGGED.length > 1) {
+  const cell = (d, method) => d.aggregated.find((x) => x.method === method);
+  s = content(story.stronger_title || "Bigger models, same answer", "Results");
+  const series = ["CoT-SC-only", "Always-MAS", "GateOrchestra"].map((method) => ({
+    name: method,
+    labels: TAGGED.map((r) => r.label.split(" (")[0]),
+    values: TAGGED.map((r) => (cell(r.data, method) || {}).accuracy_mean || 0),
+  }));
+  s.addChart(pres.charts.BAR, series, {
+    x: 0.5, y: 1.15, w: 4.6, h: 3.9, barDir: "col", barGrouping: "clustered",
+    chartColors: [METHOD_HEX["CoT-SC-only"], METHOD_HEX["Always-MAS"], METHOD_HEX["GateOrchestra"]],
+    showValue: true, dataLabelFormatCode: "0\"%\"", dataLabelFontSize: 9, valAxisMinVal: 80, valAxisMaxVal: 100,
+    valAxisMajorUnit: 5, showLegend: true, legendPos: "b", legendFontSize: 10, showTitle: true,
+    title: "Test accuracy", ...AXIS });
+  const hdr = ["Model", "Gate escalates", "Tokens vs Always-MAS"].map((t) => ({ text: t,
+    options: { bold: true, color: "FFFFFF", fill: { color: HEX.navy }, fontSize: 11 } }));
+  s.addTable([hdr, ...TAGGED.map((r) => {
+    const g = cell(r.data, "GateOrchestra") || {};
+    return [
+      { text: r.label, options: { bold: r.id === "final" } },
+      g.escalate_rate_mean == null ? "-" : pct(g.escalate_rate_mean, 0),
+      g.token_savings_pct_mean == null ? "-" : `-${g.token_savings_pct_mean.toFixed(0)}%`,
+    ];
+  })], { x: 5.4, y: 1.25, w: 4.1, colW: [1.9, 1.0, 1.2], fontSize: 11, color: HEX.ink,
+    border: { type: "solid", color: HEX.grid, pt: 0.75 }, fill: { color: "FFFFFF" }, rowH: 0.4 });
+  text(s, story.stronger_text || "On both larger models CoT-SC already answers 99% of the test tasks, MAS is lower, "
+    + "and the gate correctly stops. The dataset, not the model, now limits what a gate can show.",
+    { x: 5.4, y: 3.2, w: 4.1, h: 1.6, fontSize: 13, color: HEX.ink });
+  s.addNotes(story.stronger_note || "Reduced runs: one seed and one calibration repeat each, so there is no run-to-run spread.");
+}
+
 // 11. Power
 pres.addSection({ title: "Conclusion" });
 s = content(`How much ${SIZE.test} test tasks can tell us`, "Conclusion");
@@ -317,7 +356,7 @@ if (pw && pw.n_pairs_pooled) {
     "observed: GateOrchestra minus Always-MAS", HEX.ember);
 }
 text(s, story.limits || [
-  { text: "One 3B model; a larger model may change the premise.", options: { bullet: true, breakLine: true } },
+  { text: "Larger models were run once each (one seed), and both nearly saturate this dataset.", options: { bullet: true, breakLine: true } },
   { text: "The 64 test tasks added late are easier than the original 32 and were reviewed by the assistant, not a second person.", options: { bullet: true, breakLine: true } },
   { text: "Seeds share test tasks, so pooled tests overstate the evidence.", options: { bullet: true } },
 ], { x: 0.5, y: 3.1, w: 9, h: 1.8, fontSize: 14, color: HEX.ink, paraSpaceAfter: 6 });
