@@ -1,4 +1,4 @@
-import { ArrowUp, Check, ChevronDown, Copy, History, Loader2, Paperclip, Square, ThumbsDown, ThumbsUp, Wrench, X } from 'lucide-react'
+import { ArrowUp, Check, ChevronDown, Copy, History, Loader2, Paperclip, RefreshCw, Square, ThumbsDown, ThumbsUp, Wrench, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import ChatSidebar from '../components/ChatSidebar'
 import KeyDialog from '../components/KeyDialog'
@@ -93,7 +93,7 @@ function ToolList({ tools }: { tools: ToolCall[] }) {
   )
 }
 
-function AssistantBubble({ message, onRate }: { message: ChatMessage; onRate: (id: string, rating: -1 | 0 | 1) => void }) {
+function AssistantBubble({ message, onRate, onRegenerate }: { message: ChatMessage; onRate: (id: string, rating: -1 | 0 | 1) => void; onRegenerate?: () => void }) {
   const [copied, setCopied] = useState(false)
   const copy = () => {
     navigator.clipboard?.writeText(message.content).then(() => {
@@ -129,6 +129,11 @@ function AssistantBubble({ message, onRate }: { message: ChatMessage; onRate: (i
                 <ThumbsDown className="h-4 w-4" fill={rating === -1 ? 'currentColor' : 'none'} />
               </button>
             </>
+          ) : null}
+          {onRegenerate && rateable ? (
+            <button onClick={onRegenerate} className="rounded-lg p-2 text-navy/55 hover:bg-ice hover:text-navy" aria-label="Regenerate answer" title="Try again">
+              <RefreshCw className="h-4 w-4" />
+            </button>
           ) : null}
           <button onClick={copy} className="rounded-lg p-2 text-navy/55 transition-opacity hover:bg-ice hover:text-navy focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100" aria-label={copied ? 'Copied' : 'Copy answer'} title={copied ? 'Copied' : 'Copy answer'}>
             {copied ? <Check className="h-4 w-4 text-navy" /> : <Copy className="h-4 w-4" />}
@@ -344,9 +349,10 @@ export default function Chat() {
     loadConversations()
   }
 
-  const send = async (text: string) => {
+  const send = async (text: string, options: { replaceLast?: boolean } = {}) => {
     const message = text.trim()
     if (!message || live) return
+    if (options.replaceLast) setMessages((m) => m.slice(0, Math.max(0, m.length - 2)))
     localId.current += 1
     const optimistic: ChatMessage = { id: `local-${localId.current}`, role: 'user', content: message }
     setMessages((m) => [...m, optimistic])
@@ -358,7 +364,7 @@ export default function Chat() {
     abortRef.current = controller
     try {
       await streamChat(
-        { message, conversation_id: activeId, gate_mode: gateMode, document_ids: selectedDocs.length ? selectedDocs : null },
+        { message, conversation_id: activeId, gate_mode: gateMode, document_ids: selectedDocs.length ? selectedDocs : null, replace_last: !!options.replaceLast },
         (event) => {
           if (event.type === 'meta') {
             setActiveId(event.conversation_id)
@@ -403,6 +409,12 @@ export default function Chat() {
       loadConversations()
       loadRouting()
     }
+  }
+
+  const lastUser = [...messages].reverse().find((m) => m.role === 'user')
+  const lastAssistantId = [...messages].reverse().find((m) => m.role === 'assistant')?.id
+  const regenerate = () => {
+    if (lastUser && !live) send(lastUser.content, { replaceLast: true })
   }
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
@@ -501,7 +513,7 @@ export default function Chat() {
                   <p className="max-w-[85%] whitespace-pre-wrap rounded-3xl rounded-br-md bg-navy px-4 py-2.5 text-sm text-ice">{m.content}</p>
                 </div>
               ) : (
-                <AssistantBubble key={m.id} message={m} onRate={rate} />
+                <AssistantBubble key={m.id} message={m} onRate={rate} onRegenerate={m.id === lastAssistantId ? () => regenerate() : undefined} />
               ),
             )}
             {live ? <LiveBubble live={live} /> : null}

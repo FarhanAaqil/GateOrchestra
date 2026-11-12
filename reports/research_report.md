@@ -297,7 +297,17 @@ On the 129 calibration tasks CoT-SC scored 99.2% (128) against MAS's 96.9% (125)
 
 **A measurement trap worth recording.** A 40-task pilot with the default 1,000-token probe budget showed the opposite picture for qwen: CoT-SC 87.5% against MAS 97.5% (MAS fixed 4 tasks and broke none). Inspection showed that in 4 of the 5 CoT-SC failures none of the three samples reached a final answer: qwen reasons at length and the 333-token-per-sample limit cut it off, while MAS runs with a larger budget. Raising the probe budget to 2,400 let every sample finish, and the gap disappeared. A fixed probe budget tuned on a small model can therefore make a larger model's CoT-SC look worse than it is, and `GATE_PROBE_TOKEN_BUDGET` is recorded in the run identity so such runs are never mixed. The pilot on the two `gpt-oss` models (same 1,000-token budget) was not usable for the same reason, and `gpt-oss-20b` also failed 7 of 40 tasks because it sometimes answers a ReAct prompt with an unrequested tool call.
 
-**`gpt-oss-120b` was not finished.** Its full run completed calibration and the test CoT-SC pass, then hit Groq's daily limit of 200,000 tokens per account and was stopped. The checkpoint is kept and resumes with `GATE_RUN_TAG=groq-gpt-oss-120b` once the quota recovers; no `gpt-oss-120b` benchmark result is reported here.
+**`gpt-oss-120b`, reduced run.** The same reduced design (one seed, one calibration repeat, 2,400-token probe budget) was then completed on `openai/gpt-oss-120b`, after a first attempt hit Groq's daily limit of 200,000 tokens per account and was resumed the next day from its checkpoint (`results/real/groq-gpt-oss-120b/`, `reports/groq-gpt-oss-120b/`, verified as PARTIAL for the single seed).
+
+| Method | Test accuracy | Avg tokens | Escalation |
+|:--|--:|--:|--:|
+| CoT-SC-only | 99.0% (95/96) | 921 | 0% |
+| Always-MAS | 95.8% (92/96) | 2,001 | 100% |
+| RandomGate | 99.0% | 921 | 0% |
+| RuleBasedGate | 99.0% | 2,046 | 67% |
+| **GateOrchestra** | **99.0%** | **921** | **0%** |
+
+On calibration CoT-SC scored 95.3% (123 of 129) and MAS 89.9% (116); MAS was better on 4 tasks and worse on 11 (sign test p = 0.12) while using 1.47 times the tokens. An oracle would escalate 4 tasks (3.1%) and reach 98.4%, so this model leaves slightly more room than qwen, but the learned gate (a GBT, which escalated nothing on validation) did not find it. Unlike the qwen run, the router used all three sub-agents (on train: ReAct 80 runs, Reflexion 9, Debate 8). GateOrchestra matched CoT-SC and spent 54% fewer tokens than Always-MAS; the advantage over Always-MAS (3 tasks to 0) is not significant (p = 0.25).
 
 Caveats: one seed gives no between-run spread; the test split still contains the 64 easier added tasks, which makes the ceiling effect stronger; and a single hosted model says little about models in general.
 
@@ -316,7 +326,7 @@ The strict grader also hurts CoT-SC occasionally (cmp_036: "Johannes Gutenberg's
 
 ## 10. Limitations
 
-- **One small model.** Qwen2.5-3B is the largest model that fits the 4 GB GPU; the Blueprint names 7B. Small models are known to follow multi-agent protocols poorly, so the negative premise may not transfer to stronger models.
+- **Model scale.** The main benchmark uses Qwen2.5-3B, the largest model that fits the 4 GB GPU. Reduced runs on Qwen3.8-27B and gpt-oss-120b (one seed, one calibration repeat) reach the same conclusion, but with one seed each they cannot bound run-to-run variation, and both models nearly saturate this dataset.
 - **The test set is near the ceiling.** Accuracy on the 64 added tasks is 98.4% for CoT-SC, so the test split cannot separate methods that differ by only a few points, and the pooled significance tests are optimistic because both seeds use the same tasks.
 - **Two seeds.** Chosen to keep the benchmark to about three hours on the available GPU; it shows between-run variation but cannot bound it tightly.
 - **Single-reviewer new tasks.** The 161 original tasks were reviewed by a person; the 64 added tasks were read and fact-checked by the AI assistant that wrote them, at the owner's request (no corrections found), so no independent human has read them.
@@ -328,13 +338,13 @@ The strict grader also hurts CoT-SC occasionally (cmp_036: "Johannes Gutenberg's
 
 ## 11. Conclusion
 
-On Qwen2.5-3B, the multi-agent system is not worth its cost: it is less accurate than three-sample self-consistency and uses about a quarter more tokens. GateOrchestra's learned gate recognised this and almost always stopped, reaching 97.9% accuracy against Always-MAS's 92.2% at a third fewer tokens, matching CoT-SC, and clearly outperforming a hand-written gate. The gate learned the right policy for the systems it was given; what it could not do was create value that the MAS does not provide at this scale.
+On Qwen2.5-3B, the multi-agent system is not worth its cost: it is less accurate than three-sample self-consistency and uses about a quarter more tokens. GateOrchestra's learned gate recognised this and almost always stopped, reaching 97.9% accuracy against Always-MAS's 92.2% at a third fewer tokens, matching CoT-SC, and clearly outperforming a hand-written gate. Reduced runs on two much larger models, Qwen3.8-27B and gpt-oss-120b, point the same way: CoT-SC reaches 99% on the test split, MAS is lower, and the gate correctly stops, so the next step is a harder benchmark rather than a bigger model. The gate learned the right policy for the systems it was given; what it could not do was create value that the MAS does not provide at this scale.
 
 ---
 
 ## 12. Future Work
 
-1. Finish the `gpt-oss-120b` run and repeat the qwen run with more seeds and three calibration repeats once the hosted quotas allow it (Section 8.9). Both reduced stronger-model results point to the same problem as the 3B model: the dataset is too easy for them, so a harder benchmark is the next step (item 2).
+1. Repeat the qwen and `gpt-oss-120b` runs with more seeds and three calibration repeats once the hosted quotas allow it (Section 8.9). Both reduced stronger-model results point to the same problem as the 3B model: the dataset is too easy for them, so a harder benchmark is the next step (item 2).
 2. Add harder test tasks, so methods are separated by more than a handful of disagreements.
 3. Make MAS answers concise (a shared final-answer step), then rerun to separate reasoning errors from formatting.
 4. Have a second person read the 64 added tasks.

@@ -68,14 +68,22 @@ export async function checkBackend(): Promise<void> {
   }
 }
 
+export interface BenchmarkRun {
+  id: string
+  label: string
+  seeds: number[]
+  main: boolean
+}
+
 export const api = {
   models: () => cachedGet<ModelsResponse>('/models'),
   tasks: (split: 'train' | 'val' | 'test', limit = 100, offset = 0) =>
     cachedGet<TasksResponse>(`/tasks?split=${split}&limit=${limit}&offset=${offset}`),
   history: () => request<{ count: number; history: RunResult[] }>('/history'),
-  summary: () => cachedGet<SummaryResponse>('/demo/summary'),
+  summary: (run?: string) => cachedGet<SummaryResponse>(run && run !== 'final' ? `/demo/summary?run=${encodeURIComponent(run)}` : '/demo/summary'),
+  runs: () => cachedGet<{ runs: BenchmarkRun[] }>('/results/runs'),
   gateImportance: () => cachedGet<ImportanceResponse>('/gate/importance'),
-  resultsDetail: () => cachedGet<ResultsDetail>('/results/detail'),
+  resultsDetail: (run?: string) => cachedGet<ResultsDetail>(run && run !== 'final' ? `/results/detail?run=${encodeURIComponent(run)}` : '/results/detail'),
   run: async (body: RunRequest, signal?: AbortSignal) => {
     const result = await request<RunResult>('/run', {
       method: 'POST',

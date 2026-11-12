@@ -26,6 +26,7 @@ import time
 import urllib.error
 import urllib.request
 from collections.abc import Callable, Iterator
+from contextvars import ContextVar
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -37,6 +38,11 @@ logger = logging.getLogger(__name__)
 
 ROLES = ("probe", "fast", "answer", "agent", "guard")
 SHORT_WAIT_SECONDS = 8.0
+QUICK_ROLES = frozenset({"probe", "guard"})
+STREAM_RETRIES = 2  # extra attempts when a stream fails before any text
+
+# Shortens the HTTP timeout for the current call (set by Gateway.complete for quick roles).
+_timeout_override: ContextVar[float | None] = ContextVar("llm_timeout_override", default=None)
 USER_AGENT = "GateOrchestra/1.0"
 _THINK = re.compile(r"<think>.*?</think>", re.DOTALL)
 
@@ -97,6 +103,9 @@ class StreamEvent:
 
 
 def _open(url: str, body: dict[str, Any] | None, headers: dict[str, str], timeout: float) -> Any:
+    override = _timeout_override.get()
+    if override is not None:
+        timeout = min(timeout, override)
     data = json.dumps(body).encode("utf-8") if body is not None else None
     request = urllib.request.Request(
         url,
@@ -177,9 +186,16 @@ def clean_text(text: str) -> str:
 class GroqClient:
     name = "groq"
 
-    def __init__(self, base: str, timeout: float, reasoning_effort: str) -> None:
+    def __init__(
+        self,
+        base: str,
+        timeout: float,
+        reasoning_effort: str,
+        stream_timeout: float | None = None,
+    ) -> None:
         self.base = base.rstrip("/")
         self.timeout = timeout
+        self.stream_timeout = min(timeout, stream_timeout) if stream_timeout else timeout
         self.reasoning_effort = reasoning_effort
 
     def _body(
@@ -257,7 +273,7 @@ class GroqClient:
             f"{self.base}/chat/completions",
             self._body(model, messages, max_tokens, temperature, tools, True),
             {"Authorization": f"Bearer {key}"},
-            self.timeout,
+            self.stream_timeout,
         )
 
         def events() -> Iterator[StreamEvent]:
@@ -327,9 +343,10 @@ def _gemini_payload(
 class GeminiClient:
     name = "gemini"
 
-    def __init__(self, base: str, timeout: float) -> None:
+    def __init__(self, base: str, timeout: float, stream_timeout: float | None = None) -> None:
         self.base = base.rstrip("/")
         self.timeout = timeout
+        self.stream_timeout = min(timeout, stream_timeout) if stream_timeout else timeout
 
     def complete(
         self,
@@ -373,7 +390,7 @@ class GeminiClient:
             f"{self.base}/models/{model}:streamGenerateContent?alt=sse",
             _gemini_payload(messages, max_tokens, temperature),
             {"x-goog-api-key": key},
-            self.timeout,
+            self.stream_timeout,
         )
 
         def events() -> Iterator[StreamEvent]:
@@ -591,9 +608,14 @@ class Gateway:
         self.sleep = sleep
         self.clients: dict[str, Any] = {
             "groq": GroqClient(
-                settings.groq_base, settings.timeout_seconds, settings.reasoning_effort
+                settings.groq_base,
+                settings.timeout_seconds,
+                settings.reasoning_effort,
+                settings.stream_timeout_seconds,
             ),
-            "gemini": GeminiClient(settings.gemini_base, settings.timeout_seconds),
+            "gemini": GeminiClient(
+                settings.gemini_base, settings.timeout_seconds, settings.stream_timeout_seconds
+            ),
             "ollama": OllamaClient(settings.ollama_base, settings.timeout_seconds),
             "mock": MockClient(),
         }
@@ -627,6 +649,14 @@ class Gateway:
         if provider == "mock":
             return f"mock-{role}"
         return str(getattr(self.settings, f"{role}_model"))
+
+    def _another_key(self, provider: str, model: str, tried: set[str]) -> bool:
+        """True if a key that has not been tried yet is usable for this model right now."""
+        now = time.time()
+        return any(
+            state.key not in tried and state.usable(now, model)
+            for state in self.pool.keys.get(provider, [])
+        )
 
     def _attempt(
         self,
@@ -665,6 +695,7 @@ class Gateway:
                             err.kind == "rate_limited"
                             and err.retry_after <= SHORT_WAIT_SECONDS
                             and not retried
+                            and not self._another_key(provider, model, tried)
                         ):
                             retried = True
                             self.sleep(err.retry_after)
@@ -706,6 +737,26 @@ class Gateway:
         tools: list[dict] | None = None,
         providers: list[str] | None = None,
         json_mode: bool = False,
+    ) -> Completion:
+        # Quick calls fail over fast instead of waiting out a hung connection.
+        quick = self.settings.quick_timeout_seconds if role in QUICK_ROLES else None
+        token = _timeout_override.set(quick)
+        try:
+            return self._complete(
+                role, messages, max_tokens, temperature, tools, providers, json_mode
+            )
+        finally:
+            _timeout_override.reset(token)
+
+    def _complete(
+        self,
+        role: str,
+        messages: list[Message],
+        max_tokens: int,
+        temperature: float,
+        tools: list[dict] | None,
+        providers: list[str] | None,
+        json_mode: bool,
     ) -> Completion:
         attempts: list[dict[str, str]] = []
         for provider in providers or self.provider_order():
@@ -796,15 +847,33 @@ class Gateway:
         events: Iterator[StreamEvent],
     ) -> Iterator[StreamEvent]:
         started = False
-        try:
-            for event in events:
-                started = started or event.type == "delta"
-                yield event
-        except ProviderError as err:
-            if not tools or started or not tool_use_failed(err):
-                raise
-            logger.info("malformed tool call mid-stream, restarting without tools")
-            yield from self._open_stream(role, messages, max_tokens, temperature, None)
+        for retry in range(STREAM_RETRIES + 1):
+            try:
+                for event in events:
+                    started = started or event.type == "delta"
+                    yield event
+                return
+            except (TimeoutError, ConnectionError, OSError) as err:
+                # A hung or dropped connection surfaces as a raw socket error.
+                failure: ProviderError = ProviderError(
+                    "unavailable", f"{type(err).__name__}: {err}"
+                )
+            except ProviderError as err:
+                if tools and not started and tool_use_failed(err):
+                    logger.info("malformed tool call mid-stream, restarting without tools")
+                    yield from self._open_stream(role, messages, max_tokens, temperature, None)
+                    return
+                if (
+                    started
+                    or err.kind not in ("unavailable", "rate_limited")
+                    or retry == STREAM_RETRIES
+                ):
+                    raise
+                failure = err
+            if started or retry == STREAM_RETRIES:
+                raise failure  # text already reached the reader: it cannot be restarted
+            logger.info(f"stream failed before any text ({failure.kind}); trying another key")
+            events = self._open_stream(role, messages, max_tokens, temperature, tools)
 
     def _with_hooks(self, role: str, events: Iterator[StreamEvent]) -> Iterator[StreamEvent]:
         for event in events:

@@ -170,7 +170,7 @@ export function ErrorNote({ message }: { message: string }) {
 
 const STATUS_STYLE: Record<ResultsStatus, { label: string; cls: string; icon: ReactNode }> = {
   verified: { label: 'Verified', cls: 'border-navy bg-navy text-cyan', icon: <CheckCircle2 className="h-3.5 w-3.5" /> },
-  partial: { label: 'Smoke run', cls: 'border-tangerine bg-tangerine/15 text-ink', icon: <Info className="h-3.5 w-3.5" /> },
+  partial: { label: 'Partial run', cls: 'border-tangerine bg-tangerine/15 text-ink', icon: <Info className="h-3.5 w-3.5" /> },
   unverified: { label: 'Unverified', cls: 'border-wine bg-wine text-soft', icon: <AlertTriangle className="h-3.5 w-3.5" /> },
   no_results: { label: 'No results', cls: 'border-navy/20 bg-soft text-navy', icon: <CircleDashed className="h-3.5 w-3.5" /> },
 }

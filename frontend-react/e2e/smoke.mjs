@@ -57,6 +57,15 @@ try {
     await page.waitForFunction(() => document.body.innerText.includes('Renamed by the smoke test'), { timeout: 10000 })
   })
 
+  await check('regenerate replaces the last answer instead of adding one', async () => {
+    await page.waitForSelector('button[aria-label="Regenerate answer"]', { timeout: 5000 })
+    await page.click('button[aria-label="Regenerate answer"]')
+    await page.waitForFunction(() => document.body.innerText.includes('Offline answer'), { timeout: 20000 })
+    await page.waitForFunction(() => !document.querySelector('button[aria-label="Stop"]'), { timeout: 20000 })
+    const answers = await page.$$eval('button[aria-label="Copy answer"]', (els) => els.length)
+    if (answers !== 1) throw new Error(`expected 1 answer after regenerate, found ${answers}`)
+  })
+
   await check('an answer can be rated', async () => {
     await page.click('button[aria-label="Helpful"]')
     await page.waitForSelector('button[aria-label="Helpful"][aria-pressed="true"]', { timeout: 5000 })

@@ -12,8 +12,12 @@ import { useApi } from '../lib/useApi'
 const METHODS: ResultMethod[] = ['GateOrchestra', 'RuleBasedGate', 'RandomGate', 'CoT-SC-only', 'Always-MAS']
 
 export default function Results() {
-  const summary = useApi(api.summary)
-  const detail = useApi(api.resultsDetail)
+  const [run, setRun] = useState('final')
+  const runs = useApi(api.runs)
+  const summary = useApi(() => api.summary(run), run)
+  const detail = useApi(() => api.resultsDetail(run), run)
+  const runList = runs.data?.runs ?? []
+  const current = runList.find((r) => r.id === run)
   const [method, setMethod] = useState<ResultMethod>('GateOrchestra')
   const [metric, setMetric] = useState<'accuracy' | 'escalation_rate'>('accuracy')
   const status = summary.data?.status
@@ -22,10 +26,25 @@ export default function Results() {
   return (
     <Page>
       <PageHeader number="06" kicker="Results" title={<>Accuracy, cost, and <span className="mark-lemon">where it escalates</span></>}>
-        Every chart is computed from the recorded Qwen2.5-3B benchmark (results/real/final/master_results.json). A reduced run on
-        the larger Qwen3.8-27B is described in section 8.9 of the research report; it is not shown here.
+        Every chart is computed from a recorded benchmark run. The main run is Qwen2.5-3B with two seeds; the larger models were
+        run once each with fewer calibration repeats (section 8.9 of the research report).
       </PageHeader>
-      {status ? <div className="mb-4"><StatusBadge status={status} /></div> : null}
+      <div className="mb-4 flex flex-wrap items-center gap-3">
+        {runList.length > 1 ? (
+          <label className="flex items-center gap-2 text-sm text-navy">
+            Benchmark run
+            <select value={run} onChange={(e) => setRun(e.target.value)} className="rounded-full border border-sky bg-soft px-3 py-1.5 text-sm text-ink">
+              {runList.map((r) => (
+                <option key={r.id} value={r.id}>{r.label}</option>
+              ))}
+            </select>
+          </label>
+        ) : null}
+        {status ? <StatusBadge status={status} /> : null}
+        {current && !current.main ? (
+          <span className="text-xs text-navy/60">One seed only, so there is no run-to-run spread. Shown for comparison, not as the headline result.</span>
+        ) : null}
+      </div>
       {(summary.loading && !summary.data) || (detail.loading && !detail.data) ? <SkeletonCards count={3} height="h-48" /> : null}
 
       {summary.data && !citable ? <NoCitableResults status={status} what="results" /> : null}

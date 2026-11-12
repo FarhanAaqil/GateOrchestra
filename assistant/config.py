@@ -96,6 +96,15 @@ class AssistantSettings:
     cache_ttl: float = field(default_factory=lambda: float(_env("ASSISTANT_CACHE_TTL", "86400")))
 
     timeout_seconds: float = field(default_factory=lambda: float(_env("ASSISTANT_TIMEOUT", "90")))
+    stream_timeout_seconds: float = field(
+        default_factory=lambda: float(_env("ASSISTANT_STREAM_TIMEOUT", "30"))
+    )
+    """How long a streamed answer may stay silent before it is treated as hung and retried."""
+    quick_timeout_seconds: float = field(
+        default_factory=lambda: float(_env("ASSISTANT_QUICK_TIMEOUT", "12"))
+    )
+    """Timeout for the quick check and the safety screen. They normally take 0.3-2 s, so a
+    call that has not answered after this long is hung; failing over beats waiting 90 s."""
     max_concurrent: int = field(default_factory=lambda: int(_env("ASSISTANT_MAX_CONCURRENT", "8")))
 
     db_path: Path = field(

@@ -8,8 +8,11 @@ export interface ApiState<T> {
   reload: () => void
 }
 
-/** Fetch once on mount (and on reload); keeps the last good data while reloading. */
-export function useApi<T>(fetcher: () => Promise<T>): ApiState<T> {
+/**
+ * Fetch on mount, on reload, and whenever `key` changes; keeps the last good data while
+ * reloading. Pass a key when the fetcher depends on a value, e.g. the selected run.
+ */
+export function useApi<T>(fetcher: () => Promise<T>, key?: unknown): ApiState<T> {
   const [data, setData] = useState<T | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(true)
@@ -34,7 +37,7 @@ export function useApi<T>(fetcher: () => Promise<T>): ApiState<T> {
     }
     // The fetcher is expected to be stable (module-level api functions).
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [nonce])
+  }, [nonce, key])
 
   const reload = useCallback(() => {
     clearApiCache()

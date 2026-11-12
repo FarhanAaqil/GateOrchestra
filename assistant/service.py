@@ -29,8 +29,12 @@ from assistant.security import parse_guard_score
 from assistant.selector import GateSelector, Selection
 from assistant.store import Store
 from assistant.web import search_wikipedia
+from gate.feature_extractor import extract_features
+from shared.schemas import ProbeResult, Task
 
 logger = logging.getLogger(__name__)
+
+FAST_ANSWER_MAX_WORDS = 6
 
 
 class KeyRejected(Exception):
@@ -56,6 +60,40 @@ class AssistantService:
             self.store, self.settings.gate_margin, self.settings.gate_explore
         )
         self.last_selection: Selection | None = None
+        self._warm_lock = threading.Lock()
+        self._warm_thread: threading.Thread | None = None
+
+    def warm_up(self, wait: bool = False) -> None:
+        """Load the question analyser (spaCy, about 9 s) before the first chat turn needs it.
+
+        It loads lazily on first use, so whoever chats first would otherwise wait for it.
+        Runs once, in the background; ``wait`` joins the thread (for tests).
+        """
+        with self._warm_lock:
+            if self._warm_thread is None:
+                self._warm_thread = threading.Thread(target=self._warm, name="warm-up", daemon=True)
+                self._warm_thread.start()
+            thread = self._warm_thread
+        if wait:
+            thread.join()
+
+    @staticmethod
+    def _warm() -> None:
+        try:
+            extract_features(
+                Task(task_id="warm-up", question="Who painted the Mona Lisa and where is it kept?"),
+                ProbeResult(
+                    task_id="warm-up",
+                    answer="Leonardo da Vinci",
+                    consistency_score=1.0,
+                    tokens_used=1,
+                    latency_ms=0.0,
+                    raw_outputs=["Leonardo da Vinci"],
+                    model_name="warm-up",
+                ),
+            )
+        except Exception as err:  # a failed warm-up only means the first turn pays for it
+            logger.warning(f"warm-up skipped: {type(err).__name__}")
 
     def _key_environment(self) -> dict[str, str]:
         """The process environment plus keys saved earlier from the console.
@@ -83,11 +121,18 @@ class AssistantService:
         return selection.gate, selection.reason
 
     def answer_role(self, decision: str, probe: ChatProbe) -> str:
-        """Model cascade: a confident, simple direct answer goes to the fast model."""
+        """Model cascade: only a confident, short factual answer goes to the small fast model.
+
+        The small model is fine for "Canberra" or "1967", but on list or open questions it
+        can loop and invent facts (it once repeated one title for 30 table rows). So the
+        quick check's own answer must be short, and creative requests go to the larger model.
+        """
+        short = len(probe.result.answer.split()) <= FAST_ANSWER_MAX_WORDS
         if (
             decision == "STOP"
             and probe.result.consistency_score >= 1.0
-            and probe.task_type in ("factual", "conversation", "creative")
+            and probe.task_type in ("factual", "conversation")
+            and short
         ):
             return "fast"
         return "answer"
