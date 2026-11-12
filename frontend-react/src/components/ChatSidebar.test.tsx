@@ -4,14 +4,18 @@ import type { Conversation } from '../lib/chat'
 import ChatSidebar from './ChatSidebar'
 
 const NOW = Date.now() / 1000
+// Midday yesterday, whatever the clock says: "25 hours ago" is not yesterday just after midnight.
+const MIDNIGHT = new Date()
+MIDNIGHT.setHours(0, 0, 0, 0)
+const YESTERDAY = MIDNIGHT.getTime() / 1000 - 12 * 3600
 
-function convo(id: string, title: string, secondsAgo = 60): Conversation {
-  return { id, title, updated_at: NOW - secondsAgo }
+function convo(id: string, title: string, updatedAt = NOW): Conversation {
+  return { id, title, updated_at: updatedAt }
 }
 
 function setup(overrides: Partial<React.ComponentProps<typeof ChatSidebar>> = {}) {
   const props = {
-    conversations: [convo('a', 'Nile versus Amazon'), convo('b', 'Python hash map', 90_000)],
+    conversations: [convo('a', 'Nile versus Amazon'), convo('b', 'Python hash map', YESTERDAY)],
     activeId: 'a',
     busy: false,
     documents: [{ id: 'd1', name: 'notes.md', chunks: 4, chars: 1200 }],
