@@ -350,11 +350,20 @@ export default function Chat() {
   }
 
   const send = async (text: string, options: { replaceLast?: boolean } = {}) => {
-    const message = text.trim()
+    const attachedNames = documents.filter((d) => selectedDocs.includes(d.id)).map((d) => d.name)
+    // A file on its own is a valid message: ask about it.
+    const message =
+      text.trim() ||
+      (attachedNames.length ? `Summarise ${attachedNames.length === 1 ? 'the attached document' : 'the attached documents'}.` : '')
     if (!message || live) return
     if (options.replaceLast) setMessages((m) => m.slice(0, Math.max(0, m.length - 2)))
     localId.current += 1
-    const optimistic: ChatMessage = { id: `local-${localId.current}`, role: 'user', content: message }
+    const optimistic: ChatMessage = {
+      id: `local-${localId.current}`,
+      role: 'user',
+      content: message,
+      meta: attachedNames.length ? { documents: attachedNames } : undefined,
+    }
     setMessages((m) => [...m, optimistic])
     setInput('')
     setError(null)
@@ -509,7 +518,16 @@ export default function Chat() {
           <div className="mx-auto max-w-3xl space-y-6">
             {messages.map((m) =>
               m.role === 'user' ? (
-                <div key={m.id} className="flex justify-end">
+                <div key={m.id} className="flex flex-col items-end gap-1.5">
+                  {m.meta?.documents?.length ? (
+                    <ul className="flex max-w-[85%] flex-wrap justify-end gap-1.5" aria-label="Attached documents">
+                      {m.meta.documents.map((name) => (
+                        <li key={name} className="inline-flex items-center gap-1 rounded-full border border-sky bg-soft px-2.5 py-1 text-xs text-navy">
+                          <Paperclip className="h-3 w-3 text-wine" /> {name}
+                        </li>
+                      ))}
+                    </ul>
+                  ) : null}
                   <p className="max-w-[85%] whitespace-pre-wrap rounded-3xl rounded-br-md bg-navy px-4 py-2.5 text-sm text-ice">{m.content}</p>
                 </div>
               ) : (
@@ -562,7 +580,7 @@ export default function Chat() {
                 <Square className="h-4 w-4" />
               </button>
             ) : (
-              <button onClick={() => send(input)} disabled={!input.trim() || backend !== 'online'} className="rounded-full bg-ember p-2 text-ink disabled:opacity-40" aria-label="Send">
+              <button onClick={() => send(input)} disabled={(!input.trim() && !selectedDocs.length) || backend !== 'online'} className="rounded-full bg-ember p-2 text-ink disabled:opacity-40" aria-label="Send">
                 <ArrowUp className="h-4 w-4" />
               </button>
             )}
