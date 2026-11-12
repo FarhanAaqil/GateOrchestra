@@ -101,22 +101,34 @@ local Ollama model.
 
 How a message is answered:
 
-1. **Probe:** two short samples in parallel (JSON mode), plus a third only if they disagree. They
-   also label the request type; small talk and creative requests skip the gate.
-2. **Gate:** in auto mode, the cheapest gate whose rated accuracy is within 2 points of the best.
+1. **Small talk first:** greetings, thanks and similar one-liners ("hi", "thanks!", "who are you?")
+   skip the safety screen, the probe and the gate and get a short reply at once (about 0.6 s).
+2. **Probe:** two short samples in parallel (JSON mode), plus a third only if they disagree. They
+   also label the request type; creative requests skip the gate. The prompt-injection screen runs
+   alongside the probe instead of before it.
+3. **Gate:** in auto mode, the cheapest gate whose rated accuracy is within 2 points of the best.
    Every turn records every gate's verdict and cost, and your 👍/👎 ratings count for every gate
    that would have routed the answer the same way.
-3. **STOP** answers directly (the fast model when the probe is confident). **ESCALATE** first runs
+4. **STOP** answers directly. The small fast model is used only when the probe is confident and its
+   answer is a few words; lists, explanations and creative requests go to the larger model. **ESCALATE** first runs
    a research agent with tools: Wikipedia search, a calculator, a sandboxed Python runner
    (Docker) and search over your documents.
-4. The answer streams back as Markdown with highlighted code and rendered math, plus badges for
-   the route, tokens, time and model.
+5. The answer streams back as Markdown with highlighted code and rendered math, plus badges for
+   the route, tokens, time and model. "How this was answered" shows the gate's reason, the models
+   used and where the time went (safety check, probe, gate, first text). **Regenerate** replaces the
+   last answer; the old one is kept if the retry fails. A chat that starts with "hi" is renamed after
+   its first real question.
 
 Reliability:
 
 - **Keys and models:** keys rotate. A rate-limited model cools down on its own while other models
-  keep working. Over-capacity models fall back to the next one, and a malformed tool call is
-  retried without tools.
+  keep working. A short rate limit moves to the next key instead of waiting. Over-capacity models
+  fall back to the next one, and a malformed tool call is retried without tools.
+- **Hung requests:** the probe and the safety screen give up after 12 s (`ASSISTANT_QUICK_TIMEOUT`)
+  and an answer stream after 30 s of silence (`ASSISTANT_STREAM_TIMEOUT`); a stream that fails
+  before any text is retried on another key.
+- **Warm start:** the question analyser (spaCy) loads in the background when the API starts, so
+  the first message is not slow.
 - **Out of keys:** when every provider is out, the console asks for another Groq or Gemini key.
   The key is checked with the provider, then saved only to your local `.env`.
 - **Repeats:** a repeated first question is answered from the cache at zero tokens.
@@ -134,7 +146,7 @@ key's state; keys are only ever shown by their last four characters.
 
 ```bash
 cp .env.example .env        # set GROQ_API_KEY, GATE_API_TOKEN and GATE_CORS_ORIGINS
-docker compose up --build   # console on http://localhost:8080 (WEB_PORT=8088 if 8080 is taken)
+docker compose up --build   # console on http://localhost:3700 (WEB_PORT=3701 if 3700 is taken)
 ```
 
 The console image (nginx) serves the app and forwards `/api/` to the API container on the same
@@ -154,7 +166,7 @@ Before exposing the stack publicly:
 - **Admin endpoints:** adding API keys and clearing the cache are accepted from the host itself,
   with `GATE_API_TOKEN` (the operator's token, once it is set), or with `GATE_ADMIN_TOKEN`.
   Behind the proxy with no token set, nobody can add keys, so set `GATE_API_TOKEN`.
-- **Terminate TLS** at your host or a proxy in front of port 8080.
+- **Terminate TLS** at your host or a proxy in front of port 3700.
 - **Scrape `/metrics`** with Prometheus, or watch the Admin page.
 
 Conversations, ratings, usage, the cache and any key added from the console live in the

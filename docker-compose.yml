@@ -1,7 +1,7 @@
 # GateOrchestra: API + console.
 #   cp .env.example .env    # add GROQ_API_KEY (and GATE_API_TOKEN for a public server)
 #   docker compose up --build
-# Console: http://localhost:8080 (set WEB_PORT=8088 if 8080 is taken). The API is only
+# Console: http://localhost:3700 (set WEB_PORT=3701 if 3700 is taken). The API is only
 # reachable through it.
 #
 # All writable state (conversations, ratings, the answer cache, run history and any API
@@ -15,7 +15,7 @@ services:
     environment:
       ASSISTANT_DB_PATH: /app/logs/assistant.db
       ASSISTANT_ENV_PATH: /app/logs/keys.env
-      GATE_CORS_ORIGINS: http://localhost:${WEB_PORT:-8080}
+      GATE_CORS_ORIGINS: http://localhost:${WEB_PORT:-3700}
     volumes:
       - gateorchestra-data:/app/logs
     restart: unless-stopped
@@ -23,7 +23,7 @@ services:
   web:
     build: ./frontend-react
     ports:
-      - "${WEB_PORT:-8080}:80"
+      - "${WEB_PORT:-3700}:80"
     depends_on:
       api:
         condition: service_healthy
