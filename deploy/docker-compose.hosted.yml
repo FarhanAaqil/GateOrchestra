@@ -1,0 +1,65 @@
+# Hosted, multi-user GateOrchestra on one VM: Caddy (HTTPS) -> console (nginx) -> API.
+#
+#   docker compose -f docker-compose.yml -f deploy/docker-compose.hosted.yml up -d --build
+#
+# Needs Docker Compose 2.24 or newer, GATE_DOMAIN and the hosted settings in .env
+# (see deploy/HOSTED.md). Only Caddy is reachable from outside, on ports 80 and 443.
+services:
+  api:
+    environment:
+      GATE_HOSTED: "true"
+      GATE_CORS_ORIGINS: https://${GATE_DOMAIN:?set GATE_DOMAIN in .env}
+      GATE_PUBLIC_URL: https://${GATE_DOMAIN}
+      # Every container on this network is a proxy we run; nothing else can reach the API.
+      GATE_TRUSTED_PROXIES: 172.30.0.0/24
+      GATE_LLM_PROVIDER: ${GATE_LLM_PROVIDER:-groq}
+      GATE_API_BASE: ""
+    # Without --proxy-headers: the API reads X-Forwarded-For itself, and only from the proxies above.
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "3700"]
+    extra_hosts: !reset []
+    networks: [gate]
+
+  web:
+    ports: !reset []
+    networks: [gate]
+
+  caddy:
+    image: caddy:2.8
+    restart: unless-stopped
+    ports:
+      - "80:80"
+      - "443:443"
+    environment:
+      GATE_DOMAIN: ${GATE_DOMAIN}
+    volumes:
+      - ./deploy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy-data:/data
+      - caddy-config:/config
+    depends_on: [web]
+    networks: [gate]
+
+  # Nightly backup of the database, each one restored and checked before old ones are pruned.
+  backup:
+    build: .
+    restart: unless-stopped
+    entrypoint: ["sh", "-c"]
+    command:
+      - >-
+        while true; do
+        python scripts/backup_db.py --db /app/logs/assistant.db --out /backups --keep ${GATE_BACKUP_KEEP_DAYS:-14};
+        sleep 86400;
+        done
+    volumes:
+      - gateorchestra-data:/app/logs
+      - ./backups:/backups
+    network_mode: none
+
+networks:
+  gate:
+    ipam:
+      config:
+        - subnet: 172.30.0.0/24
+
+volumes:
+  caddy-data:
+  caddy-config:

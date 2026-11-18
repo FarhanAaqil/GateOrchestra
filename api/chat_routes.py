@@ -16,31 +16,34 @@ HTTP endpoints for the chat assistant.
   GET    /assistant/stats           usage, tokens, latency, routing and errors (Admin page)
   GET    /metrics                   the same in Prometheus text format
   DELETE /assistant/cache           clear the answer cache (local or admin token)
+  GET    /assistant/models          the chat's fast and answer models (Chat page badge)
   GET    /assistant/status          providers, masked key status, models, gates
   POST   /assistant/keys            add an API key (checked, then saved to .env)
 
 Adding a key is accepted only from this machine, or with the admin token
 (GATE_ADMIN_TOKEN) when the API runs behind a proxy. Keys are never echoed back.
+With GATE_HOSTED=true the operator endpoints (stats, metrics, status, cache,
+keys) are admin-only and a request from localhost no longer counts as admin
+(see api/access.py).
 """
 
 from __future__ import annotations
 
-import hmac
 import json
-import os
 from collections.abc import Iterator
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import PlainTextResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
+from api.access import admin_when_hosted, require_admin
+from api.auth_routes import chat_owner
+from api.limits import Admission, admit_turn, check_document_room, limit_rate
 from assistant.pipeline import ChatPipeline
-from assistant.security import api_token, token_ok
 from assistant.service import KeyRejected, get_service
 
 router = APIRouter()
-LOCAL_HOSTS = {"127.0.0.1", "::1", "localhost", "testclient"}
 
 
 class ChatRequest(BaseModel):
@@ -76,43 +79,45 @@ def _sse(events: Iterator[dict[str, Any]]) -> Iterator[str]:
         yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
 
 
-def _require_admin(request: Request) -> None:
-    token = os.getenv("GATE_ADMIN_TOKEN", "")
-    supplied = request.headers.get("x-admin-token", "")
-    host = request.client.host if request.client else ""
-    if token and supplied and hmac.compare_digest(supplied, token):
-        return
-    # With GATE_API_TOKEN set, the middleware has already required it on this request, so
-    # whoever got here holds the operator's token (single-tenant deployments).
-    if api_token() and token_ok(request.headers.get("authorization")):
-        return
-    if host in LOCAL_HOSTS and not request.headers.get("x-forwarded-for"):
-        return
-    raise HTTPException(
-        status_code=403,
-        detail="Keys can only be added from this machine, with the API token, or with the admin token.",
-    )
+def _store(owner: str | None):
+    """The caller's own rows: someone else's conversation or document is simply not found."""
+    return get_service().store.scoped(owner)
+
+
+def _counted(
+    events: Iterator[dict[str, Any]], service: Any, admission: Admission | None
+) -> Iterator[dict[str, Any]]:
+    """Pass the turn's events through, recording a finished turn against the person's plan."""
+    for event in events:
+        if admission is not None and event.get("type") == "done":
+            service.usage.record(admission.user_id, event["meta"], own_key=admission.own_key)
+        yield event
 
 
 @router.post("/chat")
-def chat(body: ChatRequest) -> StreamingResponse:
+def chat(body: ChatRequest, owner: str | None = Depends(chat_owner)) -> StreamingResponse:
     service = get_service()
+    admission = admit_turn(service, owner) if owner else None
     if not service.slots.acquire(timeout=30):
+        if admission:
+            admission.release()
         raise HTTPException(status_code=503, detail="The assistant is busy; try again in a moment.")
 
     def events() -> Iterator[str]:
         try:
-            yield from _sse(
-                ChatPipeline(service).run(
-                    body.message,
-                    body.conversation_id,
-                    gate_mode=body.gate_mode,
-                    document_ids=body.document_ids,
-                    replace_last=body.replace_last,
-                )
+            pipeline = ChatPipeline(service, owner, admission.gateway if admission else None)
+            turn = pipeline.run(
+                body.message,
+                body.conversation_id,
+                gate_mode=body.gate_mode,
+                document_ids=body.document_ids,
+                replace_last=body.replace_last,
             )
+            yield from _sse(_counted(turn, service, admission))
         finally:
             service.slots.release()
+            if admission:
+                admission.release()
 
     return StreamingResponse(
         events(),
@@ -122,76 +127,85 @@ def chat(body: ChatRequest) -> StreamingResponse:
 
 
 @router.get("/conversations")
-def list_conversations(limit: int = 50) -> dict[str, Any]:
-    return {"conversations": get_service().store.list_conversations(min(max(limit, 1), 200))}
+def list_conversations(limit: int = 50, owner: str | None = Depends(chat_owner)) -> dict[str, Any]:
+    return {"conversations": _store(owner).list_conversations(min(max(limit, 1), 200))}
 
 
 @router.get("/conversations/{cid}")
-def get_conversation(cid: str) -> dict[str, Any]:
-    store = get_service().store
-    if not store.conversation_exists(cid):
+def get_conversation(cid: str, owner: str | None = Depends(chat_owner)) -> dict[str, Any]:
+    store = _store(owner)
+    convo = store.conversation(cid)
+    if convo is None:
         raise HTTPException(status_code=404, detail="Conversation not found.")
-    convo = next((c for c in store.list_conversations(500) if c["id"] == cid), {"id": cid})
     return {**convo, "messages": store.messages(cid)}
 
 
 @router.patch("/conversations/{cid}")
-def rename_conversation(cid: str, body: RenameRequest) -> dict[str, str]:
-    store = get_service().store
-    if not store.conversation_exists(cid):
+def rename_conversation(
+    cid: str, body: RenameRequest, owner: str | None = Depends(chat_owner)
+) -> dict[str, str]:
+    if not _store(owner).rename_conversation(cid, body.title):
         raise HTTPException(status_code=404, detail="Conversation not found.")
-    store.rename_conversation(cid, body.title)
     return {"status": "renamed"}
 
 
 @router.delete("/conversations/{cid}")
-def delete_conversation(cid: str) -> dict[str, str]:
-    get_service().store.delete_conversation(cid)
+def delete_conversation(cid: str, owner: str | None = Depends(chat_owner)) -> dict[str, str]:
+    if not _store(owner).delete_conversation(cid) and owner is not None:
+        raise HTTPException(status_code=404, detail="Conversation not found.")
     return {"status": "deleted"}
 
 
 @router.post("/messages/{mid}/feedback")
-def rate_message(mid: str, body: RatingRequest) -> dict[str, Any]:
+def rate_message(
+    mid: str, body: RatingRequest, owner: str | None = Depends(chat_owner)
+) -> dict[str, Any]:
     try:
-        return get_service().rate(mid, body.rating)
+        return get_service().rate(mid, body.rating, store=_store(owner))
     except LookupError as err:
         raise HTTPException(status_code=404, detail=str(err)) from err
 
 
 @router.get("/assistant/gates")
-def gate_report() -> dict[str, Any]:
+def gate_report(owner: str | None = Depends(chat_owner)) -> dict[str, Any]:
     return get_service().gate_report()
 
 
 @router.post("/documents")
-def upload_document(body: DocumentRequest) -> dict[str, Any]:
+def upload_document(
+    body: DocumentRequest, owner: str | None = Depends(chat_owner)
+) -> dict[str, Any]:
     from assistant.documents import DocumentError
 
+    if owner:
+        limit_rate(owner)
+        check_document_room(get_service(), owner)
     try:
-        return get_service().add_document(body.name, body.content_base64)
+        return get_service().add_document(body.name, body.content_base64, store=_store(owner))
     except DocumentError as err:
         raise HTTPException(status_code=400, detail=str(err)) from err
 
 
 @router.get("/documents")
-def list_documents() -> dict[str, Any]:
-    return {"documents": get_service().store.documents()}
+def list_documents(owner: str | None = Depends(chat_owner)) -> dict[str, Any]:
+    return {"documents": _store(owner).documents()}
 
 
 @router.delete("/documents/{did}")
-def delete_document(did: str) -> dict[str, str]:
-    get_service().store.delete_document(did)
+def delete_document(did: str, owner: str | None = Depends(chat_owner)) -> dict[str, str]:
+    if not _store(owner).delete_document(did) and owner is not None:
+        raise HTTPException(status_code=404, detail="Document not found.")
     return {"status": "deleted"}
 
 
-@router.get("/assistant/stats")
+@router.get("/assistant/stats", dependencies=[Depends(admin_when_hosted)])
 def assistant_stats(hours: float = 24.0) -> dict[str, Any]:
     from assistant.metrics import summarize
 
     return summarize(get_service().store, min(max(hours, 0.1), 24 * 30))
 
 
-@router.get("/metrics", response_class=PlainTextResponse)
+@router.get("/metrics", response_class=PlainTextResponse, dependencies=[Depends(admin_when_hosted)])
 def metrics() -> str:
     from assistant.metrics import prometheus
 
@@ -200,18 +214,25 @@ def metrics() -> str:
 
 @router.delete("/assistant/cache")
 def clear_cache(request: Request) -> dict[str, int]:
-    _require_admin(request)
+    require_admin(request)
     return {"cleared": get_service().store.cache_clear()}
 
 
-@router.get("/assistant/status")
+@router.get("/assistant/models")
+def chat_models(owner: str | None = Depends(chat_owner)) -> dict[str, str]:
+    """Which models answer chats (shown on the Chat page). No keys, no provider state."""
+    s = get_service().settings
+    return {"fast": s.fast_model, "answer": s.answer_model}
+
+
+@router.get("/assistant/status", dependencies=[Depends(admin_when_hosted)])
 def assistant_status() -> dict[str, Any]:
     return get_service().status()
 
 
 @router.post("/assistant/keys")
 def add_key(body: KeyRequest, request: Request) -> dict[str, Any]:
-    _require_admin(request)
+    require_admin(request)
     try:
         return get_service().add_key(body.provider, body.key)
     except KeyRejected as err:

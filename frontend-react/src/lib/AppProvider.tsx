@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { authApi, type SessionUser } from './account'
 import { api, checkBackend } from './api'
-import { AuthRequired } from './auth'
+import { AuthRequired, configureSession } from './auth'
 import { AppContext, type AppState } from './context'
 import type { ModelsResponse, RunResult } from './types'
 
@@ -38,6 +39,9 @@ export function AppProvider({ children }: { children: ReactNode }) {
   const [backend, setBackend] = useState<AppState['backend']>('checking')
   const [backendError, setBackendError] = useState<string | null>(null)
   const [models, setModels] = useState<ModelsResponse | null>(null)
+  const [hosted, setHosted] = useState(false)
+  const [user, setUser] = useState<SessionUser | null>(null)
+  const [sessionChecked, setSessionChecked] = useState(false)
   const [lastRun, setLastRun] = useState<RunResult | null>(null)
   const [threshold, setThreshold] = useState<number | null>(null)
   const [performanceMode, setPerformanceModeState] = useState(readStoredPerformanceMode)
@@ -48,6 +52,16 @@ export function AppProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     let cancelled = false
     checkBackend()
+      .then(async (root) => {
+        configureSession(root.hosted)
+        if (cancelled) return
+        setHosted(root.hosted)
+        if (root.hosted) {
+          const current = await authApi.me().catch(() => null)
+          if (!cancelled) setUser(current)
+        }
+        if (!cancelled) setSessionChecked(true)
+      })
       .then(() => api.models())
       .then((data) => {
         if (cancelled) return
@@ -58,6 +72,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
         if (cancelled) return
         setBackend(err instanceof AuthRequired ? 'locked' : 'error')
         setBackendError(err.message)
+        setSessionChecked(true)
       })
     return () => {
       cancelled = true
@@ -69,6 +84,11 @@ export function AppProvider({ children }: { children: ReactNode }) {
       backend,
       backendError,
       models,
+      hosted,
+      user,
+      setUser,
+      sessionChecked,
+      isAdmin: !hosted || Boolean(user?.is_admin),
       lastRun,
       setLastRun,
       threshold,
@@ -86,7 +106,7 @@ export function AppProvider({ children }: { children: ReactNode }) {
       isMobile,
       use3D: hasWebgl && !performanceMode && !reducedMotion && !isMobile,
     }),
-    [backend, backendError, models, lastRun, threshold, performanceMode, reducedMotion, isMobile, hasWebgl],
+    [backend, backendError, models, hosted, user, sessionChecked, lastRun, threshold, performanceMode, reducedMotion, isMobile, hasWebgl],
   )
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>

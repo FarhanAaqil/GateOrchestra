@@ -3,6 +3,9 @@ api/security.py
 ===============
 ASGI middleware for the API token and the per-client rate limit.
 
+The client is the direct peer unless it is a trusted proxy (see
+assistant/hosted.py), so a forged X-Forwarded-For cannot dodge the limit.
+
 Plain ASGI rather than BaseHTTPMiddleware, so streamed chat answers pass
 through untouched. Preflight (OPTIONS) requests are never blocked.
 """
@@ -12,6 +15,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
+from assistant.hosted import client_address, hosted_mode
 from assistant.security import LIMITED_PATHS, OPEN_PATHS, rate_limit_from_env, token_ok
 
 
@@ -26,7 +30,12 @@ class SecurityMiddleware:
             return
         path = scope.get("path", "")
         headers = {k.decode().lower(): v.decode() for k, v in scope.get("headers", [])}
-        if path not in OPEN_PATHS and not token_ok(headers.get("authorization")):
+        # Hosted mode signs people in with accounts; the shared token is for single-tenant use.
+        if (
+            not hosted_mode()
+            and path not in OPEN_PATHS
+            and not token_ok(headers.get("authorization"))
+        ):
             await _reply(
                 send,
                 401,
@@ -35,8 +44,8 @@ class SecurityMiddleware:
             )
             return
         if scope.get("method") == "POST" and path.startswith(LIMITED_PATHS):
-            forwarded = headers.get("x-forwarded-for", "").split(",")[0].strip()
-            client = forwarded or (scope.get("client") or ("unknown", 0))[0]
+            peer = (scope.get("client") or ("unknown", 0))[0]
+            client = client_address(peer, headers.get("x-forwarded-for"))
             wait = self.limiter.check(client)
             if wait:
                 await _reply(

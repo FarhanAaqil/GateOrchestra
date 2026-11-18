@@ -8,6 +8,10 @@ Each run gets a fresh container: no network, read-only filesystem with a small
 escalation, 256 MB of memory, half a CPU, 64 processes and 15 seconds. The
 code is passed on stdin, never written into the image. When Docker is not
 running the tool says so instead of falling back to running code on the host.
+
+In hosted mode runs are also rationed: at most GATE_SANDBOX_PER_USER (1) at a
+time per person and GATE_SANDBOX_MAX_CONCURRENT (4) across everyone. A run
+that cannot get a slot within a few seconds is refused, not queued forever.
 """
 
 from __future__ import annotations
@@ -15,8 +19,10 @@ from __future__ import annotations
 import os
 import shutil
 import subprocess
+import threading
 import time
 import uuid
+from collections import defaultdict
 
 IMAGE = os.getenv("ASSISTANT_SANDBOX_IMAGE", "python:3.12-slim")
 TIMEOUT_SECONDS = 15
@@ -89,6 +95,50 @@ def docker_command(name: str) -> list[str]:
         "-I",
         "-",
     ]
+
+
+class SandboxLimits:
+    """Slots for sandbox runs: a cap per person and one across everyone."""
+
+    def __init__(self, per_user: int, total: int) -> None:
+        self.per_user = max(1, per_user)
+        self._total = threading.BoundedSemaphore(max(1, total))
+        self._running: dict[str, int] = defaultdict(int)
+        self._lock = threading.Lock()
+
+    def acquire(self, user_id: str, wait: float = 5.0) -> str | None:
+        """None when a slot was taken (release it afterwards), else why not."""
+        with self._lock:
+            if self._running[user_id] >= self.per_user:
+                return "you already have code running; wait for it to finish"
+            self._running[user_id] += 1
+        if not self._total.acquire(timeout=wait):
+            with self._lock:
+                self._running[user_id] -= 1
+            return "the sandbox is busy with other people's code; try again shortly"
+        return None
+
+    def release(self, user_id: str) -> None:
+        self._total.release()
+        with self._lock:
+            self._running[user_id] = max(0, self._running[user_id] - 1)
+
+
+LIMITS = SandboxLimits(
+    int(os.getenv("GATE_SANDBOX_PER_USER", "1")), int(os.getenv("GATE_SANDBOX_MAX_CONCURRENT", "4"))
+)
+
+
+def run_python_for(user_id: str, code: str, limits: SandboxLimits | None = None) -> str:
+    """``run_python`` within one person's share of the sandbox (hosted mode)."""
+    limits = limits or LIMITS
+    refused = limits.acquire(user_id)
+    if refused:
+        return f"Code execution is unavailable right now: {refused}."
+    try:
+        return run_python(code)
+    finally:
+        limits.release(user_id)
 
 
 def run_python(code: str) -> str:

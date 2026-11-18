@@ -176,6 +176,20 @@ such as Google Drive do not provide. The compose API container has no Docker, so
 sandbox is off there; run the API on the host (`python scripts/dev.py`) to use it. CI runs the Python and console tests, a browser smoke test
 against the offline mock provider, and both Docker builds.
 
+### Hosted, multi-user mode
+
+The setup above is single-tenant: one optional shared token, one shared history, one shared cache.
+`GATE_HOSTED=true` turns the console into a multi-user service instead. It adds email accounts
+with confirmation and password reset, and per-person conversations, documents and answer cache.
+Free and Pro plans (`configs/plans.yaml`) set daily limits, and a global token cap acts as the
+operator's off switch. People can bring their own Groq or Gemini key (stored encrypted), get a
+usage page and a landing and pricing page, and admins can switch plans on after a payment.
+Admin, Run a Task, Token Accountant and the operator endpoints are admin-only, and the research
+pages stay public. The API refuses to start hosted until the settings are safe.
+`deploy/HOSTED.md` covers a VM with HTTPS (Caddy), backups with a restore check, monitoring and
+payments. With `GATE_HOSTED` unset, everything above, including the benchmark, behaves exactly as
+before.
+
 ---
 
 ## Architecture

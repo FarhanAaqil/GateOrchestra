@@ -1,0 +1,16 @@
+# HTTPS for the hosted console. Caddy gets and renews the certificate itself once
+# GATE_DOMAIN points at this machine and ports 80 and 443 are open.
+{$GATE_DOMAIN} {
+	encode zstd gzip
+
+	header {
+		Strict-Transport-Security "max-age=31536000; includeSubDomains"
+		X-Frame-Options "DENY"
+		X-Content-Type-Options "nosniff"
+		Referrer-Policy "strict-origin-when-cross-origin"
+		-Server
+	}
+
+	# Caddy sets X-Forwarded-For to the real client and drops what the client sent.
+	reverse_proxy web:80
+}

@@ -21,7 +21,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any
 
 from assistant.agent import AgentResult, run_agent, run_tool_call
-from assistant.llm import Message, ProvidersExhausted
+from assistant.llm import Gateway, Message, ProvidersExhausted
 from assistant.probe import run_probe
 from assistant.security import guard_threshold
 from assistant.smalltalk import is_small_talk
@@ -62,8 +62,17 @@ def _history_for_model(rows: list[dict[str, Any]]) -> list[Message]:
 
 
 class ChatPipeline:
-    def __init__(self, service: AssistantService) -> None:
+    def __init__(
+        self, service: AssistantService, user_id: str | None = None, gateway: Gateway | None = None
+    ) -> None:
         self.service = service
+        self.user_id = user_id
+        # A person's own API keys answer their turns when they added some (hosted mode). The
+        # prompt-injection screen always runs on the operator's keys, so it is never skipped.
+        self.gateway = gateway or service.gateway
+        # Everything this turn reads or writes belongs to one user (hosted mode); in
+        # single-tenant mode user_id is None, which is every row, as before.
+        self.store = service.store.scoped(user_id)
 
     def run(
         self,
@@ -74,7 +83,7 @@ class ChatPipeline:
         document_ids: list[str] | None = None,
         replace_last: bool = False,
     ) -> Iterator[dict[str, Any]]:
-        svc, settings = self.service, self.service.settings
+        settings = self.service.settings
         text = (message or "").strip()
         if not text:
             yield {"type": "error", "code": "empty", "message": "Type a message first."}
@@ -87,7 +96,7 @@ class ChatPipeline:
             }
             return
 
-        store = svc.store
+        store = self.store
         if conversation_id and not store.conversation_exists(conversation_id):
             conversation_id = None
         cid = conversation_id or store.create_conversation(text[:60])
@@ -155,7 +164,7 @@ class ChatPipeline:
 
     def _last_exchange_ids(self, cid: str) -> list[str]:
         """Ids of the last answer and the question it answered (what regenerate replaces)."""
-        rows = self.service.store.messages(cid)
+        rows = self.store.messages(cid)
         ids: list[str] = []
         if rows and rows[-1]["role"] == "assistant":
             ids.append(rows.pop()["id"])
@@ -165,7 +174,7 @@ class ChatPipeline:
 
     def _discard(self, message_ids: list[str]) -> None:
         for message_id in message_ids:
-            self.service.store.delete_message(message_id)
+            self.store.delete_message(message_id)
 
     def _screen(self, text: str) -> tuple[float | None, int]:
         """Prompt-injection score and how long the check took, in milliseconds."""
@@ -197,7 +206,7 @@ class ChatPipeline:
         answer_tools = {t.name: t for t in svc.answer_tools()}
         for _ in range(3):  # at most two tool rounds, then a final answer
             calls: list[dict[str, Any]] = []
-            for event in svc.gateway.stream(
+            for event in self.gateway.stream(
                 role,
                 messages,
                 max_tokens=settings.answer_max_tokens,
@@ -237,8 +246,8 @@ class ChatPipeline:
         """Store the finished answer and build the `done` event."""
         meta["timings"]["total_ms"] = round((time.perf_counter() - started) * 1000)
         meta["latency_ms"] = meta["timings"]["total_ms"]
-        mid = self.service.store.add_message(cid, "assistant", answer, meta)
-        self.service.store.log_event("chat", {"message_id": mid, **meta})
+        mid = self.store.add_message(cid, "assistant", answer, meta)
+        self.store.log_event("chat", {"message_id": mid, **meta})
         return {"type": "done", "message_id": mid, "conversation_id": cid, "meta": meta}
 
     def _small_talk(
@@ -306,19 +315,23 @@ class ChatPipeline:
             and not replace_last  # a regeneration must produce a new answer
         )
         cache_key = svc.cache_key(text) if cacheable else ""
-        cached = svc.store.cache_get(cache_key, settings.cache_ttl) if cacheable else None
+        cached = self.store.cache_get(cache_key, settings.cache_ttl) if cacheable else None
         if cached:
             yield from self._replay(cid, cached, started)
             return
 
-        context = svc.retrieve_context(text, document_ids) if document_ids is not None else None
+        context = (
+            svc.retrieve_context(text, document_ids, store=self.store)
+            if document_ids is not None
+            else None
+        )
 
         # 1. Probe, with the prompt-injection screen running alongside it.
         probe_started = time.perf_counter()
         with ThreadPoolExecutor(max_workers=1) as screen_pool:
             screen = screen_pool.submit(self._screen, text)
             probe = run_probe(
-                svc.gateway,
+                self.gateway,
                 text,
                 history,
                 samples=settings.probe_samples,
@@ -329,7 +342,7 @@ class ChatPipeline:
             timings["probe_ms"] = round((time.perf_counter() - probe_started) * 1000)
             score, timings["safety_ms"] = screen.result()
         if score is not None and score >= guard_threshold():
-            svc.store.log_event("blocked", {"score": score})
+            self.store.log_event("blocked", {"score": score})
             raise ChatError(
                 "blocked",
                 "This message looks like an attempt to override the assistant's "
@@ -382,10 +395,10 @@ class ChatPipeline:
         tool_calls: list[dict[str, Any]] = []
         if decision == "ESCALATE":
             for item in run_agent(
-                svc.gateway,
+                self.gateway,
                 text,
                 history,
-                svc.tools(document_ids),
+                svc.tools(document_ids, store=self.store),
                 max_rounds=settings.agent_max_rounds,
                 context=context,
             ):
@@ -427,7 +440,7 @@ class ChatPipeline:
         }
         done = self._save(cid, answer, meta, started)
         if cacheable and not tool_calls_need_freshness(tool_calls):
-            svc.store.cache_put(cache_key, text, answer, meta)
+            self.store.cache_put(cache_key, text, answer, meta)
         yield done
 
     def _replay(self, cid: str, cached: dict[str, Any], started: float) -> Iterator[dict[str, Any]]:
@@ -453,8 +466,8 @@ class ChatPipeline:
         answer = cached["answer"]
         for start in range(0, len(answer), 120):
             yield {"type": "delta", "text": answer[start : start + 120]}
-        mid = self.service.store.add_message(cid, "assistant", answer, meta)
-        self.service.store.log_event("chat", {"message_id": mid, **meta})
+        mid = self.store.add_message(cid, "assistant", answer, meta)
+        self.store.log_event("chat", {"message_id": mid, **meta})
         yield {"type": "done", "message_id": mid, "conversation_id": cid, "meta": meta}
 
 
