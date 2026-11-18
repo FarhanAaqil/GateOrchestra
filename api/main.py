@@ -40,6 +40,7 @@ from agents.orchestrator.orchestrator import request_orchestrator  # noqa: E402
 from agents.probe_agent import extract_answer, probe_agent  # noqa: E402
 from api.access import admin_when_hosted  # noqa: E402
 from api.account_routes import router as account_router  # noqa: E402
+from api.admin_routes import router as admin_router  # noqa: E402
 from api.auth_routes import router as auth_router  # noqa: E402
 from api.chat_routes import router as chat_router  # noqa: E402
 from api.history import RunHistory  # noqa: E402
@@ -126,6 +127,7 @@ app.add_middleware(
 app.include_router(chat_router)
 app.include_router(auth_router)
 app.include_router(account_router)
+app.include_router(admin_router)
 
 # The last 50 runs, persisted so they survive a restart.
 _HISTORY = RunHistory(LOGS_DIR / "api_history.jsonl", limit=50)

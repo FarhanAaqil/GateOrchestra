@@ -8,6 +8,7 @@ A signed-in person's own settings in hosted mode (404 outside it).
   DELETE /account/keys/{provider}   forget it
   GET    /account/usage             today's and this month's usage against your plan
   GET    /plans                     the plans and their limits (public)
+  GET    /account/upgrade           where to pay for an upgrade (GATE_PAYMENT_LINK)
 
 The usage page's "saved" figure is an estimate and says so: answers the gate
 handled directly, times the average research-agent tokens that escalated
@@ -17,8 +18,10 @@ small talk and cached answers, which would never have been researched.
 
 from __future__ import annotations
 
+import os
 import time
 from typing import Any
+from urllib.parse import quote
 
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel, Field
@@ -124,4 +127,20 @@ def usage(owner: str = Depends(owner_required)) -> dict[str, Any]:
 @router.get("/plans")
 def plans() -> dict[str, Any]:
     book = plan_book()
-    return {"default": book.default, "plans": [p.as_dict() for p in book.plans.values()]}
+    return {
+        "default": book.default,
+        "plans": [p.as_dict() for p in book.plans.values()],
+        "payments": bool(os.getenv("GATE_PAYMENT_LINK", "").strip()),
+    }
+
+
+@router.get("/account/upgrade")
+def upgrade(owner: str = Depends(owner_required)) -> dict[str, str]:
+    """The payment page for this person. ``{email}`` in the link is filled in, so the
+    provider's checkout can show it and the admin can match the payment to the account."""
+    link = os.getenv("GATE_PAYMENT_LINK", "").strip()
+    if not link:
+        raise HTTPException(status_code=404, detail="Payments are not set up on this server yet.")
+    user = get_service().accounts.get(owner)
+    email = user["email"] if user else ""
+    return {"url": link.replace("{email}", quote(email, safe=""))}

@@ -38,7 +38,7 @@ from pydantic import BaseModel, Field
 
 from api.access import admin_when_hosted, require_admin
 from api.auth_routes import chat_owner
-from api.limits import Admission, admit_turn, limit_rate
+from api.limits import Admission, admit_turn, check_document_room, limit_rate
 from assistant.pipeline import ChatPipeline
 from assistant.service import KeyRejected, get_service
 
@@ -178,6 +178,7 @@ def upload_document(
 
     if owner:
         limit_rate(owner)
+        check_document_room(get_service(), owner)
     try:
         return get_service().add_document(body.name, body.content_base64, store=_store(owner))
     except DocumentError as err:

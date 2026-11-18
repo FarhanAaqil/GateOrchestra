@@ -1,8 +1,10 @@
 import { motion } from 'framer-motion'
-import { RefreshCw, Trash2 } from 'lucide-react'
-import { useState } from 'react'
+import { RefreshCw, Search, Trash2 } from 'lucide-react'
+import { useCallback, useEffect, useState } from 'react'
 import { Card, ErrorNote, Page, PageHeader, SkeletonCards } from '../components/ui'
+import { adminApi, type AdminUser } from '../lib/account'
 import { GATE_LABELS, chatApi, type GateName } from '../lib/chat'
+import { useApp } from '../lib/context'
 import { rise } from '../lib/motion'
 import { useApi } from '../lib/useApi'
 
@@ -42,7 +44,73 @@ function Shares({ title, data }: { title: string; data: Record<string, number> }
   )
 }
 
+/** Hosted mode: find a person and set their plan after their payment arrives. */
+function PeoplePanel() {
+  const [query, setQuery] = useState('')
+  const [users, setUsers] = useState<AdminUser[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [days, setDays] = useState(31)
+
+  const load = useCallback((q: string) => {
+    adminApi.users(q).then((d) => { setUsers(d.users); setError(null) }, (err: Error) => setError(err.message))
+  }, [])
+  useEffect(() => load(''), [load])
+
+  const setPlan = async (user: AdminUser, plan: string) => {
+    try {
+      const { user: updated } = await adminApi.setPlan(user.id, plan, days)
+      setUsers((list) => list?.map((u) => (u.id === updated.id ? updated : u)) ?? null)
+    } catch (err) {
+      setError((err as Error).message)
+    }
+  }
+
+  return (
+    <Card tilt={false} className="mt-4">
+      <h2 className="mb-1 text-lg font-bold text-ink">People and plans</h2>
+      <p className="mb-3 text-xs text-navy/60">
+        When a payment arrives, find the person by the email on the payment and give them Pro. Paying again extends from the end
+        of the current period; when it ends they are on Free again automatically.
+      </p>
+      <form className="mb-3 flex flex-wrap items-center gap-2" onSubmit={(e) => { e.preventDefault(); load(query) }}>
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by email" aria-label="Search people by email" className="min-w-0 flex-1 rounded-full border border-sky bg-ice px-3 py-1.5 text-sm" />
+        <button type="submit" className="inline-flex items-center gap-1.5 rounded-full border border-sky px-3 py-1.5 text-xs text-navy hover:bg-soft"><Search className="h-3.5 w-3.5" /> Search</button>
+        <label className="flex items-center gap-1.5 text-xs text-navy/70">
+          Days of Pro
+          <input type="number" min={1} max={3660} value={days} onChange={(e) => setDays(Math.max(1, Number(e.target.value) || 31))} className="w-20 rounded-full border border-sky bg-ice px-2 py-1 font-mono text-xs" />
+        </label>
+      </form>
+      {error ? <ErrorNote message={error} /> : null}
+      {users ? (
+        <div className="overflow-x-auto">
+          <table className="w-full min-w-[640px] font-mono text-xs">
+            <thead className="text-navy/60">
+              <tr><th className="text-left font-normal">Email</th><th className="text-left font-normal">Plan</th><th className="text-left font-normal">Paid until</th><th className="text-right font-normal">Today</th><th className="text-right font-normal" /></tr>
+            </thead>
+            <tbody>
+              {users.map((u) => (
+                <tr key={u.id} className="border-t border-sky/50 text-navy">
+                  <td className="py-1.5">{u.email}{u.verified ? '' : ' (unconfirmed)'}{u.is_admin ? ' · admin' : ''}</td>
+                  <td>{u.effective_plan}{u.plan !== u.effective_plan ? ` (${u.plan} lapsed)` : ''}</td>
+                  <td>{u.paid_until ? new Date(u.paid_until * 1000).toLocaleDateString() : '—'}</td>
+                  <td className="text-right">{u.today.messages} · {u.today.tokens.toLocaleString()} tok</td>
+                  <td className="space-x-1 text-right">
+                    <button onClick={() => setPlan(u, 'pro')} className="rounded-full bg-navy px-2.5 py-0.5 text-ice">Pro +{days} d</button>
+                    {u.plan !== 'free' ? <button onClick={() => setPlan(u, 'free')} className="rounded-full border border-wine/40 px-2.5 py-0.5 text-wine">Free</button> : null}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+          {!users.length ? <p className="py-2 text-sm text-navy/60">Nobody matches.</p> : null}
+        </div>
+      ) : null}
+    </Card>
+  )
+}
+
 export default function Admin() {
+  const { hosted } = useApp()
   const stats = useApi(() => chatApi.stats(24))
   const status = useApi(chatApi.status)
   const gates = useApi(chatApi.gates)
@@ -179,6 +247,7 @@ export default function Admin() {
           </div>
         </Card>
       ) : null}
+      {hosted ? <PeoplePanel /> : null}
     </Page>
   )
 }

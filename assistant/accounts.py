@@ -170,6 +170,24 @@ class Accounts:
                 (time.time(), user_id),
             )
 
+    def set_plan(self, user_id: str, plan: str, paid_until: float | None) -> bool:
+        with self.store.transaction() as db:
+            changed = db.execute(
+                "UPDATE users SET plan = ?, paid_until = ? WHERE id = ?",
+                (plan, paid_until, user_id),
+            ).rowcount
+        return changed > 0
+
+    def search(self, query: str = "", limit: int = 50) -> list[dict[str, Any]]:
+        """Users whose email contains ``query``, newest first (admin view)."""
+        like = f"%{query.strip().lower()}%"
+        with self.store.read() as db:
+            rows = db.execute(
+                "SELECT * FROM users WHERE email LIKE ? ORDER BY created_at DESC LIMIT ?",
+                (like, limit),
+            ).fetchall()
+        return [dict(r) for r in rows]
+
     def delete(self, user_id: str) -> None:
         with self.store.transaction() as db:
             db.execute("DELETE FROM users WHERE id = ?", (user_id,))

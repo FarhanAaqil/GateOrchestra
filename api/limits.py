@@ -6,6 +6,7 @@ What one person may use in hosted mode, checked before a chat turn starts:
   * a request rate per person (GATE_USER_RATE_LIMIT_PER_MINUTE, default 10),
     on top of the per-address limit in the middleware;
   * answers in progress at once (the plan's ``concurrent_chats``);
+  * the plan's answers per day (every turn counts, whoever's key answers it);
   * the plan's daily token allowance on the operator's keys;
   * the operator's global daily token cap (GATE_GLOBAL_DAILY_TOKENS or
     configs/plans.yaml), the safety switch for the whole service.
@@ -41,6 +42,19 @@ def limit_rate(user_id: str) -> None:
             status_code=429,
             detail=f"You are sending messages very quickly. Try again in {wait:.0f}s.",
             headers={"Retry-After": str(max(1, round(wait)))},
+        )
+
+
+def check_document_room(service: AssistantService, user_id: str) -> None:
+    """The plan's limit on stored documents (checked before an upload)."""
+    plan = plan_for(service, user_id)
+    if len(service.store.scoped(user_id).documents()) >= plan.documents:
+        raise HTTPException(
+            status_code=403,
+            detail=(
+                f"The {plan.label} plan stores up to {plan.documents} documents. "
+                "Remove one, or upgrade for more."
+            ),
         )
 
 
@@ -85,6 +99,14 @@ def admit_turn(service: AssistantService, user_id: str) -> Admission:
                     "lifts the limit."
                 ),
             )
+    if service.usage.today(user_id)["messages"] >= plan.messages_per_day:
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                f"You have had today's {plan.messages_per_day:,} answers on the {plan.label} plan. "
+                "It resets at midnight UTC, or upgrade for more."
+            ),
+        )
     with _running_lock:
         if _running[user_id] >= plan.concurrent_chats:
             raise HTTPException(

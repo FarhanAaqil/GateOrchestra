@@ -3,6 +3,7 @@ import {
   Activity,
   BarChart3,
   ChartPie,
+  CreditCard,
   Coins,
   Database,
   FlaskConical,
@@ -51,6 +52,7 @@ const NAV_GROUPS = [
   {
     label: 'System',
     items: [
+      { to: '/pricing', label: 'Pricing', icon: CreditCard, hostedOnly: true },
       { to: '/settings', label: 'Settings', icon: SettingsIcon, accountOnly: true },
       { to: '/admin', label: 'Admin', icon: ServerCog, adminOnly: true },
       { to: '/about', label: 'About', icon: Info },
@@ -74,12 +76,15 @@ interface NavItem {
   adminOnly?: boolean
   /** Only for a signed-in person on a hosted server. */
   accountOnly?: boolean
+  /** Only on a hosted server. */
+  hostedOnly?: boolean
 }
 
 /** The menu this visitor may use: operator pages are left out for non-admins when hosted. */
 function useNavGroups(): { label: string; items: NavItem[] }[] {
   const { isAdmin, hosted, user } = useApp()
-  const allowed = (i: NavItem) => (isAdmin || !i.adminOnly) && (!i.accountOnly || (hosted && user))
+  const allowed = (i: NavItem) =>
+    (isAdmin || !i.adminOnly) && (!i.accountOnly || (hosted && user)) && (!i.hostedOnly || hosted)
   // Hosted servers show the product page at /, so the research overview lives at /overview.
   const place = (i: NavItem) => (hosted && i.to === '/' ? { ...i, to: '/overview' } : i)
   return NAV_GROUPS.map((g) => ({ ...g, items: (g.items as NavItem[]).filter(allowed).map(place) })).filter((g) => g.items.length)

@@ -20,6 +20,7 @@ const Admin = lazy(() => import('./pages/Admin'))
 const Settings = lazy(() => import('./pages/Settings'))
 const Usage = lazy(() => import('./pages/Usage'))
 const Landing = lazy(() => import('./pages/Landing'))
+const Pricing = lazy(() => import('./pages/Pricing'))
 const Login = lazy(() => import('./pages/Auth').then((m) => ({ default: m.Login })))
 const Signup = lazy(() => import('./pages/Auth').then((m) => ({ default: m.Signup })))
 const ForgotPassword = lazy(() => import('./pages/Auth').then((m) => ({ default: m.ForgotPassword })))
@@ -51,6 +52,7 @@ export default function App() {
             <Route path="/about" element={<About />} />
             <Route path="/admin" element={<AdminOnly><Admin /></AdminOnly>} />
             <Route path="/usage" element={<RequireUser><Usage /></RequireUser>} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/settings" element={<RequireUser><Settings /></RequireUser>} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />

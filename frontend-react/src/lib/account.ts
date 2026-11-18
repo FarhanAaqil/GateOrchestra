@@ -132,3 +132,19 @@ export const usageApi = {
   usage: () => call<UsageReport>('/account/usage').then((r) => r.data),
   plans: () => call<{ default: string; plans: PlanInfo[] }>('/plans').then((r) => r.data),
 }
+
+export interface AdminUser extends SessionUser {
+  effective_plan: string
+  today: UsageCounts
+}
+
+export const billingApi = {
+  /** The payment page for the signed-in person (404 when payments are not set up). */
+  upgrade: () => call<{ url: string }>('/account/upgrade').then((r) => r.data),
+  plans: () => call<{ default: string; plans: PlanInfo[]; payments: boolean }>('/plans').then((r) => r.data),
+}
+
+export const adminApi = {
+  users: (q = '') => call<{ users: AdminUser[] }>(`/admin/users?q=${encodeURIComponent(q)}`).then((r) => r.data),
+  setPlan: (id: string, plan: string, days: number) => send<{ user: AdminUser }>(`/admin/users/${id}/plan`, 'POST', { plan, days }),
+}

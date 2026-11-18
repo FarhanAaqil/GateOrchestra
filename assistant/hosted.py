@@ -90,6 +90,9 @@ def hosted_config_problems(env: Mapping[str, str] | None = None) -> list[str]:
     key_problem = encryption_key_problem(source.get("GATE_ENCRYPTION_KEY", "").strip())
     if key_problem:
         problems.append(key_problem)
+    link = source.get("GATE_PAYMENT_LINK", "").strip()
+    if link and not link.startswith("https://"):
+        problems.append("GATE_PAYMENT_LINK must be an https:// address.")
     return problems
 
 
