@@ -17,6 +17,7 @@ import os
 
 from fastapi import HTTPException, Request
 
+from api.auth_routes import csrf_ok, load_session_user
 from assistant.hosted import hosted_mode
 from assistant.security import api_token, token_ok
 
@@ -30,9 +31,9 @@ def admin_token_ok(request: Request) -> bool:
 
 
 def session_is_admin(request: Request) -> bool:
-    """A signed-in admin (hosted mode, filled in by the accounts layer)."""
-    user = getattr(request.state, "user", None)
-    return bool(user and user.get("is_admin"))
+    """A signed-in admin (hosted mode); writes must carry the session's CSRF token."""
+    user = load_session_user(request)
+    return bool(user and user.get("is_admin") and csrf_ok(request, user))
 
 
 def is_admin(request: Request) -> bool:

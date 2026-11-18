@@ -226,7 +226,7 @@ function LiveBubble({ live }: { live: Live }) {
 }
 
 export default function Chat() {
-  const { backend } = useApp()
+  const { backend, isAdmin } = useApp()
   const [conversations, setConversations] = useState<Conversation[]>([])
   const [activeId, setActiveId] = useState<string | null>(null)
   const [messages, setMessages] = useState<ChatMessage[]>([])
@@ -394,7 +394,9 @@ export default function Chat() {
             setLive(null)
           } else if (event.type === 'error') {
             setMessages((m) => m.filter((x) => x.id !== optimistic.id))
-            if (event.code === 'needs_key') setKeyPrompt({ attempts: event.attempts ?? [], message })
+            // Only the operator can add a server key; everyone else just hears that it is busy.
+            if (event.code === 'needs_key' && isAdmin) setKeyPrompt({ attempts: event.attempts ?? [], message })
+            else if (event.code === 'needs_key') setError('The assistant is at capacity right now. Try again in a minute.')
             else setError(event.message)
           }
         },

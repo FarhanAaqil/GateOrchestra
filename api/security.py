@@ -15,7 +15,7 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from assistant.hosted import client_address
+from assistant.hosted import client_address, hosted_mode
 from assistant.security import LIMITED_PATHS, OPEN_PATHS, rate_limit_from_env, token_ok
 
 
@@ -30,7 +30,12 @@ class SecurityMiddleware:
             return
         path = scope.get("path", "")
         headers = {k.decode().lower(): v.decode() for k, v in scope.get("headers", [])}
-        if path not in OPEN_PATHS and not token_ok(headers.get("authorization")):
+        # Hosted mode signs people in with accounts; the shared token is for single-tenant use.
+        if (
+            not hosted_mode()
+            and path not in OPEN_PATHS
+            and not token_ok(headers.get("authorization"))
+        ):
             await _reply(
                 send,
                 401,

@@ -2,48 +2,12 @@
 
 from __future__ import annotations
 
-from pathlib import Path
-
 import pytest
 from fastapi.testclient import TestClient
 
-from assistant.config import AssistantSettings
-from assistant.gates import GateSet
 from assistant.hosted import check_hosted_config, client_address, hosted_config_problems
-from assistant.service import AssistantService, set_service
-
-ADMIN_TOKEN = "admin-" + "t" * 30
-GROQ_KEY = "gsk_" + "h" * 40
-
-GOOD_ENV = {
-    "GATE_HOSTED": "true",
-    "GATE_CORS_ORIGINS": "https://gate.example.com",
-    "GATE_ADMIN_TOKEN": ADMIN_TOKEN,
-    "ASSISTANT_PROVIDERS": "groq,gemini",
-    "GATE_LLM_PROVIDER": "groq",
-    "GROQ_API_KEY": GROQ_KEY,
-}
-
-
-@pytest.fixture()
-def service(tmp_path: Path):
-    svc = AssistantService(
-        AssistantSettings(
-            db_path=tmp_path / "a.db", env_path=tmp_path / ".env", providers=["mock"]
-        ),
-        gates=GateSet(),
-    )
-    set_service(svc)
-    yield svc
-    set_service(None)
-
-
-@pytest.fixture()
-def hosted(monkeypatch: pytest.MonkeyPatch) -> None:
-    for name, value in GOOD_ENV.items():
-        monkeypatch.setenv(name, value)
-    monkeypatch.delenv("GATE_API_TOKEN", raising=False)
-    monkeypatch.delenv("GATE_TRUSTED_PROXIES", raising=False)
+from assistant.service import AssistantService
+from tests.hosted_utils import ADMIN_TOKEN, GOOD_ENV
 
 
 def test_a_locked_down_config_has_no_problems() -> None:
@@ -63,6 +27,10 @@ def test_a_locked_down_config_has_no_problems() -> None:
         ({"ASSISTANT_LOCAL_FALLBACK": "true"}, "never uses Ollama"),
         ({"GATE_LLM_PROVIDER": "ollama"}, "GATE_LLM_PROVIDER"),
         ({"GROQ_API_KEY": ""}, "API key is required"),
+        ({"GATE_PUBLIC_URL": "http://gate.example.com"}, "GATE_PUBLIC_URL"),
+        ({"GATE_ADMIN_EMAILS": ""}, "GATE_ADMIN_EMAILS"),
+        ({"GATE_MAIL_BACKEND": "smtp"}, "GATE_SMTP_HOST"),
+        ({"GATE_MAIL_BACKEND": "pigeon"}, "smtp or console"),
     ],
 )
 def test_hosted_mode_refuses_an_unsafe_config(change: dict[str, str], complaint: str) -> None:

@@ -8,6 +8,8 @@ import {
   Gauge,
   Info,
   LayoutDashboard,
+  LogIn,
+  LogOut,
   Menu,
   MessagesSquare,
   PanelLeftClose,
@@ -17,7 +19,8 @@ import {
   Zap,
 } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
-import { NavLink, useLocation } from 'react-router-dom'
+import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { authApi } from '../lib/account'
 import { setToken } from '../lib/auth'
 import { chatApi } from '../lib/chat'
 import { useApp } from '../lib/context'
@@ -28,7 +31,7 @@ const NAV_GROUPS = [
     label: 'Assistant',
     items: [
       { to: '/chat', label: 'Chat', icon: MessagesSquare },
-      { to: '/run', label: 'Run a Task', icon: Play },
+      { to: '/run', label: 'Run a Task', icon: Play, adminOnly: true },
     ],
   },
   {
@@ -39,13 +42,13 @@ const NAV_GROUPS = [
       { to: '/benchmark', label: 'Benchmark', icon: Database },
       { to: '/baselines', label: 'Baselines', icon: BarChart3 },
       { to: '/gate', label: 'Gate Inspector', icon: Gauge },
-      { to: '/tokens', label: 'Token Accountant', icon: Coins },
+      { to: '/tokens', label: 'Token Accountant', icon: Coins, adminOnly: true },
     ],
   },
   {
     label: 'System',
     items: [
-      { to: '/admin', label: 'Admin', icon: ServerCog },
+      { to: '/admin', label: 'Admin', icon: ServerCog, adminOnly: true },
       { to: '/about', label: 'About', icon: Info },
     ],
   },
@@ -60,7 +63,21 @@ function BrandMark() {
   )
 }
 
+interface NavItem {
+  to: string
+  label: string
+  icon: typeof Info
+  adminOnly?: boolean
+}
+
+/** The menu this visitor may use: operator pages are left out for non-admins when hosted. */
+function useNavGroups(): { label: string; items: NavItem[] }[] {
+  const { isAdmin } = useApp()
+  return NAV_GROUPS.map((g) => ({ ...g, items: (g.items as NavItem[]).filter((i) => isAdmin || !i.adminOnly) })).filter((g) => g.items.length)
+}
+
 function Sidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onToggle?: () => void; onNavigate?: () => void }) {
+  const groups = useNavGroups()
   return (
     <nav aria-label="Main" className="flex h-full flex-col gap-1">
       <div className={`mb-6 flex items-center ${collapsed ? 'justify-center' : 'justify-between'} gap-2`}>
@@ -74,7 +91,7 @@ function Sidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onTo
           </button>
         ) : null}
       </div>
-      {NAV_GROUPS.map((group) => (
+      {groups.map((group) => (
         <div key={group.label} className="flex flex-col gap-1" role="group" aria-label={group.label}>
           {collapsed ? <div className="mx-3 my-1 h-px bg-ice/10" aria-hidden /> : <p className="px-3.5 pb-0.5 pt-3 font-mono text-[10px] uppercase tracking-widest text-sky/60">{group.label}</p>}
       {group.items.map(({ to, label, icon: Icon }) => (
@@ -163,6 +180,51 @@ function useChatModel(active: boolean, online: boolean): string | null {
   return model
 }
 
+function AccountControls() {
+  const { hosted, user, setUser } = useApp()
+  const navigate = useNavigate()
+  if (!hosted) return null
+  if (!user) {
+    return (
+      <div className="flex items-center gap-1.5">
+        <Link to="/login" className="inline-flex items-center gap-1.5 rounded-full border border-sky px-3 py-1 text-xs text-navy hover:bg-soft">
+          <LogIn className="h-3.5 w-3.5" /> Log in
+        </Link>
+        <Link to="/signup" className="hidden rounded-full bg-ember px-3 py-1 text-xs font-semibold text-ink sm:inline-flex">Sign up</Link>
+      </div>
+    )
+  }
+  const signOut = async () => {
+    await authApi.logout().catch(() => undefined)
+    setUser(null)
+    navigate('/login')
+  }
+  return (
+    <div className="flex items-center gap-1.5">
+      <span className="hidden max-w-[12rem] truncate font-mono text-xs text-navy/70 lg:inline" title={user.email}>{user.email}</span>
+      <button onClick={signOut} className="inline-flex items-center gap-1.5 rounded-full border border-sky px-3 py-1 text-xs text-navy hover:bg-soft" aria-label="Log out">
+        <LogOut className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Log out</span>
+      </button>
+    </div>
+  )
+}
+
+function VerifyBanner() {
+  const { hosted, user } = useApp()
+  const [state, setState] = useState<'idle' | 'sent' | 'failed'>('idle')
+  if (!hosted || !user || user.verified) return null
+  const resend = () => authApi.resendVerification().then(() => setState('sent'), () => setState('failed'))
+  return (
+    <div className="mx-4 mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-lemon bg-lemon/30 px-4 py-3 text-sm text-ink md:mx-8" role="status">
+      <span>Confirm <strong>{user.email}</strong> with the link we emailed you before you start chatting.</span>
+      {state === 'sent' ? <span className="text-navy/70">A new link is on its way.</span> : (
+        <button onClick={resend} className="rounded-full border border-ink/30 px-3 py-1 text-xs font-semibold hover:bg-soft">Send the link again</button>
+      )}
+      {state === 'failed' ? <span className="text-wine">Could not send it; try again shortly.</span> : null}
+    </div>
+  )
+}
+
 function TopBar({ onMenu }: { onMenu: () => void }) {
   const { backend, models, performanceMode, setPerformanceMode } = useApp()
   const onChat = useLocation().pathname.startsWith('/chat')
@@ -201,6 +263,7 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
           <Zap className="h-3.5 w-3.5" />
           <span className="hidden sm:inline">Performance</span>
         </button>
+        <AccountControls />
       </div>
     </header>
   )
@@ -238,6 +301,7 @@ export default function Layout({ children }: { children: ReactNode }) {
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar onMenu={() => setMobileOpen(true)} />
         {backend === 'locked' ? <TokenPrompt /> : null}
+        <VerifyBanner />
         {backend === 'error' && backendError ? (
           <div className="mx-4 mt-4 rounded-2xl border border-wine/30 bg-wine/10 px-4 py-3 text-sm text-wine md:mx-8" role="alert">
             {backendError}

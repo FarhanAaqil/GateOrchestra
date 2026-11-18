@@ -18,6 +18,7 @@ from typing import Any
 from dotenv import dotenv_values
 
 from assistant import documents as docs
+from assistant.accounts import Accounts
 from assistant.agent import Tool, calculator_tool
 from assistant.config import AssistantSettings, get_settings
 from assistant.gates import GATES, GateSet
@@ -54,6 +55,7 @@ class AssistantService:
         self.pool = gateway.pool if gateway else KeyPool.from_env(self._key_environment())
         self.gateway = gateway or Gateway(self.settings, self.pool)
         self.store = store or Store(self.settings.db_path)
+        self.accounts = Accounts(self.store)
         self.gates = gates or GateSet()
         self.slots = threading.BoundedSemaphore(self.settings.max_concurrent)
         self.selector = GateSelector(

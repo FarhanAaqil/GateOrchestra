@@ -1,4 +1,4 @@
-import { AuthRequired, authHeaders } from './auth'
+import { AuthRequired, withAuth } from './auth'
 import type {
   ImportanceResponse,
   ModelsResponse,
@@ -14,7 +14,7 @@ export const API_BASE_URL: string =
   import.meta.env.VITE_API_BASE_URL || 'http://127.0.0.1:8000'
 
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers: authHeaders(init?.headers) })
+  const response = await fetch(`${API_BASE_URL}${path}`, withAuth(init))
   if (response.status === 401) throw new AuthRequired()
   let data: unknown = null
   try {
@@ -53,10 +53,10 @@ export function clearApiCache(): void {
 }
 
 /** Confirms the server on API_BASE_URL is really GateOrchestra, not another local app. */
-export async function checkBackend(): Promise<void> {
-  let root: { name?: string } | null
+export async function checkBackend(): Promise<{ hosted: boolean }> {
+  let root: { name?: string; hosted?: boolean } | null
   try {
-    root = await request<{ name?: string }>('/')
+    root = await request<{ name?: string; hosted?: boolean }>('/')
   } catch {
     throw new Error(`No GateOrchestra API at ${API_BASE_URL}. Start it with: uvicorn api.main:app`)
   }
@@ -66,6 +66,7 @@ export async function checkBackend(): Promise<void> {
         'Run the API on a free port and set VITE_API_BASE_URL in frontend-react/.env.local.',
     )
   }
+  return { hosted: Boolean(root.hosted) }
 }
 
 export interface BenchmarkRun {

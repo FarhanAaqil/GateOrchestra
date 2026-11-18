@@ -1,5 +1,5 @@
 import { API_BASE_URL, clearApiCache } from './api'
-import { AuthRequired, authHeaders } from './auth'
+import { AuthRequired, withAuth } from './auth'
 
 export type GateName = 'learned' | 'rule_based' | 'always_stop' | 'always_escalate' | 'triage'
 
@@ -103,7 +103,7 @@ export type ChatEvent =
   | { type: 'error'; code: string; message: string; needs_key?: boolean; attempts?: KeyAttempt[] }
 
 async function json<T>(path: string, init?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}${path}`, { ...init, headers: authHeaders(init?.headers) })
+  const response = await fetch(`${API_BASE_URL}${path}`, withAuth(init))
   if (response.status === 401) throw new AuthRequired()
   const data = await response.json().catch(() => null)
   if (!response.ok) {
@@ -119,12 +119,10 @@ export async function streamChat(
   onEvent: (event: ChatEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
-  const response = await fetch(`${API_BASE_URL}/chat`, {
-    method: 'POST',
-    headers: authHeaders({ 'Content-Type': 'application/json' }),
-    body: JSON.stringify(body),
-    signal,
-  })
+  const response = await fetch(
+    `${API_BASE_URL}/chat`,
+    withAuth({ method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal }),
+  )
   if (!response.ok || !response.body) {
     const data = await response.json().catch(() => null)
     const detail = (data as { detail?: unknown } | null)?.detail

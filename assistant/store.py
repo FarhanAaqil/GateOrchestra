@@ -75,6 +75,17 @@ class Store:
         finally:
             db.close()
 
+    @contextmanager
+    def transaction(self):
+        """One serialised write transaction (for modules that share this database)."""
+        with self._write_lock, self._connect() as db:
+            yield db
+
+    @contextmanager
+    def read(self):
+        with self._connect() as db:
+            yield db
+
     def _write(self, sql: str, params: tuple = ()) -> None:
         with self._write_lock, self._connect() as db:
             db.execute(sql, params)

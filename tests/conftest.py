@@ -37,3 +37,38 @@ def _isolated_api_history(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
         from api.history import RunHistory
 
         monkeypatch.setattr(api_main, "_HISTORY", RunHistory(tmp_path / "history.jsonl"))
+
+
+@pytest.fixture()
+def service(tmp_path):
+    """A chat service on the offline mock provider, installed as the API's service."""
+    from assistant.config import AssistantSettings
+    from assistant.gates import GateSet
+    from assistant.service import AssistantService, set_service
+
+    svc = AssistantService(
+        AssistantSettings(
+            db_path=tmp_path / "a.db", env_path=tmp_path / ".env", providers=["mock"]
+        ),
+        gates=GateSet(),
+    )
+    set_service(svc)
+    yield svc
+    set_service(None)
+
+
+@pytest.fixture()
+def hosted(monkeypatch: pytest.MonkeyPatch) -> None:
+    """GATE_HOSTED=true with a locked-down configuration and generous auth limits."""
+    from api import auth_routes
+    from assistant.mailer import OUTBOX
+    from assistant.security import RateLimiter
+    from tests.hosted_utils import GOOD_ENV
+
+    for name, value in GOOD_ENV.items():
+        monkeypatch.setenv(name, value)
+    for name in ("GATE_API_TOKEN", "GATE_TRUSTED_PROXIES"):
+        monkeypatch.delenv(name, raising=False)
+    monkeypatch.setattr(auth_routes, "_by_address", RateLimiter(10_000))
+    monkeypatch.setattr(auth_routes, "_by_email", RateLimiter(10_000))
+    OUTBOX.clear()

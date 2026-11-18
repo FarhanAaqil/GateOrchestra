@@ -74,6 +74,30 @@ def hosted_config_problems(env: Mapping[str, str] | None = None) -> list[str]:
         problems.append("GATE_LLM_PROVIDER must be groq (or mock) in hosted mode, not ollama.")
     if not _has_cloud_key(source):
         problems.append("A Groq or Gemini API key is required (GROQ_API_KEY or GEMINI_API_KEY).")
+
+    url = source.get("GATE_PUBLIC_URL", "").strip()
+    local = url.startswith(("http://localhost", "http://127.0.0.1"))
+    if not (url.startswith("https://") or local):
+        problems.append(
+            "GATE_PUBLIC_URL must be the site's https:// address (used in emailed links)."
+        )
+    if not source.get("GATE_ADMIN_EMAILS", "").strip():
+        problems.append("GATE_ADMIN_EMAILS must name at least one admin account.")
+    problems += _mail_problems(source)
+    return problems
+
+
+def _mail_problems(env: Mapping[str, str]) -> list[str]:
+    backend = env.get("GATE_MAIL_BACKEND", "smtp").strip().lower() or "smtp"
+    if backend == "console":
+        return []
+    if backend != "smtp":
+        return ["GATE_MAIL_BACKEND must be smtp or console."]
+    problems = []
+    if not env.get("GATE_SMTP_HOST", "").strip():
+        problems.append("GATE_SMTP_HOST must be set to send account emails.")
+    if "@" not in env.get("GATE_MAIL_FROM", ""):
+        problems.append("GATE_MAIL_FROM must be the address account emails come from.")
     return problems
 
 

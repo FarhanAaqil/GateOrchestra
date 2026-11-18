@@ -37,6 +37,7 @@ from fastapi.responses import PlainTextResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
 from api.access import admin_when_hosted, require_admin
+from api.auth_routes import chat_owner
 from assistant.pipeline import ChatPipeline
 from assistant.service import KeyRejected, get_service
 
@@ -77,7 +78,7 @@ def _sse(events: Iterator[dict[str, Any]]) -> Iterator[str]:
 
 
 @router.post("/chat")
-def chat(body: ChatRequest) -> StreamingResponse:
+def chat(body: ChatRequest, owner: str | None = Depends(chat_owner)) -> StreamingResponse:
     service = get_service()
     if not service.slots.acquire(timeout=30):
         raise HTTPException(status_code=503, detail="The assistant is busy; try again in a moment.")
@@ -104,12 +105,12 @@ def chat(body: ChatRequest) -> StreamingResponse:
 
 
 @router.get("/conversations")
-def list_conversations(limit: int = 50) -> dict[str, Any]:
+def list_conversations(limit: int = 50, owner: str | None = Depends(chat_owner)) -> dict[str, Any]:
     return {"conversations": get_service().store.list_conversations(min(max(limit, 1), 200))}
 
 
 @router.get("/conversations/{cid}")
-def get_conversation(cid: str) -> dict[str, Any]:
+def get_conversation(cid: str, owner: str | None = Depends(chat_owner)) -> dict[str, Any]:
     store = get_service().store
     if not store.conversation_exists(cid):
         raise HTTPException(status_code=404, detail="Conversation not found.")
@@ -118,7 +119,9 @@ def get_conversation(cid: str) -> dict[str, Any]:
 
 
 @router.patch("/conversations/{cid}")
-def rename_conversation(cid: str, body: RenameRequest) -> dict[str, str]:
+def rename_conversation(
+    cid: str, body: RenameRequest, owner: str | None = Depends(chat_owner)
+) -> dict[str, str]:
     store = get_service().store
     if not store.conversation_exists(cid):
         raise HTTPException(status_code=404, detail="Conversation not found.")
@@ -127,13 +130,15 @@ def rename_conversation(cid: str, body: RenameRequest) -> dict[str, str]:
 
 
 @router.delete("/conversations/{cid}")
-def delete_conversation(cid: str) -> dict[str, str]:
+def delete_conversation(cid: str, owner: str | None = Depends(chat_owner)) -> dict[str, str]:
     get_service().store.delete_conversation(cid)
     return {"status": "deleted"}
 
 
 @router.post("/messages/{mid}/feedback")
-def rate_message(mid: str, body: RatingRequest) -> dict[str, Any]:
+def rate_message(
+    mid: str, body: RatingRequest, owner: str | None = Depends(chat_owner)
+) -> dict[str, Any]:
     try:
         return get_service().rate(mid, body.rating)
     except LookupError as err:
@@ -141,12 +146,14 @@ def rate_message(mid: str, body: RatingRequest) -> dict[str, Any]:
 
 
 @router.get("/assistant/gates")
-def gate_report() -> dict[str, Any]:
+def gate_report(owner: str | None = Depends(chat_owner)) -> dict[str, Any]:
     return get_service().gate_report()
 
 
 @router.post("/documents")
-def upload_document(body: DocumentRequest) -> dict[str, Any]:
+def upload_document(
+    body: DocumentRequest, owner: str | None = Depends(chat_owner)
+) -> dict[str, Any]:
     from assistant.documents import DocumentError
 
     try:
@@ -156,12 +163,12 @@ def upload_document(body: DocumentRequest) -> dict[str, Any]:
 
 
 @router.get("/documents")
-def list_documents() -> dict[str, Any]:
+def list_documents(owner: str | None = Depends(chat_owner)) -> dict[str, Any]:
     return {"documents": get_service().store.documents()}
 
 
 @router.delete("/documents/{did}")
-def delete_document(did: str) -> dict[str, str]:
+def delete_document(did: str, owner: str | None = Depends(chat_owner)) -> dict[str, str]:
     get_service().store.delete_document(did)
     return {"status": "deleted"}
 
