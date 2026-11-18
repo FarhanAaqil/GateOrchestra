@@ -89,3 +89,46 @@ export const accountApi = {
   putKey: (provider: 'groq' | 'gemini', key: string) => send<{ keys: OwnKey[] }>('/account/keys', 'PUT', { provider, key }),
   deleteKey: (provider: string) => send<{ keys: OwnKey[] }>(`/account/keys/${provider}`, 'DELETE'),
 }
+
+export interface PlanInfo {
+  id: string
+  label: string
+  price_usd_month: number
+  messages_per_day: number
+  documents: number
+  daily_tokens: number
+  concurrent_chats: number
+  blurb: string
+}
+
+export interface UsageCounts {
+  messages: number
+  tokens: number
+  own_key_tokens: number
+  direct: number
+  escalated: number
+  small_talk: number
+  cached: number
+}
+
+export interface UsageReport {
+  plan: PlanInfo
+  paid_until: number | null
+  today: UsageCounts
+  month: UsageCounts
+  documents: number
+  own_key: boolean
+  estimate: {
+    available: boolean
+    sample_size: number
+    per_escalation: number | null
+    saved_tokens: number | null
+    window_days: number
+    method: string
+  }
+}
+
+export const usageApi = {
+  usage: () => call<UsageReport>('/account/usage').then((r) => r.data),
+  plans: () => call<{ default: string; plans: PlanInfo[] }>('/plans').then((r) => r.data),
+}

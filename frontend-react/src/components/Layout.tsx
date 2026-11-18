@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import {
   Activity,
   BarChart3,
+  ChartPie,
   Coins,
   Database,
   FlaskConical,
@@ -32,6 +33,7 @@ const NAV_GROUPS = [
     label: 'Assistant',
     items: [
       { to: '/chat', label: 'Chat', icon: MessagesSquare },
+      { to: '/usage', label: 'Usage', icon: ChartPie, accountOnly: true },
       { to: '/run', label: 'Run a Task', icon: Play, adminOnly: true },
     ],
   },
@@ -78,7 +80,9 @@ interface NavItem {
 function useNavGroups(): { label: string; items: NavItem[] }[] {
   const { isAdmin, hosted, user } = useApp()
   const allowed = (i: NavItem) => (isAdmin || !i.adminOnly) && (!i.accountOnly || (hosted && user))
-  return NAV_GROUPS.map((g) => ({ ...g, items: (g.items as NavItem[]).filter(allowed) })).filter((g) => g.items.length)
+  // Hosted servers show the product page at /, so the research overview lives at /overview.
+  const place = (i: NavItem) => (hosted && i.to === '/' ? { ...i, to: '/overview' } : i)
+  return NAV_GROUPS.map((g) => ({ ...g, items: (g.items as NavItem[]).filter(allowed).map(place) })).filter((g) => g.items.length)
 }
 
 function Sidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onToggle?: () => void; onNavigate?: () => void }) {

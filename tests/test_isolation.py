@@ -13,7 +13,7 @@ from assistant.service import AssistantService
 from assistant.store import Store
 from tests.hosted_utils import signed_in
 
-SECRET = "The vault code for project Nightingale is 4471."
+SECRET = "The vault code for project Nightingale is ZEBRA-QUILL."
 
 
 def turn(client: TestClient, message: str, **extra) -> list[dict]:
@@ -69,7 +69,7 @@ def test_document_search_only_reads_the_askers_own_chunks(
         events = turn(bob, "What is the vault code for Nightingale?", document_ids=ids)
         gate = next(e for e in events if e["type"] == "gate")
         assert gate["features"]["has_context"] is False, ids
-        assert all("4471" not in json.dumps(e) for e in events)
+        assert all("ZEBRA" not in json.dumps(e) for e in events)
 
     bob_store = service.store.scoped(
         bob.get("/auth/me").json()["user"]["id"],
