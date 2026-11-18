@@ -21,6 +21,9 @@ const Settings = lazy(() => import('./pages/Settings'))
 const Usage = lazy(() => import('./pages/Usage'))
 const Landing = lazy(() => import('./pages/Landing'))
 const Pricing = lazy(() => import('./pages/Pricing'))
+const Terms = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Terms })))
+const Privacy = lazy(() => import('./pages/Legal').then((m) => ({ default: m.Privacy })))
+const AcceptableUse = lazy(() => import('./pages/Legal').then((m) => ({ default: m.AcceptableUse })))
 const Login = lazy(() => import('./pages/Auth').then((m) => ({ default: m.Login })))
 const Signup = lazy(() => import('./pages/Auth').then((m) => ({ default: m.Signup })))
 const ForgotPassword = lazy(() => import('./pages/Auth').then((m) => ({ default: m.ForgotPassword })))
@@ -53,6 +56,9 @@ export default function App() {
             <Route path="/admin" element={<AdminOnly><Admin /></AdminOnly>} />
             <Route path="/usage" element={<RequireUser><Usage /></RequireUser>} />
             <Route path="/pricing" element={<Pricing />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
+            <Route path="/acceptable-use" element={<AcceptableUse />} />
             <Route path="/settings" element={<RequireUser><Settings /></RequireUser>} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />

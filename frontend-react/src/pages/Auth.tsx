@@ -123,6 +123,7 @@ export function Signup() {
   const { hosted, user } = useApp()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [agreed, setAgreed] = useState(false)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [sent, setSent] = useState(false)
@@ -155,7 +156,11 @@ export function Signup() {
           <Problem message={error} />
           <Field id="email" label="Email" type="email" autoComplete="email" value={email} onChange={setEmail} />
           <Field id="password" label="Password" type="password" autoComplete="new-password" value={password} onChange={setPassword} hint={`At least ${MIN_PASSWORD} characters.`} />
-          <Submit busy={busy} disabled={!email.trim() || !password}>Create account</Submit>
+          <label className="mb-4 flex items-start gap-2 text-sm text-navy">
+            <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-1" />
+            <span>I accept the <Link to="/terms" className="underline">terms</Link> and the <Link to="/acceptable-use" className="underline">acceptable-use policy</Link>, and have read the <Link to="/privacy" className="underline">privacy notice</Link>.</span>
+          </label>
+          <Submit busy={busy} disabled={!email.trim() || !password || !agreed}>Create account</Submit>
         </form>
       )}
     </AuthCard>

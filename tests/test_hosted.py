@@ -111,6 +111,16 @@ def test_single_tenant_mode_keeps_the_local_operator_rule(service: AssistantServ
     assert client.get("/assistant/stats").status_code == 200
 
 
+def test_people_can_see_which_models_answer_but_not_the_keys(
+    service: AssistantService, hosted: None
+) -> None:
+    from tests.hosted_utils import signed_in
+
+    reply = signed_in("ada@example.com").get("/assistant/models")
+    assert reply.status_code == 200 and set(reply.json()) == {"fast", "answer"}
+    assert "gsk_" not in reply.text
+
+
 def test_research_pages_stay_public_when_hosted(service: AssistantService, hosted: None) -> None:
     from api.main import app
 

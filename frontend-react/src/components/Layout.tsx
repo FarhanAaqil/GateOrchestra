@@ -181,11 +181,11 @@ function useChatModel(active: boolean, online: boolean): string | null {
     if (!active || !online) return
     let cancelled = false
     chatApi
-      .status()
-      .then((s) => {
+      .models()
+      .then((m) => {
         if (cancelled) return
-        const fast = s.models.fast?.split('/').pop()
-        const answer = s.models.answer?.split('/').pop()
+        const fast = m.fast?.split('/').pop()
+        const answer = m.answer?.split('/').pop()
         setModel(fast && answer && fast !== answer ? `${fast} · ${answer}` : (answer ?? fast ?? null))
       })
       .catch(() => undefined)
@@ -236,6 +236,20 @@ function VerifyBanner() {
       )}
       {state === 'failed' ? <span className="text-wine">Could not send it; try again shortly.</span> : null}
     </div>
+  )
+}
+
+function LegalFooter() {
+  const { hosted } = useApp()
+  if (!hosted) return null
+  return (
+    <footer className="flex flex-wrap gap-x-4 gap-y-1 border-t border-sky/60 px-4 py-4 text-xs text-navy/60 md:px-10">
+      <Link to="/terms" className="hover:text-navy">Terms</Link>
+      <Link to="/privacy" className="hover:text-navy">Privacy</Link>
+      <Link to="/acceptable-use" className="hover:text-navy">Acceptable use</Link>
+      <Link to="/pricing" className="hover:text-navy">Pricing</Link>
+      <Link to="/about" className="hover:text-navy">About</Link>
+    </footer>
   )
 }
 
@@ -322,6 +336,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           </div>
         ) : null}
         <main className="flex-1 px-4 py-8 md:px-10 md:py-10">{children}</main>
+        <LegalFooter />
       </div>
     </div>
   )

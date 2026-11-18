@@ -44,6 +44,7 @@ from api.admin_routes import router as admin_router  # noqa: E402
 from api.auth_routes import router as auth_router  # noqa: E402
 from api.chat_routes import router as chat_router  # noqa: E402
 from api.history import RunHistory  # noqa: E402
+from api.observability import RequestLogMiddleware, init_error_tracking  # noqa: E402
 from api.security import SecurityMiddleware  # noqa: E402
 from assistant.hosted import check_hosted_config, cors_origins, hosted_mode  # noqa: E402
 from evaluation.results_detail import build_results_detail  # noqa: E402
@@ -100,6 +101,7 @@ def _warm_up_assistant() -> None:
 @asynccontextmanager
 async def _lifespan(_app: FastAPI):
     check_hosted_config()  # GATE_HOSTED=true refuses to start until it is locked down
+    init_error_tracking()
     _warm_up_assistant()
     yield
 
@@ -124,6 +126,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# Outermost: one log line per request, refused ones included (hosted mode only).
+app.add_middleware(RequestLogMiddleware)
 app.include_router(chat_router)
 app.include_router(auth_router)
 app.include_router(account_router)

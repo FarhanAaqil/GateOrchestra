@@ -1,7 +1,8 @@
-import { KeyRound, Loader2, Trash2 } from 'lucide-react'
+import { Download, KeyRound, Loader2, Lock, Trash2, UserRound } from 'lucide-react'
 import { useState, type FormEvent } from 'react'
+import { Link, useNavigate } from 'react-router-dom'
 import { Card, ErrorNote, Page, PageHeader } from '../components/ui'
-import { accountApi } from '../lib/account'
+import { MIN_PASSWORD, accountApi, profileApi, usageApi } from '../lib/account'
 import { useApp } from '../lib/context'
 import { FIELD } from '../lib/styles'
 import { useApi } from '../lib/useApi'
@@ -73,6 +74,135 @@ function OwnKeys() {
   )
 }
 
+function Profile() {
+  const { user } = useApp()
+  const usage = useApi(usageApi.usage)
+  const [error, setError] = useState<string | null>(null)
+  const download = async () => {
+    setError(null)
+    try {
+      const blob = await profileApi.exportData()
+      const url = URL.createObjectURL(blob)
+      const link = document.createElement('a')
+      link.href = url
+      link.download = 'gateorchestra-export.json'
+      link.click()
+      URL.revokeObjectURL(url)
+    } catch (err) {
+      setError((err as Error).message)
+    }
+  }
+  if (!user) return null
+  const plan = usage.data?.plan
+  return (
+    <Card tilt={false}>
+      <h2 className="flex items-center gap-2 text-lg font-bold text-ink"><UserRound className="h-5 w-5 text-wine" /> Profile and plan</h2>
+      <dl className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
+        <dt className="text-navy/60">Email</dt>
+        <dd className="break-all text-ink">{user.email}{user.verified ? '' : ' (not confirmed yet)'}</dd>
+        <dt className="text-navy/60">Member since</dt>
+        <dd className="text-ink">{new Date(user.created_at * 1000).toLocaleDateString()}</dd>
+        <dt className="text-navy/60">Plan</dt>
+        <dd className="text-ink">
+          {plan ? plan.label : '…'}
+          {usage.data?.paid_until ? ` until ${new Date(usage.data.paid_until * 1000).toLocaleDateString()}` : ''}
+          {' · '}<Link to="/pricing" className="underline">plans</Link>
+          {' · '}<Link to="/usage" className="underline">usage</Link>
+        </dd>
+      </dl>
+      <button onClick={download} className="mt-4 inline-flex items-center gap-1.5 rounded-full border border-sky px-3.5 py-1.5 text-sm text-navy hover:bg-soft">
+        <Download className="h-4 w-4" /> Export my conversations
+      </button>
+      <p className="mt-1 text-xs text-navy/60">A JSON file with your conversations, the names of your documents and your account details.</p>
+      {error ? <p className="mt-2 text-sm text-wine" role="alert">{error}</p> : null}
+    </Card>
+  )
+}
+
+function ChangePassword() {
+  const [current, setCurrent] = useState('')
+  const [next, setNext] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const [done, setDone] = useState(false)
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    setDone(false)
+    if (next.length < MIN_PASSWORD) {
+      setError(`Use at least ${MIN_PASSWORD} characters.`)
+      return
+    }
+    setBusy(true)
+    setError(null)
+    try {
+      await profileApi.changePassword(current, next)
+      setCurrent('')
+      setNext('')
+      setDone(true)
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+  return (
+    <Card tilt={false}>
+      <h2 className="flex items-center gap-2 text-lg font-bold text-ink"><Lock className="h-5 w-5 text-wine" /> Password</h2>
+      <form onSubmit={submit} className="mt-3 grid gap-2">
+        <input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="Current password" aria-label="Current password" className={`${FIELD} text-sm`} />
+        <input type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} placeholder={`New password (${MIN_PASSWORD}+ characters)`} aria-label="New password" className={`${FIELD} text-sm`} />
+        <button type="submit" disabled={!current || !next || busy} className="justify-self-start rounded-full bg-ink px-4 py-2 text-sm font-bold text-soft disabled:opacity-40">Change password</button>
+      </form>
+      <p className="mt-1 text-xs text-navy/60">Your other browsers and devices are signed out; this one stays signed in.</p>
+      {error ? <p className="mt-2 text-sm text-wine" role="alert">{error}</p> : null}
+      {done ? <p className="mt-2 text-sm text-navy" role="status">Password changed.</p> : null}
+    </Card>
+  )
+}
+
+function DeleteAccount() {
+  const { setUser } = useApp()
+  const navigate = useNavigate()
+  const [open, setOpen] = useState(false)
+  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    setBusy(true)
+    setError(null)
+    try {
+      await profileApi.deleteAccount(password)
+      setUser(null)
+      navigate('/', { replace: true })
+    } catch (err) {
+      setError((err as Error).message)
+      setBusy(false)
+    }
+  }
+  return (
+    <Card tilt={false}>
+      <h2 className="flex items-center gap-2 text-lg font-bold text-wine"><Trash2 className="h-5 w-5" /> Delete my account</h2>
+      <p className="mt-1 text-sm text-navy/70">
+        Removes your account and everything in it: conversations, messages, uploaded documents, cached answers, ratings, your own
+        API keys and your usage history. It cannot be undone, so export first if you want a copy.
+      </p>
+      {open ? (
+        <form onSubmit={submit} className="mt-3 flex flex-wrap gap-2">
+          <input type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Your password" aria-label="Password to confirm deletion" className={`${FIELD} max-w-xs text-sm`} />
+          <button type="submit" disabled={!password || busy} className="inline-flex items-center gap-2 rounded-full bg-wine px-4 py-2 text-sm font-bold text-soft disabled:opacity-40">
+            {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Delete everything
+          </button>
+          <button type="button" onClick={() => setOpen(false)} className="rounded-full border border-sky px-4 py-2 text-sm text-navy">Cancel</button>
+        </form>
+      ) : (
+        <button onClick={() => setOpen(true)} className="mt-3 rounded-full border border-wine/50 px-4 py-2 text-sm text-wine hover:bg-wine/10">Delete my account…</button>
+      )}
+      {error ? <p className="mt-2 text-sm text-wine" role="alert">{error}</p> : null}
+    </Card>
+  )
+}
+
 export default function Settings() {
   const { user } = useApp()
   return (
@@ -80,8 +210,11 @@ export default function Settings() {
       <PageHeader number="10" kicker="Account" title={<>Your <span className="mark-lemon">settings</span></>}>
         Signed in as {user?.email}.
       </PageHeader>
-      <div className="grid gap-4">
-        <OwnKeys />
+      <div className="grid gap-4 lg:grid-cols-2">
+        <Profile />
+        <ChangePassword />
+        <div className="lg:col-span-2"><OwnKeys /></div>
+        <div className="lg:col-span-2"><DeleteAccount /></div>
       </div>
     </Page>
   )

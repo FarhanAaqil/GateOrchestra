@@ -163,6 +163,7 @@ export const chatApi = {
   gates: () => json<{ margin: number; explore: number; gates: GateScore[] }>('/assistant/gates'),
   stats: (hours = 24) => json<AdminStats>(`/assistant/stats?hours=${hours}`),
   status: () => json<ProviderStatus>('/assistant/status'),
+  models: () => json<{ fast: string; answer: string }>('/assistant/models'),
   clearCache: () => json<{ cleared: number }>('/assistant/cache', { method: 'DELETE' }),
   documents: () => json<{ documents: UploadedDocument[] }>('/documents'),
   removeDocument: (id: string) => json(`/documents/${id}`, { method: 'DELETE' }),

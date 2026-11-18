@@ -9,6 +9,9 @@ A signed-in person's own settings in hosted mode (404 outside it).
   GET    /account/usage             today's and this month's usage against your plan
   GET    /plans                     the plans and their limits (public)
   GET    /account/upgrade           where to pay for an upgrade (GATE_PAYMENT_LINK)
+  GET    /account/export            everything you wrote here, as JSON
+  POST   /account/password          change your password (signs out your other sessions)
+  DELETE /account                   delete the account and all of its data (needs the password)
 
 The usage page's "saved" figure is an estimate and says so: answers the gate
 handled directly, times the average research-agent tokens that escalated
@@ -23,10 +26,12 @@ import time
 from typing import Any
 from urllib.parse import quote
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request, Response
+from fastapi.responses import JSONResponse
 from pydantic import BaseModel, Field
 
-from api.auth_routes import chat_owner
+from api.auth_routes import COOKIE, chat_owner, cookie_secure, require_user
+from assistant.accounts import AccountError
 from assistant.plans import effective_plan, plan_book
 from assistant.service import KeyRejected, get_service
 from assistant.userkeys import KeyStoreError
@@ -144,3 +149,70 @@ def upgrade(owner: str = Depends(owner_required)) -> dict[str, str]:
     user = get_service().accounts.get(owner)
     email = user["email"] if user else ""
     return {"url": link.replace("{email}", quote(email, safe=""))}
+
+
+class PasswordCheck(BaseModel):
+    password: str = Field(..., min_length=1, max_length=256)
+
+
+class PasswordChange(BaseModel):
+    current: str = Field(..., min_length=1, max_length=256)
+    new: str = Field(..., min_length=1, max_length=256)
+
+
+def _signed_in(request: Request) -> dict[str, Any]:
+    """Hosted only; verified or not (an unconfirmed person may still leave or export)."""
+    from assistant.hosted import hosted_mode  # noqa: PLC0415
+
+    if not hosted_mode():
+        raise HTTPException(status_code=404, detail="Accounts are only used in hosted mode.")
+    return require_user(request)
+
+
+def _check_password(user: dict[str, Any], password: str) -> None:
+    if get_service().accounts.authenticate(user["email"], password) is None:
+        raise HTTPException(status_code=403, detail="That password is not right.")
+
+
+@router.get("/account/export")
+def export(request: Request) -> JSONResponse:
+    user = _signed_in(request)
+    service = get_service()
+    data = {
+        "account": {k: v for k, v in user.items() if k != "csrf"},
+        "usage_this_month": service.usage.month(user["id"]),
+        "own_keys": service.user_keys.listing(user["id"]),
+        **service.store.scoped(user["id"]).export(),
+    }
+    return JSONResponse(
+        data, headers={"Content-Disposition": 'attachment; filename="gateorchestra-export.json"'}
+    )
+
+
+@router.post("/account/password")
+def change_password(body: PasswordChange, request: Request, response: Response) -> dict[str, Any]:
+    from api.auth_routes import _start_session  # noqa: PLC0415
+
+    user = _signed_in(request)
+    _check_password(user, body.current)
+    accounts = get_service().accounts
+    try:
+        accounts.set_password(user["id"], body.new)  # ends every session, this one too
+    except AccountError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
+    fresh = accounts.get(user["id"])
+    assert fresh is not None
+    return _start_session(response, fresh)  # keep this browser signed in
+
+
+@router.delete("/account")
+def delete_account(body: PasswordCheck, request: Request, response: Response) -> dict[str, str]:
+    """Remove the person: conversations, messages, documents, chunks, cached answers,
+    feedback, own API keys, usage counts, sessions and the account itself."""
+    user = _signed_in(request)
+    _check_password(user, body.password)
+    service = get_service()
+    service.store.scoped(user["id"]).delete_everything()
+    service.accounts.delete(user["id"])  # cascades to sessions, email tokens, keys and usage
+    response.delete_cookie(COOKIE, path="/", secure=cookie_secure(), samesite="strict")
+    return {"status": "deleted"}

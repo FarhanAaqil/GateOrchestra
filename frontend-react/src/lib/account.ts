@@ -148,3 +148,21 @@ export const adminApi = {
   users: (q = '') => call<{ users: AdminUser[] }>(`/admin/users?q=${encodeURIComponent(q)}`).then((r) => r.data),
   setPlan: (id: string, plan: string, days: number) => send<{ user: AdminUser }>(`/admin/users/${id}/plan`, 'POST', { plan, days }),
 }
+
+export const profileApi = {
+  /** Everything of yours as a JSON file download. */
+  exportData: async (): Promise<Blob> => {
+    const response = await fetch(`${API_BASE_URL}/account/export`, withAuth())
+    if (!response.ok) throw new Error(`Export failed (${response.status})`)
+    return response.blob()
+  },
+  changePassword: async (current: string, next: string): Promise<void> => {
+    const { data } = await call<SessionReply>('/account/password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ current, new: next }),
+    })
+    configureSession(true, data.csrf_token)
+  },
+  deleteAccount: (password: string) => send<{ status: string }>('/account', 'DELETE', { password }),
+}

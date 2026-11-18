@@ -16,6 +16,7 @@ HTTP endpoints for the chat assistant.
   GET    /assistant/stats           usage, tokens, latency, routing and errors (Admin page)
   GET    /metrics                   the same in Prometheus text format
   DELETE /assistant/cache           clear the answer cache (local or admin token)
+  GET    /assistant/models          the chat's fast and answer models (Chat page badge)
   GET    /assistant/status          providers, masked key status, models, gates
   POST   /assistant/keys            add an API key (checked, then saved to .env)
 
@@ -215,6 +216,13 @@ def metrics() -> str:
 def clear_cache(request: Request) -> dict[str, int]:
     require_admin(request)
     return {"cleared": get_service().store.cache_clear()}
+
+
+@router.get("/assistant/models")
+def chat_models(owner: str | None = Depends(chat_owner)) -> dict[str, str]:
+    """Which models answer chats (shown on the Chat page). No keys, no provider state."""
+    s = get_service().settings
+    return {"fast": s.fast_model, "answer": s.answer_model}
 
 
 @router.get("/assistant/status", dependencies=[Depends(admin_when_hosted)])
