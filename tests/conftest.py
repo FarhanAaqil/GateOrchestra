@@ -72,3 +72,19 @@ def hosted(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(auth_routes, "_by_address", RateLimiter(10_000))
     monkeypatch.setattr(auth_routes, "_by_email", RateLimiter(10_000))
     OUTBOX.clear()
+    _relax_address_limit(monkeypatch)
+
+
+def _relax_address_limit(monkeypatch: pytest.MonkeyPatch) -> None:
+    """Every TestClient comes from one address, so give the per-address limit room."""
+    from api.main import app
+    from api.security import SecurityMiddleware
+    from assistant.security import RateLimiter
+
+    if app.middleware_stack is None:
+        app.middleware_stack = app.build_middleware_stack()
+    node = app.middleware_stack
+    while node is not None:
+        if isinstance(node, SecurityMiddleware):
+            monkeypatch.setattr(node, "limiter", RateLimiter(10_000))
+        node = getattr(node, "app", None)

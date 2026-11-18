@@ -16,6 +16,7 @@ import {
   PanelLeftOpen,
   Play,
   ServerCog,
+  Settings as SettingsIcon,
   Zap,
 } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
@@ -48,6 +49,7 @@ const NAV_GROUPS = [
   {
     label: 'System',
     items: [
+      { to: '/settings', label: 'Settings', icon: SettingsIcon, accountOnly: true },
       { to: '/admin', label: 'Admin', icon: ServerCog, adminOnly: true },
       { to: '/about', label: 'About', icon: Info },
     ],
@@ -68,12 +70,15 @@ interface NavItem {
   label: string
   icon: typeof Info
   adminOnly?: boolean
+  /** Only for a signed-in person on a hosted server. */
+  accountOnly?: boolean
 }
 
 /** The menu this visitor may use: operator pages are left out for non-admins when hosted. */
 function useNavGroups(): { label: string; items: NavItem[] }[] {
-  const { isAdmin } = useApp()
-  return NAV_GROUPS.map((g) => ({ ...g, items: (g.items as NavItem[]).filter((i) => isAdmin || !i.adminOnly) })).filter((g) => g.items.length)
+  const { isAdmin, hosted, user } = useApp()
+  const allowed = (i: NavItem) => (isAdmin || !i.adminOnly) && (!i.accountOnly || (hosted && user))
+  return NAV_GROUPS.map((g) => ({ ...g, items: (g.items as NavItem[]).filter(allowed) })).filter((g) => g.items.length)
 }
 
 function Sidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onToggle?: () => void; onNavigate?: () => void }) {

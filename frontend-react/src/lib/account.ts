@@ -69,3 +69,23 @@ export const authApi = {
 }
 
 export const MIN_PASSWORD = 10
+
+export interface OwnKey {
+  provider: 'groq' | 'gemini'
+  added_at: number
+}
+
+function send<T>(path: string, method: string, body?: unknown) {
+  return call<T>(path, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body === undefined ? undefined : JSON.stringify(body),
+  }).then((r) => r.data)
+}
+
+/** The signed-in person's own settings (hosted mode). */
+export const accountApi = {
+  keys: () => call<{ keys: OwnKey[] }>('/account/keys').then((r) => r.data),
+  putKey: (provider: 'groq' | 'gemini', key: string) => send<{ keys: OwnKey[] }>('/account/keys', 'PUT', { provider, key }),
+  deleteKey: (provider: string) => send<{ keys: OwnKey[] }>(`/account/keys/${provider}`, 'DELETE'),
+}

@@ -16,6 +16,7 @@ const Results = lazy(() => import('./pages/Results'))
 const TokenAccountant = lazy(() => import('./pages/TokenAccountant'))
 const About = lazy(() => import('./pages/About'))
 const Admin = lazy(() => import('./pages/Admin'))
+const Settings = lazy(() => import('./pages/Settings'))
 const Login = lazy(() => import('./pages/Auth').then((m) => ({ default: m.Login })))
 const Signup = lazy(() => import('./pages/Auth').then((m) => ({ default: m.Signup })))
 const ForgotPassword = lazy(() => import('./pages/Auth').then((m) => ({ default: m.ForgotPassword })))
@@ -40,6 +41,7 @@ export default function App() {
             <Route path="/tokens" element={<AdminOnly><TokenAccountant /></AdminOnly>} />
             <Route path="/about" element={<About />} />
             <Route path="/admin" element={<AdminOnly><Admin /></AdminOnly>} />
+            <Route path="/settings" element={<RequireUser><Settings /></RequireUser>} />
             <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
             <Route path="/forgot" element={<ForgotPassword />} />

@@ -21,6 +21,8 @@ GOOD_ENV = {
     "GATE_ADMIN_EMAILS": "boss@example.com",
     "GATE_MAIL_BACKEND": "console",
     "GATE_COOKIE_SECURE": "false",
+    # A fixed test key (Fernet format); never used outside tests.
+    "GATE_ENCRYPTION_KEY": "dGVzdC1vbmx5LWtleS1kby1ub3QtdXNlLTAwMDAwMDA=",
 }
 
 

@@ -21,7 +21,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import TYPE_CHECKING, Any
 
 from assistant.agent import AgentResult, run_agent, run_tool_call
-from assistant.llm import Message, ProvidersExhausted
+from assistant.llm import Gateway, Message, ProvidersExhausted
 from assistant.probe import run_probe
 from assistant.security import guard_threshold
 from assistant.smalltalk import is_small_talk
@@ -62,9 +62,14 @@ def _history_for_model(rows: list[dict[str, Any]]) -> list[Message]:
 
 
 class ChatPipeline:
-    def __init__(self, service: AssistantService, user_id: str | None = None) -> None:
+    def __init__(
+        self, service: AssistantService, user_id: str | None = None, gateway: Gateway | None = None
+    ) -> None:
         self.service = service
         self.user_id = user_id
+        # A person's own API keys answer their turns when they added some (hosted mode). The
+        # prompt-injection screen always runs on the operator's keys, so it is never skipped.
+        self.gateway = gateway or service.gateway
         # Everything this turn reads or writes belongs to one user (hosted mode); in
         # single-tenant mode user_id is None, which is every row, as before.
         self.store = service.store.scoped(user_id)
@@ -201,7 +206,7 @@ class ChatPipeline:
         answer_tools = {t.name: t for t in svc.answer_tools()}
         for _ in range(3):  # at most two tool rounds, then a final answer
             calls: list[dict[str, Any]] = []
-            for event in svc.gateway.stream(
+            for event in self.gateway.stream(
                 role,
                 messages,
                 max_tokens=settings.answer_max_tokens,
@@ -326,7 +331,7 @@ class ChatPipeline:
         with ThreadPoolExecutor(max_workers=1) as screen_pool:
             screen = screen_pool.submit(self._screen, text)
             probe = run_probe(
-                svc.gateway,
+                self.gateway,
                 text,
                 history,
                 samples=settings.probe_samples,
@@ -390,7 +395,7 @@ class ChatPipeline:
         tool_calls: list[dict[str, Any]] = []
         if decision == "ESCALATE":
             for item in run_agent(
-                svc.gateway,
+                self.gateway,
                 text,
                 history,
                 svc.tools(document_ids, store=self.store),

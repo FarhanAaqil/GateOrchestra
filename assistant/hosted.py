@@ -84,6 +84,12 @@ def hosted_config_problems(env: Mapping[str, str] | None = None) -> list[str]:
     if not source.get("GATE_ADMIN_EMAILS", "").strip():
         problems.append("GATE_ADMIN_EMAILS must name at least one admin account.")
     problems += _mail_problems(source)
+
+    from assistant.userkeys import encryption_key_problem  # noqa: PLC0415
+
+    key_problem = encryption_key_problem(source.get("GATE_ENCRYPTION_KEY", "").strip())
+    if key_problem:
+        problems.append(key_problem)
     return problems
 
 

@@ -38,6 +38,7 @@ from pydantic import BaseModel, Field
 
 from api.access import admin_when_hosted, require_admin
 from api.auth_routes import chat_owner
+from api.limits import Admission, admit_turn, limit_rate
 from assistant.pipeline import ChatPipeline
 from assistant.service import KeyRejected, get_service
 
@@ -82,25 +83,40 @@ def _store(owner: str | None):
     return get_service().store.scoped(owner)
 
 
+def _counted(
+    events: Iterator[dict[str, Any]], service: Any, admission: Admission | None
+) -> Iterator[dict[str, Any]]:
+    """Pass the turn's events through, recording a finished turn against the person's plan."""
+    for event in events:
+        if admission is not None and event.get("type") == "done":
+            service.usage.record(admission.user_id, event["meta"], own_key=admission.own_key)
+        yield event
+
+
 @router.post("/chat")
 def chat(body: ChatRequest, owner: str | None = Depends(chat_owner)) -> StreamingResponse:
     service = get_service()
+    admission = admit_turn(service, owner) if owner else None
     if not service.slots.acquire(timeout=30):
+        if admission:
+            admission.release()
         raise HTTPException(status_code=503, detail="The assistant is busy; try again in a moment.")
 
     def events() -> Iterator[str]:
         try:
-            yield from _sse(
-                ChatPipeline(service, owner).run(
-                    body.message,
-                    body.conversation_id,
-                    gate_mode=body.gate_mode,
-                    document_ids=body.document_ids,
-                    replace_last=body.replace_last,
-                )
+            pipeline = ChatPipeline(service, owner, admission.gateway if admission else None)
+            turn = pipeline.run(
+                body.message,
+                body.conversation_id,
+                gate_mode=body.gate_mode,
+                document_ids=body.document_ids,
+                replace_last=body.replace_last,
             )
+            yield from _sse(_counted(turn, service, admission))
         finally:
             service.slots.release()
+            if admission:
+                admission.release()
 
     return StreamingResponse(
         events(),
@@ -160,6 +176,8 @@ def upload_document(
 ) -> dict[str, Any]:
     from assistant.documents import DocumentError
 
+    if owner:
+        limit_rate(owner)
     try:
         return get_service().add_document(body.name, body.content_base64, store=_store(owner))
     except DocumentError as err:

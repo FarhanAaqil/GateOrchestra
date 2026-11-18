@@ -8,6 +8,7 @@ and gates. The API holds one instance (get_service); tests swap in their own
 
 from __future__ import annotations
 
+import dataclasses
 import hashlib
 import logging
 import os
@@ -25,10 +26,12 @@ from assistant.gates import GATES, GateSet
 from assistant.keys import KeyPool, mask, persist_key, valid_key_shape
 from assistant.llm import Gateway, ProviderError
 from assistant.probe import ChatProbe
-from assistant.sandbox import run_python, sandbox_status
+from assistant.sandbox import run_python, run_python_for, sandbox_status
 from assistant.security import parse_guard_score
 from assistant.selector import GateSelector, Selection
 from assistant.store import Store
+from assistant.usage import Usage
+from assistant.userkeys import UserKeys
 from assistant.web import search_wikipedia
 from gate.feature_extractor import extract_features
 from shared.schemas import ProbeResult, Task
@@ -56,6 +59,8 @@ class AssistantService:
         self.gateway = gateway or Gateway(self.settings, self.pool)
         self.store = store or Store(self.settings.db_path)
         self.accounts = Accounts(self.store)
+        self.usage = Usage(self.store)
+        self.user_keys = UserKeys(self.store)
         self.gates = gates or GateSet()
         self.slots = threading.BoundedSemaphore(self.settings.max_concurrent)
         self.selector = GateSelector(
@@ -173,7 +178,7 @@ class AssistantService:
         store = store or self.store
         tools = [calculator_tool(), wikipedia_tool()]
         if sandbox_status()[0]:
-            tools.append(python_tool())
+            tools.append(python_tool(store.user_id))
         if document_ids is not None and store.documents():
             tools.append(self.document_tool(document_ids, store))
         return tools
@@ -243,6 +248,35 @@ class AssistantService:
         return {"id": did, "name": name, "chars": len(text), "chunks": len(chunks)}
 
     # Keys
+
+    def gateway_for(self, user_id: str | None) -> tuple[Gateway, bool]:
+        """(gateway, uses_own_key). A person's own keys, when they stored some, answer
+        their turns; otherwise the operator's pool does."""
+        own = self.user_keys.keys(user_id) if user_id else {}
+        if not own:
+            return self.gateway, False
+        pool = KeyPool()
+        for provider, key in own.items():
+            pool.add(provider, key)
+        order = [p for p in self.settings.providers if p in own] or sorted(own)
+        settings = dataclasses.replace(self.settings, providers=order, local_fallback=False)
+        return Gateway(settings, pool), True
+
+    def check_user_key(self, provider: str, key: str) -> None:
+        """Ask the provider whether ``key`` works, without keeping it anywhere."""
+        provider, key = provider.strip().lower(), key.strip()
+        if provider not in ("groq", "gemini"):
+            raise KeyRejected("Provider must be groq or gemini.")
+        if not valid_key_shape(key):
+            raise KeyRejected("That does not look like an API key.")
+        try:
+            self.gateway.validate_key(provider, key)
+        except ProviderError as err:
+            raise KeyRejected(
+                "The provider rejected this key."
+                if err.kind == "invalid_key"
+                else f"Could not check the key: {err.kind}."
+            ) from err
 
     def add_key(self, provider: str, key: str) -> dict[str, Any]:
         """Check a key with its provider, then keep it in memory and in .env."""
@@ -320,7 +354,13 @@ def wikipedia_tool() -> Tool:
     )
 
 
-def python_tool() -> Tool:
+def python_tool(user_id: str | None = None) -> Tool:
+    """The sandbox tool; a person's runs (hosted mode) are rationed per person."""
+
+    def run(args: dict[str, Any]) -> str:
+        code = str(args.get("code", ""))
+        return run_python(code) if user_id is None else run_python_for(user_id, code)
+
     return Tool(
         name="run_python",
         description="Run a short Python 3 program in an isolated sandbox (no network, 15 s) and return "
@@ -330,5 +370,5 @@ def python_tool() -> Tool:
             "properties": {"code": {"type": "string"}},
             "required": ["code"],
         },
-        run=lambda args: run_python(str(args.get("code", ""))),
+        run=run,
     )
