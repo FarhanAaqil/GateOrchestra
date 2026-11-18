@@ -10,9 +10,9 @@ const QUESTIONS = [
 
 const TEAM = [
   { name: 'Farhan Aaqil Durrani', role: 'Team Lead' },
-  { name: 'Kounain Sanaliya Khan', role: 'Team member' },
   { name: 'Shaik Mohammed Umaruddin', role: 'Team member' },
   { name: 'Muzra Fatima', role: 'Team member' },
+  { name: 'Kounain Sanaliya Khan', role: 'Team member' },
 ]
 
 const initials = (name: string) =>

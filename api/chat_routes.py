@@ -21,26 +21,26 @@ HTTP endpoints for the chat assistant.
 
 Adding a key is accepted only from this machine, or with the admin token
 (GATE_ADMIN_TOKEN) when the API runs behind a proxy. Keys are never echoed back.
+With GATE_HOSTED=true the operator endpoints (stats, metrics, status, cache,
+keys) are admin-only and a request from localhost no longer counts as admin
+(see api/access.py).
 """
 
 from __future__ import annotations
 
-import hmac
 import json
-import os
 from collections.abc import Iterator
 from typing import Any
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from fastapi.responses import PlainTextResponse, StreamingResponse
 from pydantic import BaseModel, Field
 
+from api.access import admin_when_hosted, require_admin
 from assistant.pipeline import ChatPipeline
-from assistant.security import api_token, token_ok
 from assistant.service import KeyRejected, get_service
 
 router = APIRouter()
-LOCAL_HOSTS = {"127.0.0.1", "::1", "localhost", "testclient"}
 
 
 class ChatRequest(BaseModel):
@@ -74,24 +74,6 @@ class KeyRequest(BaseModel):
 def _sse(events: Iterator[dict[str, Any]]) -> Iterator[str]:
     for event in events:
         yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
-
-
-def _require_admin(request: Request) -> None:
-    token = os.getenv("GATE_ADMIN_TOKEN", "")
-    supplied = request.headers.get("x-admin-token", "")
-    host = request.client.host if request.client else ""
-    if token and supplied and hmac.compare_digest(supplied, token):
-        return
-    # With GATE_API_TOKEN set, the middleware has already required it on this request, so
-    # whoever got here holds the operator's token (single-tenant deployments).
-    if api_token() and token_ok(request.headers.get("authorization")):
-        return
-    if host in LOCAL_HOSTS and not request.headers.get("x-forwarded-for"):
-        return
-    raise HTTPException(
-        status_code=403,
-        detail="Keys can only be added from this machine, with the API token, or with the admin token.",
-    )
 
 
 @router.post("/chat")
@@ -184,14 +166,14 @@ def delete_document(did: str) -> dict[str, str]:
     return {"status": "deleted"}
 
 
-@router.get("/assistant/stats")
+@router.get("/assistant/stats", dependencies=[Depends(admin_when_hosted)])
 def assistant_stats(hours: float = 24.0) -> dict[str, Any]:
     from assistant.metrics import summarize
 
     return summarize(get_service().store, min(max(hours, 0.1), 24 * 30))
 
 
-@router.get("/metrics", response_class=PlainTextResponse)
+@router.get("/metrics", response_class=PlainTextResponse, dependencies=[Depends(admin_when_hosted)])
 def metrics() -> str:
     from assistant.metrics import prometheus
 
@@ -200,18 +182,18 @@ def metrics() -> str:
 
 @router.delete("/assistant/cache")
 def clear_cache(request: Request) -> dict[str, int]:
-    _require_admin(request)
+    require_admin(request)
     return {"cleared": get_service().store.cache_clear()}
 
 
-@router.get("/assistant/status")
+@router.get("/assistant/status", dependencies=[Depends(admin_when_hosted)])
 def assistant_status() -> dict[str, Any]:
     return get_service().status()
 
 
 @router.post("/assistant/keys")
 def add_key(body: KeyRequest, request: Request) -> dict[str, Any]:
-    _require_admin(request)
+    require_admin(request)
     try:
         return get_service().add_key(body.provider, body.key)
     except KeyRejected as err:

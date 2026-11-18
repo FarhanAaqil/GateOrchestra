@@ -23,7 +23,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Any
 
-from fastapi import FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.middleware.gzip import GZipMiddleware
 from pydantic import BaseModel, Field
@@ -38,9 +38,11 @@ from agents.baselines.cot_sc_baseline import run_cot_sc_baseline  # noqa: E402
 from agents.baselines.simulated_probe import SimulatedProbe  # noqa: E402
 from agents.orchestrator.orchestrator import request_orchestrator  # noqa: E402
 from agents.probe_agent import extract_answer, probe_agent  # noqa: E402
+from api.access import admin_when_hosted  # noqa: E402
 from api.chat_routes import router as chat_router  # noqa: E402
 from api.history import RunHistory  # noqa: E402
 from api.security import SecurityMiddleware  # noqa: E402
+from assistant.hosted import check_hosted_config, cors_origins, hosted_mode  # noqa: E402
 from evaluation.results_detail import build_results_detail  # noqa: E402
 from gate.classifier import (  # noqa: E402
     FEATURE_NAMES,
@@ -94,6 +96,7 @@ def _warm_up_assistant() -> None:
 
 @asynccontextmanager
 async def _lifespan(_app: FastAPI):
+    check_hosted_config()  # GATE_HOSTED=true refuses to start until it is locked down
     _warm_up_assistant()
     yield
 
@@ -111,8 +114,10 @@ app.add_middleware(SecurityMiddleware)
 app.add_middleware(GZipMiddleware, minimum_size=1024)
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=[o.strip() for o in os.getenv("GATE_CORS_ORIGINS", "*").split(",") if o.strip()],
-    allow_credentials=False,  # tokens travel in a header, not cookies
+    allow_origins=cors_origins(),
+    # Single-tenant tokens travel in a header. Hosted mode signs users in with a cookie,
+    # which is safe to send only because its origins are explicit (checked at start-up).
+    allow_credentials=hosted_mode() and "*" not in cors_origins(),
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -283,11 +288,12 @@ class RunRequest(BaseModel):
 
 
 @app.get("/")
-def root() -> dict[str, str]:
+def root() -> dict[str, Any]:
     return {
         "name": "GateOrchestra API",
         "status": "running",
         "message": "GateOrchestra multi-agent gating pipeline is online",
+        "hosted": hosted_mode(),
     }
 
 
@@ -405,14 +411,14 @@ def list_tasks(
 # Execution History Endpoints
 
 
-@app.get("/history")
+@app.get("/history", dependencies=[Depends(admin_when_hosted)])
 def get_history() -> dict[str, Any]:
     """Retrieve recent task execution results (up to 50 runs)."""
     runs = _HISTORY.snapshot()
     return {"count": len(runs), "history": runs}
 
 
-@app.delete("/history")
+@app.delete("/history", dependencies=[Depends(admin_when_hosted)])
 def clear_history() -> dict[str, str]:
     """Clear the run history (memory and disk)."""
     _HISTORY.clear()
@@ -517,7 +523,7 @@ def _mas_trace(mas: Any, mas_tokens: int | None) -> list[dict[str, Any]]:
     return list(mas._last_trace)
 
 
-@app.post("/run")
+@app.post("/run", dependencies=[Depends(admin_when_hosted)])
 def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
     """Run one task through the requested method / gate pipeline.
 
