@@ -77,6 +77,11 @@ def _sse(events: Iterator[dict[str, Any]]) -> Iterator[str]:
         yield f"data: {json.dumps(event, ensure_ascii=False)}\n\n"
 
 
+def _store(owner: str | None):
+    """The caller's own rows: someone else's conversation or document is simply not found."""
+    return get_service().store.scoped(owner)
+
+
 @router.post("/chat")
 def chat(body: ChatRequest, owner: str | None = Depends(chat_owner)) -> StreamingResponse:
     service = get_service()
@@ -86,7 +91,7 @@ def chat(body: ChatRequest, owner: str | None = Depends(chat_owner)) -> Streamin
     def events() -> Iterator[str]:
         try:
             yield from _sse(
-                ChatPipeline(service).run(
+                ChatPipeline(service, owner).run(
                     body.message,
                     body.conversation_id,
                     gate_mode=body.gate_mode,
@@ -106,15 +111,15 @@ def chat(body: ChatRequest, owner: str | None = Depends(chat_owner)) -> Streamin
 
 @router.get("/conversations")
 def list_conversations(limit: int = 50, owner: str | None = Depends(chat_owner)) -> dict[str, Any]:
-    return {"conversations": get_service().store.list_conversations(min(max(limit, 1), 200))}
+    return {"conversations": _store(owner).list_conversations(min(max(limit, 1), 200))}
 
 
 @router.get("/conversations/{cid}")
 def get_conversation(cid: str, owner: str | None = Depends(chat_owner)) -> dict[str, Any]:
-    store = get_service().store
-    if not store.conversation_exists(cid):
+    store = _store(owner)
+    convo = store.conversation(cid)
+    if convo is None:
         raise HTTPException(status_code=404, detail="Conversation not found.")
-    convo = next((c for c in store.list_conversations(500) if c["id"] == cid), {"id": cid})
     return {**convo, "messages": store.messages(cid)}
 
 
@@ -122,16 +127,15 @@ def get_conversation(cid: str, owner: str | None = Depends(chat_owner)) -> dict[
 def rename_conversation(
     cid: str, body: RenameRequest, owner: str | None = Depends(chat_owner)
 ) -> dict[str, str]:
-    store = get_service().store
-    if not store.conversation_exists(cid):
+    if not _store(owner).rename_conversation(cid, body.title):
         raise HTTPException(status_code=404, detail="Conversation not found.")
-    store.rename_conversation(cid, body.title)
     return {"status": "renamed"}
 
 
 @router.delete("/conversations/{cid}")
 def delete_conversation(cid: str, owner: str | None = Depends(chat_owner)) -> dict[str, str]:
-    get_service().store.delete_conversation(cid)
+    if not _store(owner).delete_conversation(cid) and owner is not None:
+        raise HTTPException(status_code=404, detail="Conversation not found.")
     return {"status": "deleted"}
 
 
@@ -140,7 +144,7 @@ def rate_message(
     mid: str, body: RatingRequest, owner: str | None = Depends(chat_owner)
 ) -> dict[str, Any]:
     try:
-        return get_service().rate(mid, body.rating)
+        return get_service().rate(mid, body.rating, store=_store(owner))
     except LookupError as err:
         raise HTTPException(status_code=404, detail=str(err)) from err
 
@@ -157,19 +161,20 @@ def upload_document(
     from assistant.documents import DocumentError
 
     try:
-        return get_service().add_document(body.name, body.content_base64)
+        return get_service().add_document(body.name, body.content_base64, store=_store(owner))
     except DocumentError as err:
         raise HTTPException(status_code=400, detail=str(err)) from err
 
 
 @router.get("/documents")
 def list_documents(owner: str | None = Depends(chat_owner)) -> dict[str, Any]:
-    return {"documents": get_service().store.documents()}
+    return {"documents": _store(owner).documents()}
 
 
 @router.delete("/documents/{did}")
 def delete_document(did: str, owner: str | None = Depends(chat_owner)) -> dict[str, str]:
-    get_service().store.delete_document(did)
+    if not _store(owner).delete_document(did) and owner is not None:
+        raise HTTPException(status_code=404, detail="Document not found.")
     return {"status": "deleted"}
 
 

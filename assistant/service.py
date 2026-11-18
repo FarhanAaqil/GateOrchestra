@@ -139,17 +139,16 @@ class AssistantService:
             return "fast"
         return "answer"
 
-    def rate(self, message_id: str, rating: int) -> dict[str, Any]:
+    def rate(self, message_id: str, rating: int, store: Store | None = None) -> dict[str, Any]:
         """Record a thumbs up (1), down (-1) or clear (0) on an assistant answer."""
-        message = self.store.message(message_id)
+        store = store or self.store
+        message = store.message(message_id)
         if message is None or message["role"] != "assistant":
             raise LookupError("No such answer.")
         if rating == 0:
-            self.store.clear_feedback(message_id)
+            store.clear_feedback(message_id)
         else:
-            self.store.set_feedback(
-                message_id, 1 if rating > 0 else -1, message["meta"].get("gate")
-            )
+            store.set_feedback(message_id, 1 if rating > 0 else -1, message["meta"].get("gate"))
         return {"message_id": message_id, "rating": rating}
 
     def gate_report(self) -> dict[str, Any]:
@@ -167,19 +166,24 @@ class AssistantService:
             "gates": [s.as_dict() for s in scores],
         }
 
-    def tools(self, document_ids: list[str] | None = None) -> list[Tool]:
-        """Tools for the research agent (ESCALATE)."""
+    def tools(
+        self, document_ids: list[str] | None = None, store: Store | None = None
+    ) -> list[Tool]:
+        """Tools for the research agent (ESCALATE). Documents are only ever the caller's own."""
+        store = store or self.store
         tools = [calculator_tool(), wikipedia_tool()]
         if sandbox_status()[0]:
             tools.append(python_tool())
-        if document_ids is not None and self.store.documents():
-            tools.append(self.document_tool(document_ids))
+        if document_ids is not None and store.documents():
+            tools.append(self.document_tool(document_ids, store))
         return tools
 
-    def document_tool(self, document_ids: list[str]) -> Tool:
+    def document_tool(self, document_ids: list[str], store: Store | None = None) -> Tool:
+        store = store or self.store
+
         def run(args: dict[str, Any]) -> str:
             hits = docs.top_chunks(
-                str(args.get("query", "")), self.store.all_chunks(document_ids or None)
+                str(args.get("query", "")), store.all_chunks(document_ids or None)
             )
             return docs.format_context(hits) or "Nothing in the documents matches that."
 
@@ -198,11 +202,14 @@ class AssistantService:
         """Cheap, exact tools the answer model may call on any path."""
         return [calculator_tool()]
 
-    def retrieve_context(self, question: str, document_ids: list[str] | None) -> str | None:
-        """Best-matching passages from the chosen documents ([] = all documents)."""
+    def retrieve_context(
+        self, question: str, document_ids: list[str] | None, store: Store | None = None
+    ) -> str | None:
+        """Best-matching passages from the chosen documents ([] = all of the caller's)."""
         if document_ids is None:
             return None
-        hits = docs.top_chunks(question, self.store.all_chunks(document_ids or None))
+        store = store or self.store
+        hits = docs.top_chunks(question, store.all_chunks(document_ids or None))
         return docs.format_context(hits) or None
 
     def guard_score(self, text: str) -> float | None:
@@ -226,11 +233,13 @@ class AssistantService:
         normalized = " ".join(re.sub(r"[^\w\s]", " ", text.lower()).split())
         return hashlib.sha256(normalized.encode("utf-8")).hexdigest()
 
-    def add_document(self, name: str, content_base64: str) -> dict[str, Any]:
+    def add_document(
+        self, name: str, content_base64: str, store: Store | None = None
+    ) -> dict[str, Any]:
         data = docs.decode_upload(content_base64)
         text = docs.extract_text(name, data)
         chunks = docs.chunk_text(text)
-        did = self.store.add_document(name, chunks)
+        did = (store or self.store).add_document(name, chunks)
         return {"id": did, "name": name, "chars": len(text), "chunks": len(chunks)}
 
     # Keys
