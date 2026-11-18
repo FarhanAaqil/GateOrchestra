@@ -12,7 +12,7 @@ function Stat({ label, value, note }: { label: string; value: string; note?: str
   return (
     <Card tilt={false}>
       <p className="text-sm text-navy/60">{label}</p>
-      <p className="mt-2 font-mono text-3xl font-semibold text-ink">{value}</p>
+      <p className="num mt-2 text-[28px] font-medium leading-none text-ink">{value}</p>
       {note ? <p className="mt-1 font-mono text-xs text-navy/60">{note}</p> : null}
     </Card>
   )
@@ -22,7 +22,7 @@ function Shares({ title, data }: { title: string; data: Record<string, number> }
   const total = Object.values(data).reduce((a, b) => a + b, 0)
   return (
     <Card tilt={false}>
-      <h2 className="mb-3 text-lg font-bold text-ink">{title}</h2>
+      <h2 className="mb-3 text-lg font-semibold text-ink">{title}</h2>
       {total ? (
         <ul className="space-y-2">
           {Object.entries(data).sort((a, b) => b[1] - a[1]).map(([name, n]) => (
@@ -31,7 +31,7 @@ function Shares({ title, data }: { title: string; data: Record<string, number> }
                 <span>{GATE_LABELS[name as GateName] ?? name}</span>
                 <span className="font-mono text-xs">{n} · {Math.round((n / total) * 100)}%</span>
               </div>
-              <div className="mt-1 h-1.5 rounded-full bg-sky/40">
+              <div className="mt-1 h-1.5 rounded-full bg-navy/10">
                 <div className="h-1.5 rounded-full bg-navy" style={{ width: `${(n / total) * 100}%` }} />
               </div>
             </li>
@@ -67,17 +67,17 @@ function PeoplePanel() {
 
   return (
     <Card tilt={false} className="mt-4">
-      <h2 className="mb-1 text-lg font-bold text-ink">People and plans</h2>
+      <h2 className="mb-1 text-lg font-semibold text-ink">People and plans</h2>
       <p className="mb-3 text-xs text-navy/60">
         When a payment arrives, find the person by the email on the payment and give them Pro. Paying again extends from the end
         of the current period; when it ends they are on Free again automatically.
       </p>
       <form className="mb-3 flex flex-wrap items-center gap-2" onSubmit={(e) => { e.preventDefault(); load(query) }}>
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by email" aria-label="Search people by email" className="min-w-0 flex-1 rounded-full border border-sky bg-ice px-3 py-1.5 text-sm" />
-        <button type="submit" className="inline-flex items-center gap-1.5 rounded-full border border-sky px-3 py-1.5 text-xs text-navy hover:bg-soft"><Search className="h-3.5 w-3.5" /> Search</button>
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by email" aria-label="Search people by email" className="min-w-0 flex-1 rounded-lg border border-navy/15 bg-ice px-3 py-1.5 text-sm" />
+        <button type="submit" className="inline-flex items-center gap-1.5 rounded-md border border-navy/15 px-3 py-1.5 text-xs text-navy hover:bg-navy/5"><Search className="h-3.5 w-3.5" /> Search</button>
         <label className="flex items-center gap-1.5 text-xs text-navy/70">
           Days of Pro
-          <input type="number" min={1} max={3660} value={days} onChange={(e) => setDays(Math.max(1, Number(e.target.value) || 31))} className="w-20 rounded-full border border-sky bg-ice px-2 py-1 font-mono text-xs" />
+          <input type="number" min={1} max={3660} value={days} onChange={(e) => setDays(Math.max(1, Number(e.target.value) || 31))} className="w-20 rounded-md border border-navy/15 bg-ice px-2 py-1 font-mono text-xs" />
         </label>
       </form>
       {error ? <ErrorNote message={error} /> : null}
@@ -89,14 +89,14 @@ function PeoplePanel() {
             </thead>
             <tbody>
               {users.map((u) => (
-                <tr key={u.id} className="border-t border-sky/50 text-navy">
+                <tr key={u.id} className="border-t border-navy/10 text-navy">
                   <td className="py-1.5">{u.email}{u.verified ? '' : ' (unconfirmed)'}{u.is_admin ? ' · admin' : ''}</td>
                   <td>{u.effective_plan}{u.plan !== u.effective_plan ? ` (${u.plan} lapsed)` : ''}</td>
                   <td>{u.paid_until ? new Date(u.paid_until * 1000).toLocaleDateString() : '—'}</td>
                   <td className="text-right">{u.today.messages} · {u.today.tokens.toLocaleString()} tok</td>
                   <td className="space-x-1 text-right">
-                    <button onClick={() => setPlan(u, 'pro')} className="rounded-full bg-navy px-2.5 py-0.5 text-ice">Pro +{days} d</button>
-                    {u.plan !== 'free' ? <button onClick={() => setPlan(u, 'free')} className="rounded-full border border-wine/40 px-2.5 py-0.5 text-wine">Free</button> : null}
+                    <button onClick={() => setPlan(u, 'pro')} className="rounded-md bg-navy px-2.5 py-0.5 text-ice">Pro +{days} d</button>
+                    {u.plan !== 'free' ? <button onClick={() => setPlan(u, 'free')} className="rounded-md border border-wine/40 px-2.5 py-0.5 text-wine">Free</button> : null}
                   </td>
                 </tr>
               ))}
@@ -134,16 +134,16 @@ export default function Admin() {
   const s = stats.data
   return (
     <Page>
-      <PageHeader number="09" kicker="Operations" title={<>The <span className="mark-lemon">admin</span> view</>}>
+      <PageHeader number="09" kicker="Operations" title={<>The admin view</>}>
         Usage, cost and health of the chat assistant over the last 24 hours, with the state of every provider key. Keys are
         only ever shown by their last four characters.
       </PageHeader>
 
       <motion.div variants={rise} className="mb-4 flex flex-wrap gap-2">
-        <button onClick={reload} className="inline-flex items-center gap-1.5 rounded-full border border-sky px-3 py-1.5 text-xs text-navy hover:bg-soft">
+        <button onClick={reload} className="inline-flex items-center gap-1.5 rounded-md border border-navy/15 px-3 py-1.5 text-xs text-navy hover:bg-navy/5">
           <RefreshCw className="h-3.5 w-3.5" /> Refresh
         </button>
-        <button onClick={clearCache} className="inline-flex items-center gap-1.5 rounded-full border border-wine/40 px-3 py-1.5 text-xs text-wine hover:bg-wine/10">
+        <button onClick={clearCache} className="inline-flex items-center gap-1.5 rounded-md border border-wine/40 px-3 py-1.5 text-xs text-wine hover:bg-wine/10">
           <Trash2 className="h-3.5 w-3.5" /> Clear answer cache
         </button>
         {notice ? <span className="self-center text-xs text-navy/70" role="status">{notice}</span> : null}
@@ -169,7 +169,7 @@ export default function Admin() {
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card tilt={false}>
-          <h2 className="mb-3 text-lg font-bold text-ink">Providers and keys</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">Providers and keys</h2>
           {status.data ? (
             <>
               <p className="mb-2 text-xs text-navy/60">Order tried: {status.data.providers.join(' → ')}</p>
@@ -200,7 +200,7 @@ export default function Admin() {
         </Card>
 
         <Card tilt={false}>
-          <h2 className="mb-3 text-lg font-bold text-ink">Gates</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">Gates</h2>
           {gates.data ? (
             <table className="w-full font-mono text-xs">
               <thead className="text-navy/60">
@@ -225,7 +225,7 @@ export default function Admin() {
 
       {s?.recent.length ? (
         <Card tilt={false} className="mt-4">
-          <h2 className="mb-3 text-lg font-bold text-ink">Recent turns</h2>
+          <h2 className="mb-3 text-lg font-semibold text-ink">Recent turns</h2>
           <div className="overflow-x-auto">
             <table className="w-full min-w-[560px] font-mono text-xs">
               <thead className="text-navy/60">
@@ -233,7 +233,7 @@ export default function Admin() {
               </thead>
               <tbody>
                 {s.recent.map((t, i) => (
-                  <tr key={i} className="border-t border-sky/50 text-navy">
+                  <tr key={i} className="border-t border-navy/10 text-navy">
                     <td className="py-1">{new Date(t.ts * 1000).toLocaleTimeString()}</td>
                     <td>{t.task_type}</td>
                     <td>{GATE_LABELS[t.gate as GateName] ?? t.gate}{t.cached ? ' · cached' : ''}</td>

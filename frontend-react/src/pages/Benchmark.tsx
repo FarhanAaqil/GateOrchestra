@@ -13,9 +13,9 @@ type Split = 'train' | 'val' | 'test'
 type Row = Task & { split: Split }
 
 const SPLIT_STYLE: Record<Split, string> = {
-  train: 'bg-sky text-ink',
-  val: 'bg-lemon text-ink',
-  test: 'bg-ember text-soft',
+  train: 'border border-sky bg-sky/30 text-ink',
+  val: 'border border-tangerine/40 bg-tangerine/10 text-ink',
+  test: 'border border-ember/40 bg-ember/10 text-ink',
 }
 
 const PAGE_SIZE = 100 // the API's maximum page
@@ -96,7 +96,7 @@ export default function Benchmark() {
 
   return (
     <Page>
-      <PageHeader number="04" kicker="MASBench-mini" title={<>The <span className="mark-lemon">benchmark</span></>}>
+      <PageHeader number="04" kicker="MASBench-mini" title={<>The benchmark</>}>
         {rows.length || '…'} tasks with heuristic Depth (1–5) and Parallel (1–4) labels, split into train, validation and a held-out
         test set. The labels are for analysis only; the gate and the router never read them.
       </PageHeader>
@@ -108,8 +108,8 @@ export default function Benchmark() {
             onClick={() => setSplit(split === s ? '' : s)}
             className={`card flex items-center justify-between px-5 py-4 text-left transition-transform hover:-translate-y-0.5 ${split === s ? 'ring-2 ring-navy' : ''}`}
           >
-            <span className={`rounded-full px-3 py-1 font-mono text-xs ${SPLIT_STYLE[s]}`}>{s}</span>
-            <span className="font-mono text-3xl font-semibold text-ink">{counts[s]}</span>
+            <span className={`rounded-md px-3 py-1 font-mono text-xs ${SPLIT_STYLE[s]}`}>{s}</span>
+            <span className="font-mono text-xl font-semibold text-ink">{counts[s]}</span>
           </button>
         ))}
       </motion.div>
@@ -137,7 +137,7 @@ export default function Benchmark() {
         <motion.div variants={rise} className="card overflow-hidden p-0">
           <div className="max-h-[65vh] overflow-auto">
             <table className="w-full min-w-[760px] text-left text-sm">
-              <thead className="sticky top-0 z-10 bg-navy font-mono text-xs uppercase tracking-wider text-sky">
+              <thead className="sticky top-0 z-10 border-b border-navy/10 bg-ice text-left text-xs font-medium text-navy/60">
                 <tr>
                   <th className="px-5 py-3.5">Task</th>
                   <th className="px-5 py-3.5">Split</th>
@@ -149,10 +149,10 @@ export default function Benchmark() {
               </thead>
               <tbody>
                 {filtered.map((r) => (
-                  <tr key={r.task_id} className="border-t border-sky/60 transition-colors hover:bg-ice">
+                  <tr key={r.task_id} className="border-t border-navy/10 transition-colors hover:bg-navy/5">
                     <td className="px-5 py-3 font-mono text-xs text-ink">{r.task_id}</td>
                     <td className="px-5 py-3">
-                      <span className={`rounded-full px-2.5 py-0.5 font-mono text-[11px] ${SPLIT_STYLE[r.split]}`}>{r.split}</span>
+                      <span className={`rounded-md px-2.5 py-0.5 font-mono text-[11px] ${SPLIT_STYLE[r.split]}`}>{r.split}</span>
                     </td>
                     <td className="max-w-md px-5 py-3 text-ink" title={r.question}>
                       <span className="line-clamp-2">{r.question}</span>
@@ -165,7 +165,7 @@ export default function Benchmark() {
               </tbody>
             </table>
           </div>
-          <p className="border-t border-sky/60 bg-ice px-5 py-2.5 font-mono text-xs text-navy/70">
+          <p className="border-t border-navy/10 bg-ice px-5 py-2.5 font-mono text-xs text-navy/70">
             {filtered.length} of {rows.length} tasks
           </p>
         </motion.div>

@@ -12,7 +12,7 @@ function Draft({ number, title, children }: { number: string; title: string; chi
   return (
     <Page>
       <PageHeader number={number} kicker="Legal" title={title} />
-      <div className="mb-5 flex items-start gap-2 rounded-2xl border-2 border-wine bg-wine/10 px-4 py-3 text-sm text-wine" role="note">
+      <div className="mb-5 flex items-start gap-2 rounded-lg border-2 border-wine bg-wine/10 px-4 py-3 text-sm text-wine" role="note">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
         <p>
           <strong>DRAFT: needs human review.</strong> This text is a starting point written from how the software works. It is not
@@ -27,7 +27,7 @@ function Draft({ number, title, children }: { number: string; title: string; chi
 }
 
 function H({ children }: { children: ReactNode }) {
-  return <h2 className="pt-2 text-lg font-bold text-ink">{children}</h2>
+  return <h2 className="pt-2 text-lg font-semibold text-ink">{children}</h2>
 }
 
 export function Terms() {

@@ -25,7 +25,7 @@ export default function Results() {
 
   return (
     <Page>
-      <PageHeader number="06" kicker="Results" title={<>Accuracy, cost, and <span className="mark-lemon">where it escalates</span></>}>
+      <PageHeader number="06" kicker="Results" title={<>Accuracy, cost, and where it escalates</>}>
         Every chart is computed from a recorded benchmark run. The main run is Qwen2.5-3B with two seeds; the larger models were
         run once each with fewer calibration repeats (section 8.9 of the research report).
       </PageHeader>
@@ -33,7 +33,7 @@ export default function Results() {
         {runList.length > 1 ? (
           <label className="flex items-center gap-2 text-sm text-navy">
             Benchmark run
-            <select value={run} onChange={(e) => setRun(e.target.value)} className="rounded-full border border-sky bg-soft px-3 py-1.5 text-sm text-ink">
+            <select value={run} onChange={(e) => setRun(e.target.value)} className="rounded-lg border border-navy/15 bg-soft px-3 py-1.5 text-sm text-ink">
               {runList.map((r) => (
                 <option key={r.id} value={r.id}>{r.label}</option>
               ))}
@@ -52,14 +52,14 @@ export default function Results() {
       {citable && summary.data && detail.data ? (
         <div className="grid gap-4 lg:grid-cols-2">
           <Card tilt={false} className="lg:col-span-2">
-            <h2 className="text-xl font-bold text-ink">Accuracy vs average tokens</h2>
+            <h2 className="text-xl font-semibold text-ink">Accuracy vs average tokens</h2>
             <p className="mb-2 text-xs text-navy/60">Up and to the left is better. GateOrchestra is the ember star.</p>
             <ParetoChart rows={summary.data.aggregated} />
           </Card>
 
           <Card tilt={false}>
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <h2 className="mr-auto text-xl font-bold text-ink">Depth × Parallel</h2>
+              <h2 className="mr-auto text-xl font-semibold text-ink">Depth × Parallel</h2>
               <select value={method} onChange={(e) => setMethod(e.target.value as ResultMethod)} className={`${FIELD} w-auto py-1.5 text-xs`}>
                 {METHODS.map((m) => (
                   <option key={m} value={m}>
@@ -76,7 +76,7 @@ export default function Results() {
           </Card>
 
           <Card tilt={false}>
-            <h2 className="text-xl font-bold text-ink">Escalation precision / recall</h2>
+            <h2 className="text-xl font-semibold text-ink">Escalation precision / recall</h2>
             <p className="mb-1 text-xs text-navy/60">Against the oracle: a task needs the agent team (MAS) when MAS is right and the quick check (CoT-SC) is wrong.</p>
             <p className="mb-3 text-xs text-navy/60">
               <Term term="precision">Precision</Term>: of the tasks sent to the agent team, how many needed it.{' '}
@@ -84,8 +84,8 @@ export default function Results() {
             </p>
             <div className="space-y-3">
               {detail.data.escalation_quality.map((q) => (
-                <div key={q.method} className={`rounded-2xl p-4 ${q.method === 'GateOrchestra' ? 'bg-navy text-ice' : 'border border-sky bg-ice text-ink'}`}>
-                  <p className="font-bold">{METHOD_LABELS[q.method]}</p>
+                <div key={q.method} className={`rounded-lg p-4 ${q.method === 'GateOrchestra' ? 'bg-navy text-ice' : 'border border-navy/15 bg-ice text-ink'}`}>
+                  <p className="font-semibold">{METHOD_LABELS[q.method]}</p>
                   <div className="mt-1 grid grid-cols-2 gap-2 font-mono text-sm">
                     <span>
                       <Term term="precision">precision</Term> <span className={`font-semibold ${q.method === 'GateOrchestra' ? 'text-ember' : 'text-wine'}`}>{q.precision == null ? '—' : `${(q.precision * 100).toFixed(0)}%`}</span>
@@ -103,7 +103,7 @@ export default function Results() {
           </Card>
 
           <Card tilt={false} className="lg:col-span-2">
-            <h2 className="text-xl font-bold text-ink">k sweep (validation)</h2>
+            <h2 className="text-xl font-semibold text-ink">k sweep (validation)</h2>
             <p className="mb-2 text-xs text-navy/60">The selected classifier and <Term term="tauAcc">τ_acc</Term> per seed, averaged across seeds. <Term term="k">k</Term> is the agent team's token budget.</p>
             {detail.data.k_sweep.length ? (
               <KSweepChart points={detail.data.k_sweep} />

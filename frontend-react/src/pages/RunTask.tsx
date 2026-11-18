@@ -18,7 +18,7 @@ const RUN_TIMEOUT_MS = 5 * 60 * 1000
 const BADGE = {
   sky: 'bg-sky text-ink',
   navy: 'bg-navy text-cyan',
-  ember: 'bg-ember text-soft',
+  ember: 'bg-ember text-ink',
   tangerine: 'bg-tangerine text-ink',
 }
 
@@ -33,7 +33,7 @@ function Stage({ index, title, hint, badge, children }: { index: number; title: 
       <span className={`absolute left-5 top-5 grid h-8 w-8 place-items-center rounded-full font-mono text-sm font-semibold md:top-6 ${BADGE[badge]}`}>
         {index + 1}
       </span>
-      <h3 className="text-lg font-bold text-ink">{title}</h3>
+      <h3 className="text-lg font-semibold text-ink">{title}</h3>
       {hint ? <p className="mb-3 mt-0.5 text-xs text-navy/60">{hint}</p> : <div className="mb-3" />}
       {children}
     </motion.section>
@@ -42,8 +42,8 @@ function Stage({ index, title, hint, badge, children }: { index: number; title: 
 
 function Bar({ value, color }: { value: number; color: string }) {
   return (
-    <div className="h-2.5 w-full overflow-hidden rounded-full bg-sky/40">
-      <motion.div className="h-full rounded-full" style={{ background: color }} initial={{ width: 0 }} animate={{ width: `${Math.min(value, 1) * 100}%` }} transition={{ duration: 0.8 }} />
+    <div className="h-2.5 w-full overflow-hidden rounded-full bg-navy/10">
+      <motion.div className="h-full rounded-lg" style={{ background: color }} initial={{ width: 0 }} animate={{ width: `${Math.min(value, 1) * 100}%` }} transition={{ duration: 0.8 }} />
     </div>
   )
 }
@@ -54,7 +54,7 @@ function FeatureGrid({ features }: { features: NonNullable<RunResult['features']
       {Object.entries(features)
         .filter(([key]) => key !== 'task_id')
         .map(([key, value]) => (
-          <div key={key} className="rounded-2xl border border-sky bg-ice px-3 py-2">
+          <div key={key} className="rounded-lg border border-navy/15 bg-ice px-3 py-2">
             <dt className="text-xs text-navy/60">{FEATURE_LABELS[key] ?? key}</dt>
             <dd className="font-mono text-lg text-ink">
               {typeof value === 'boolean' ? (value ? 'yes' : 'no') : typeof value === 'number' ? Number(value.toFixed(2)) : '—'}
@@ -82,7 +82,7 @@ function Pipeline({ result, k, probeBudget }: { result: RunResult; k: number; pr
           </div>
           <ul className="mt-3 grid gap-2 sm:grid-cols-3">
             {result.probe.samples.map((s, i) => (
-              <li key={i} className="truncate rounded-full border border-sky bg-ice px-3 py-1.5 font-mono text-xs" title={s}>
+              <li key={i} className="truncate rounded-md border border-navy/15 bg-ice px-3 py-1.5 font-mono text-xs" title={s}>
                 <span className="text-navy/50">#{i + 1} </span>
                 <span className={s.startsWith('Error:') ? 'text-wine' : 'text-ink'}>{s}</span>
               </li>
@@ -100,13 +100,13 @@ function Pipeline({ result, k, probeBudget }: { result: RunResult; k: number; pr
       {decision ? (
         <Stage index={index++} title="Gate decision" hint="STOP keeps the quick answer. ESCALATE hands the question to the agent team." badge="navy">
           <div className="flex flex-wrap items-center gap-2">
-            <span className={`rounded-full px-4 py-1.5 font-mono text-sm font-bold ${decision.decision === 'STOP' ? 'bg-navy text-cyan' : 'bg-ember text-soft'}`}>
+            <span className={`rounded-lg px-4 py-1.5 font-mono text-sm font-semibold ${decision.decision === 'STOP' ? 'bg-navy text-cyan' : 'bg-ember text-ink'}`}>
               {decision.decision}
             </span>
-            <span className="rounded-full border border-sky px-3 py-1 font-mono text-xs text-navy">{decision.gate_type} gate</span>
-            <span className="rounded-full border border-sky px-3 py-1 font-mono text-xs text-navy">confidence {(decision.confidence * 100).toFixed(0)}%</span>
+            <span className="rounded-md border border-navy/15 px-3 py-1 font-mono text-xs text-navy">{decision.gate_type} gate</span>
+            <span className="rounded-md border border-navy/15 px-3 py-1 font-mono text-xs text-navy">confidence {(decision.confidence * 100).toFixed(0)}%</span>
             {decision.token_budget_cap ? (
-              <span className="rounded-full bg-tangerine px-3 py-1 font-mono text-xs text-ink">MAS cap {decision.token_budget_cap} tok</span>
+              <span className="rounded-md bg-tangerine px-3 py-1 font-mono text-xs text-ink">MAS cap {decision.token_budget_cap} tok</span>
             ) : null}
           </div>
           {decision.gate_type !== 'learned' ? (
@@ -123,24 +123,24 @@ function Pipeline({ result, k, probeBudget }: { result: RunResult; k: number; pr
         badge={result.mas_tokens ? 'ember' : 'sky'}
       >
         <div className="flex flex-wrap items-center gap-3">
-          <p className="font-display text-2xl font-bold text-ink">{result.predicted_answer}</p>
+          <p className="text-2xl font-semibold text-ink">{result.predicted_answer}</p>
           {result.is_correct === true ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-navy px-3 py-1 text-sm text-cyan"><CheckCircle2 className="h-4 w-4" /> correct</span>
+            <span className="inline-flex items-center gap-1 rounded-lg bg-navy px-3 py-1 text-sm text-cyan"><CheckCircle2 className="h-4 w-4" /> correct</span>
           ) : result.is_correct === false ? (
-            <span className="inline-flex items-center gap-1 rounded-full bg-wine px-3 py-1 text-sm text-soft"><XCircle className="h-4 w-4" /> incorrect</span>
+            <span className="inline-flex items-center gap-1 rounded-lg bg-wine px-3 py-1 text-sm text-soft"><XCircle className="h-4 w-4" /> incorrect</span>
           ) : (
-            <span className="rounded-full border border-sky px-3 py-1 text-sm text-navy/70">{result.simulated ? 'simulated · ungraded' : 'ungraded (no ground truth)'}</span>
+            <span className="rounded-lg border border-navy/15 px-3 py-1 text-sm text-navy/70">{result.simulated ? 'simulated · ungraded' : 'ungraded (no ground truth)'}</span>
           )}
         </div>
         {result.trace && result.trace.length ? (
           <ol className="mt-4 space-y-2">
             {result.trace.map((step, i) => (
               <li key={i}>
-                <details className="group rounded-2xl border border-ember/40 bg-ember/5 px-4 py-2.5">
+                <details className="group rounded-lg border border-ember/40 bg-ember/5 px-4 py-2.5">
                   <summary className="flex cursor-pointer list-none items-center gap-2 text-sm">
                     <ChevronDown className="h-4 w-4 text-ember transition-transform group-open:rotate-180" />
                     <span className="font-semibold text-ink">{step.step}</span>
-                    <span className="ml-auto rounded-full bg-tangerine px-2 py-0.5 font-mono text-xs text-ink">{step.tokens} tok</span>
+                    <span className="ml-auto rounded-md bg-tangerine px-2 py-0.5 font-mono text-xs text-ink">{step.tokens} tok</span>
                   </summary>
                   <pre className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap font-mono text-xs text-navy/80">{step.output}</pre>
                 </details>
@@ -262,7 +262,7 @@ export default function RunTask() {
   return (
     <Page>
       <PageHeader number="02" kicker="Live pipeline" title="Run a task">
-        Send one question through the real pipeline and watch each step. <span className="mark-lemon">Offline simulation</span> tests
+        Send one question through the real pipeline and watch each step. Offline simulation tests
         the routing without calling a model and is never graded.
       </PageHeader>
 
@@ -311,19 +311,19 @@ export default function RunTask() {
             </div>
 
             <div className="mt-5 flex flex-wrap items-center gap-2.5">
-              <label className={`inline-flex cursor-pointer items-center gap-2 rounded-full border px-3.5 py-2 text-sm ${simulate ? 'border-lemon bg-lemon text-ink' : 'border-sky text-navy'}`}>
+              <label className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3.5 py-2 text-sm ${simulate ? 'border-navy bg-navy text-ice' : 'border-navy/15 text-navy'}`}>
                 <input type="checkbox" checked={simulate} onChange={(e) => setSimulate(e.target.checked)} className="accent-[#1B263B]" />
                 Offline simulation
               </label>
               {method === 'GateOrchestra' && threshold != null ? (
-                <span className="rounded-full bg-tangerine px-3 py-1 font-mono text-xs text-ink">threshold {threshold.toFixed(2)}</span>
+                <span className="rounded-md bg-tangerine px-3 py-1 font-mono text-xs text-ink">threshold {threshold.toFixed(2)}</span>
               ) : null}
-              <button onClick={pickTask} title="Fill in a random question from the validation set, with its answer so the run can be graded" className="inline-flex items-center gap-1.5 rounded-full border border-sky px-3.5 py-2 text-sm text-navy hover:bg-ice">
+              <button onClick={pickTask} title="Fill in a random question from the validation set, with its answer so the run can be graded" className="inline-flex items-center gap-1.5 rounded-lg border border-navy/15 px-3.5 py-2 text-sm text-navy hover:bg-navy/5">
                 <Dice5 className="h-4 w-4" /> Try a benchmark question
               </button>
               <div className="ml-auto flex gap-2">
                 {running ? (
-                  <button onClick={() => abortRef.current?.abort('cancelled')} className="inline-flex items-center gap-1.5 rounded-full border border-wine px-4 py-2 text-sm text-wine hover:bg-wine/10">
+                  <button onClick={() => abortRef.current?.abort('cancelled')} className="inline-flex items-center gap-1.5 rounded-lg border border-wine px-4 py-2 text-sm text-wine hover:bg-wine/10">
                     <Square className="h-4 w-4" /> Cancel
                   </button>
                 ) : null}
@@ -331,7 +331,7 @@ export default function RunTask() {
                   onClick={run}
                   disabled={!!blockReason || running}
                   aria-describedby="run-hint"
-                  className="inline-flex items-center gap-2 rounded-full bg-ember px-6 py-2.5 text-sm font-bold text-soft glow-ember transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
+                  className="inline-flex items-center gap-2 rounded-lg bg-ember px-6 py-2.5 text-sm font-semibold text-soft transition-transform hover:-translate-y-0.5 disabled:cursor-not-allowed disabled:opacity-40"
                 >
                   {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Play className="h-4 w-4" />}
                   {running ? `Running… ${elapsed}s` : 'Run'}

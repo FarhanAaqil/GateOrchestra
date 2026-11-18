@@ -55,7 +55,7 @@ export default function ChatSidebar({
       <button
         onClick={onNew}
         disabled={busy}
-        className="mb-3 inline-flex items-center justify-center gap-2 rounded-full bg-ink px-4 py-2 text-sm font-semibold text-soft disabled:opacity-50"
+        className="mb-3 inline-flex items-center justify-center gap-2 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-soft disabled:opacity-50"
       >
         <MessageSquarePlus className="h-4 w-4" /> New chat
       </button>
@@ -68,7 +68,7 @@ export default function ChatSidebar({
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Search chats"
-            className="w-full rounded-full border border-sky bg-soft py-1.5 pl-8 pr-3 text-xs text-ink outline-none focus:ring-2 focus:ring-navy/30"
+            className="w-full rounded-md border border-navy/15 bg-soft py-1.5 pl-8 pr-3 text-xs text-ink outline-none focus:ring-2 focus:ring-navy/30"
           />
         </label>
       ) : null}
@@ -89,9 +89,9 @@ export default function ChatSidebar({
                         onKeyDown={onEditKey}
                         maxLength={80}
                         aria-label="Conversation title"
-                        className="min-w-0 flex-1 rounded-lg border border-sky bg-soft px-2 py-1.5 text-sm text-ink outline-none focus:ring-2 focus:ring-navy/30"
+                        className="min-w-0 flex-1 rounded-lg border border-navy/15 bg-soft px-2 py-1.5 text-sm text-ink outline-none focus:ring-2 focus:ring-navy/30"
                       />
-                      <button onClick={commit} className="rounded-lg p-1.5 text-navy hover:bg-ice" aria-label="Save title">
+                      <button onClick={commit} className="rounded-lg p-1.5 text-navy hover:bg-navy/5" aria-label="Save title">
                         <Check className="h-3.5 w-3.5" />
                       </button>
                     </div>
@@ -102,7 +102,7 @@ export default function ChatSidebar({
                         disabled={busy}
                         aria-current={c.id === activeId ? 'true' : undefined}
                         className={`min-w-0 flex-1 truncate rounded-xl px-3 py-2 text-left text-sm disabled:opacity-60 ${
-                          c.id === activeId ? 'bg-navy text-ice' : 'text-navy hover:bg-ice'
+                          c.id === activeId ? 'bg-navy text-ice' : 'text-navy hover:bg-navy/5'
                         }`}
                         title={c.title}
                       >
@@ -110,7 +110,7 @@ export default function ChatSidebar({
                       </button>
                       <button
                         onClick={() => startEdit(c)}
-                        className="ml-0.5 rounded-lg p-1.5 text-navy/50 hover:bg-ice hover:text-navy focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                        className="ml-0.5 rounded-lg p-1.5 text-navy/50 hover:bg-navy/5 hover:text-navy focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                         aria-label={`Rename ${c.title}`}
                       >
                         <Pencil className="h-3.5 w-3.5" />
@@ -133,7 +133,7 @@ export default function ChatSidebar({
         {conversations.length && !groups.length ? <p className="px-3 py-2 text-xs text-navy/50">No chats match “{query}”.</p> : null}
       </div>
 
-      <div className="mt-3 border-t border-sky/60 pt-3">
+      <div className="mt-3 border-t border-navy/10 pt-3">
         <p className="mb-1.5 flex items-center justify-between px-1 text-xs font-semibold text-navy">
           Documents
           <span className="font-normal text-navy/60">
@@ -142,7 +142,7 @@ export default function ChatSidebar({
         </p>
         <ul className="max-h-40 space-y-1 overflow-y-auto" aria-label="Documents">
           {documents.map((d) => (
-            <li key={d.id} className="group flex items-center gap-1.5 rounded-lg px-1 py-1 text-xs text-navy hover:bg-ice">
+            <li key={d.id} className="group flex items-center gap-1.5 rounded-lg px-1 py-1 text-xs text-navy hover:bg-navy/5">
               <input
                 type="checkbox"
                 checked={selectedDocs.includes(d.id)}

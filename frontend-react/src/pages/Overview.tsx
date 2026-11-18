@@ -1,12 +1,11 @@
 import { motion } from 'framer-motion'
 import { ArrowRight } from 'lucide-react'
-import { Card, CountUp, NoCitableResults, Page, PillLink, SkeletonCards, StatusBadge, Tag } from '../components/ui'
+import { CountUp, NoCitableResults, Page, PillLink, SectionTitle, SkeletonCards, Stat, StatusBadge } from '../components/ui'
 import { api } from '../lib/api'
 import { useApp } from '../lib/context'
 import { isCitable } from '../lib/format'
 import { rise } from '../lib/motion'
 import { useApi } from '../lib/useApi'
-import GateView from '../three/GateView'
 
 const STEPS = [
   { title: 'Probe', text: 'A cheap CoT-SC pass: three samples, a majority answer, and how much they agree.' },
@@ -20,38 +19,69 @@ const loadSplitSizes = async () => {
   return { train: train.total, val: val.total, test: test.total }
 }
 
-/** Scrolling strip of real system facts (from the API, not hardcoded). */
-function FactTicker() {
-  const { models, reducedMotion } = useApp()
-  const sizes = useApi(loadSplitSizes)
-  const facts = [
-    sizes.data ? `${sizes.data.train + sizes.data.val + sizes.data.test} benchmark tasks` : null,
-    sizes.data ? `${sizes.data.train} / ${sizes.data.val} / ${sizes.data.test} train · val · test` : null,
-    '8 gate features',
-    '3 sub-agents: ReAct · Debate · Reflexion',
-    models ? `k ∈ {${models.k_values.join(', ')}}` : null,
-    models ? `probe budget ${models.probe_token_budget} completion tokens` : null,
-    models ? `${models.default_model} via ${models.current_provider}` : null,
-  ].filter(Boolean) as string[]
-  const row = [...facts, ...facts]
+/** The pipeline as a diagram: question, probe, gate, then one of two paths. */
+function PipelineDiagram() {
+  const node = 'rounded-md border border-ice/15 bg-ice/[0.04] px-3 py-2'
   return (
-    <motion.div variants={rise} className="relative mt-6 overflow-hidden rounded-full bg-navy py-3">
-      <div
-        className="flex w-max gap-10 whitespace-nowrap px-6 font-mono text-sm text-ice"
-        style={{ animation: reducedMotion ? undefined : 'marquee 38s linear infinite' }}
-      >
-        {row.map((fact, i) => (
-          <span key={i} className="inline-flex items-center gap-3">
-            <span className={`h-2 w-2 rounded-full ${i % 3 === 0 ? 'bg-cyan' : i % 3 === 1 ? 'bg-ember' : 'bg-lemon'}`} />
-            {fact}
-          </span>
-        ))}
+    <div className="panel flex h-full flex-col justify-between p-6" aria-label="How GateOrchestra routes a question">
+      <p className="eyebrow text-sky/70!">Pipeline</p>
+      <div className="mt-6 space-y-3 font-mono text-[12px]">
+        <div className={node}>
+          <p className="text-sky/70">input</p>
+          <p className="text-ice">question</p>
+        </div>
+        <div className="ml-4 h-4 w-px bg-ice/20" aria-hidden />
+        <div className={node}>
+          <p className="text-sky/70">probe · CoT-SC × 3</p>
+          <p className="text-ice">answer + agreement</p>
+        </div>
+        <div className="ml-4 h-4 w-px bg-ice/20" aria-hidden />
+        <div className="rounded-md border border-cyan/50 bg-cyan/[0.06] px-3 py-2">
+          <p className="text-cyan">gate · 8 features</p>
+          <p className="text-ice">is decomposition worth it?</p>
+        </div>
+        <div className="grid grid-cols-2 gap-3 pt-3">
+          <div className={node}>
+            <p className="text-sky">STOP</p>
+            <p className="text-ice/80">return the probe answer</p>
+          </div>
+          <div className="rounded-md border border-ember/50 bg-ember/[0.07] px-3 py-2">
+            <p className="text-ember">ESCALATE</p>
+            <p className="text-ice/80">MAS within k × probe tokens</p>
+          </div>
+        </div>
       </div>
-    </motion.div>
+    </div>
+  )
+}
+
+/** The system's configuration, read from the API rather than written into the page. */
+function SpecSheet() {
+  const { models } = useApp()
+  const sizes = useApi(loadSplitSizes)
+  const rows: [string, string | null][] = [
+    ['Benchmark tasks', sizes.data ? String(sizes.data.train + sizes.data.val + sizes.data.test) : null],
+    ['Splits', sizes.data ? `${sizes.data.train} · ${sizes.data.val} · ${sizes.data.test}` : null],
+    ['Gate features', '8'],
+    ['Sub-agents', 'ReAct · Debate · Reflexion'],
+    ['k values', models ? models.k_values.join(', ') : null],
+    ['Probe budget', models ? `${models.probe_token_budget} tokens` : null],
+    ['Benchmark model', models ? `${models.default_model} (${models.current_provider})` : null],
+  ]
+  return (
+    <motion.dl variants={rise} className="card mt-6 grid grid-cols-2 divide-navy/10 overflow-hidden sm:grid-cols-4 lg:grid-cols-7 lg:divide-x">
+      {rows.map(([label, value]) => (
+        <div key={label} className="border-b border-navy/10 px-4 py-3 lg:border-b-0">
+          <dt className="eyebrow">{label}</dt>
+          <dd className="num mt-1 truncate text-sm text-ink" title={value ?? undefined}>{value ?? '—'}</dd>
+        </div>
+      ))}
+    </motion.dl>
   )
 }
 
 export default function Overview() {
+  const { isAdmin } = useApp()
   const summary = useApi(api.summary)
   const status = summary.data?.status
   const rows = summary.data?.aggregated ?? []
@@ -61,97 +91,62 @@ export default function Overview() {
 
   return (
     <Page>
-      <section className="grid gap-5 lg:grid-cols-12">
-        <motion.div variants={rise} className="card flex flex-col justify-between p-7 md:p-10 lg:col-span-7">
-          <div>
-            <p className="font-mono text-sm text-navy/60">
-              <span className="text-wine">01</span> — Token-budget-calibrated gating
-            </p>
-            <h1 className="mt-4 text-5xl font-bold leading-[0.98] text-ink md:text-7xl">
-              Decide <span className="mark-lemon">whether</span> to orchestrate.
-            </h1>
-            <p className="mt-5 max-w-xl text-lg text-navy/75">
-              A cheap CoT-SC probe answers first. A small trained gate escalates to the multi-agent orchestrator only when
-              decomposition is likely to beat that answer at an equal token budget.
-            </p>
-            <div className="mt-5 flex flex-wrap gap-2">
-              <Tag>Pre-execution</Tag>
-              <Tag>Equal budgets</Tag>
-              <Tag>Honest accounting</Tag>
-            </div>
-          </div>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <PillLink to="/run" variant="navy">
-              Run a task <ArrowRight className="h-4 w-4" />
-            </PillLink>
-            <PillLink to="/results" variant="ghost">
-              See results
+      <section className="grid gap-6 lg:grid-cols-12">
+        <motion.div variants={rise} className="flex flex-col justify-center py-4 lg:col-span-7">
+          <p className="eyebrow">Research · token-budget-calibrated gating</p>
+          <h1 className="mt-3 text-4xl font-semibold leading-[1.08] tracking-tight text-ink md:text-[52px]">
+            Decide whether to orchestrate, before paying for it.
+          </h1>
+          <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-navy/70">
+            A cheap CoT-SC probe answers first. A small trained gate escalates to the multi-agent orchestrator only when
+            decomposition is likely to beat that answer at an equal token budget.
+          </p>
+          <div className="mt-7 flex flex-wrap gap-2.5">
+            {isAdmin ? (
+              <PillLink to="/run" variant="navy">
+                Run a task <ArrowRight className="h-4 w-4" />
+              </PillLink>
+            ) : null}
+            <PillLink to="/results" variant={isAdmin ? 'ghost' : 'navy'}>
+              See the results {isAdmin ? null : <ArrowRight className="h-4 w-4" />}
             </PillLink>
           </div>
         </motion.div>
-
-        <motion.div variants={rise} className="panel relative overflow-hidden lg:col-span-5">
-          <GateView running={false} decision={null} strategy={null} runKey={0} demo className="h-[360px] lg:h-full lg:min-h-[440px]" />
-          <span className="absolute left-5 top-4 rounded-full bg-ice/10 px-3 py-1 font-mono text-[10px] uppercase tracking-widest text-sky">
-            Illustrative loop · live on Run a Task
-          </span>
+        <motion.div variants={rise} className="lg:col-span-5">
+          <PipelineDiagram />
         </motion.div>
       </section>
 
-      <FactTicker />
+      <SpecSheet />
 
-      <section className="mt-12">
-        <motion.div variants={rise} className="mb-4 flex items-center gap-3">
-          <h2 className="text-3xl font-bold text-ink">
-            <span className="font-mono text-base text-wine">02 </span>Key results
-          </h2>
-          {status ? <StatusBadge status={status} /> : null}
-        </motion.div>
-        {summary.loading ? (
-          <SkeletonCards count={4} height="h-16" />
-        ) : isCitable(status) && gate && mas ? (
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Card navy>
-              <p className="text-sm text-sky">Task runs evaluated</p>
-              <CountUp value={tasksEvaluated ?? 0} className="mt-3 block text-5xl font-semibold text-ice" />
-              <p className="mt-2 font-mono text-xs text-sky/70">{gate.n_seeds} seed(s)</p>
-            </Card>
-            <Card>
-              <p className="text-sm text-navy/60">Tokens saved vs Always-MAS</p>
-              <CountUp value={gate.token_savings_pct_mean} decimals={1} suffix="%" className="mt-3 block text-5xl font-semibold text-wine" />
-            </Card>
-            <Card>
-              <p className="text-sm text-navy/60">Accuracy vs Always-MAS</p>
-              <CountUp value={gate.accuracy_mean - mas.accuracy_mean} decimals={1} suffix=" pts" className="mt-3 block text-5xl font-semibold text-ink" />
-              <p className="mt-2 font-mono text-xs text-navy/60">
-                {gate.accuracy_mean.toFixed(1)}% vs {mas.accuracy_mean.toFixed(1)}%
-              </p>
-            </Card>
-            <Card className="bg-lemon!">
-              <p className="text-sm text-ink/70">Escalation rate</p>
-              <CountUp value={(gate.escalate_rate_mean ?? 0) * 100} decimals={1} suffix="%" className="mt-3 block text-5xl font-semibold text-ink" />
-            </Card>
-          </div>
-        ) : (
-          <NoCitableResults status={status} what="results" />
-        )}
-      </section>
-
-      <section className="mt-12">
-        <motion.h2 variants={rise} className="mb-4 text-3xl font-bold text-ink">
-          <span className="font-mono text-base text-wine">03 </span>How a task flows
-        </motion.h2>
+      <SectionTitle aside={status ? <StatusBadge status={status} /> : null}>Key results</SectionTitle>
+      {summary.loading ? (
+        <SkeletonCards count={4} height="h-10" />
+      ) : isCitable(status) && gate && mas ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          {STEPS.map(({ title, text }, i) => (
-            <Card key={title} navy={i === 2}>
-              <span aria-hidden className={`block h-1.5 w-12 rounded-full ${i === 2 ? 'bg-cyan' : i === 3 ? 'bg-ember' : 'bg-sky'}`} />
-              <p className={`mt-3 font-mono text-5xl font-semibold ${i === 2 ? 'text-cyan' : 'text-navy'}`}>0{i + 1}</p>
-              <h3 className={`mt-4 text-xl font-bold ${i === 2 ? 'text-ice' : 'text-ink'}`}>{title}</h3>
-              <p className={`mt-2 text-sm ${i === 2 ? 'text-sky' : 'text-navy/70'}`}>{text}</p>
-            </Card>
-          ))}
+          <Stat label="Task runs evaluated" value={<CountUp value={tasksEvaluated ?? 0} />} note={`${gate.n_seeds} seed(s)`} />
+          <Stat label="Tokens vs Always-MAS" tone="ember" value={<CountUp value={gate.token_savings_pct_mean} decimals={1} suffix="%" />} note="saved per task, on average" />
+          <Stat
+            label="Accuracy vs Always-MAS"
+            value={<CountUp value={gate.accuracy_mean - mas.accuracy_mean} decimals={1} suffix=" pts" />}
+            note={`${gate.accuracy_mean.toFixed(1)}% vs ${mas.accuracy_mean.toFixed(1)}%`}
+          />
+          <Stat label="Escalation rate" value={<CountUp value={(gate.escalate_rate_mean ?? 0) * 100} decimals={1} suffix="%" />} note="tasks sent to the multi-agent system" />
         </div>
-      </section>
+      ) : (
+        <NoCitableResults status={status} what="results" />
+      )}
+
+      <SectionTitle>How a task flows</SectionTitle>
+      <motion.ol variants={rise} className="card grid overflow-hidden sm:grid-cols-2 lg:grid-cols-4">
+        {STEPS.map(({ title, text }, i) => (
+          <li key={title} className="border-navy/10 p-5 max-lg:border-b sm:max-lg:odd:border-r lg:border-r lg:last:border-r-0">
+            <p className={`num text-xs ${i === 2 ? 'text-ember' : 'text-navy/50'}`}>0{i + 1}</p>
+            <h3 className="mt-2 text-[15px] font-semibold text-ink">{title}</h3>
+            <p className="mt-1.5 text-sm leading-relaxed text-navy/65">{text}</p>
+          </li>
+        ))}
+      </motion.ol>
     </Page>
   )
 }

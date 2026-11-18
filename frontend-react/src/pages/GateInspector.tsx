@@ -20,7 +20,7 @@ export default function GateInspector() {
 
   return (
     <Page>
-      <PageHeader number="03" kicker="Gate inspector" title={<>Inside the <span className="mark-lemon">routing decision</span></>}>
+      <PageHeader number="03" kicker="Gate inspector" title={<>Inside the routing decision</>}>
         The gate sees eight pre-execution features and outputs a probability that multi-agent orchestration is worth its cost on
         this task.
       </PageHeader>
@@ -41,14 +41,14 @@ export default function GateInspector() {
               <dt className="text-sky/70">scikit-learn</dt>
               <dd className="text-ice">{gate.build_info?.sklearn_version ?? '—'}</dd>
               {gate.degenerate ? (
-                <dd className="col-span-2 mt-2 rounded-xl bg-lemon px-3 py-2 text-ink">
+                <dd className="col-span-2 mt-2 rounded-lg border border-tangerine/40 bg-tangerine/10 px-3 py-2 text-ink">
                   Degenerate: every training label was the same class, so this gate always gives one answer.
                 </dd>
               ) : null}
             </dl>
           ) : (
             <>
-              <p className="mt-4 text-3xl font-bold text-ice">None yet</p>
+              <p className="mt-4 text-xl font-semibold text-ice">None yet</p>
               <p className="mt-2 text-sm text-sky">
                 The benchmark's calibration step trains and saves one. Until then the GateOrchestra method is disabled.
               </p>
@@ -83,7 +83,7 @@ export default function GateInspector() {
           )}
         </Card>
 
-        <Card className="bg-lemon!">
+        <Card className="border-l-2! border-l-ember!">
           <p className="font-mono text-xs uppercase tracking-widest text-ink/60">Escalation threshold</p>
           <p className="mt-1 text-xs text-ink/70">Applies to GateOrchestra runs from this browser; otherwise the classifier's own decision (≈ 0.5) is used.</p>
           <label className="mt-4 flex items-center gap-2 text-sm font-medium text-ink">
@@ -101,11 +101,11 @@ export default function GateInspector() {
             className="mt-3 w-full accent-[#FF6B35] disabled:opacity-40"
             aria-label="Escalation threshold"
           />
-          <p className="mt-1 font-mono text-4xl font-semibold text-ink">{threshold == null ? 'default' : threshold.toFixed(2)}</p>
+          <p className="num mt-1 text-2xl font-medium text-ink">{threshold == null ? 'default' : threshold.toFixed(2)}</p>
           {wouldEscalate != null ? (
             <p className="mt-2 text-sm text-ink">
               At this threshold the last task would{' '}
-              <span className={`rounded-full px-2 py-0.5 font-mono text-xs ${wouldEscalate ? 'bg-ember text-soft' : 'bg-navy text-cyan'}`}>
+              <span className={`rounded-md px-2 py-0.5 font-mono text-xs ${wouldEscalate ? 'bg-ember text-ink' : 'bg-navy text-cyan'}`}>
                 {wouldEscalate ? 'ESCALATE' : 'STOP'}
               </span>
             </p>
@@ -116,13 +116,13 @@ export default function GateInspector() {
 
       <div className="mt-4 grid gap-4 lg:grid-cols-2">
         <Card tilt={false}>
-          <h2 className="mb-3 text-xl font-bold text-ink">Feature importance</h2>
+          <h2 className="mb-3 text-xl font-semibold text-ink">Feature importance</h2>
           {importance.loading ? (
             <Skeleton className="h-48" />
           ) : importance.data?.available ? (
             <ImportanceChart rows={importance.data.importances} />
           ) : (
-            <div className="rounded-2xl border border-dashed border-sky px-4 py-5 text-sm text-navy/75">
+            <div className="rounded-lg border border-dashed border-navy/15 px-4 py-5 text-sm text-navy/75">
               <p>{importance.data?.reason ?? importance.error ?? 'Unavailable.'}</p>
               <p className="mt-2 text-xs text-navy/60">
                 Some gate types cannot report per-feature importance. Section 8.4 of the research report tests which features the gate
@@ -132,13 +132,13 @@ export default function GateInspector() {
           )}
         </Card>
         <Card tilt={false}>
-          <h2 className="mb-3 text-xl font-bold text-ink">Features of the last gated run</h2>
+          <h2 className="mb-3 text-xl font-semibold text-ink">Features of the last gated run</h2>
           {lastRun?.features ? (
             <dl className="grid grid-cols-2 gap-2">
               {Object.entries(lastRun.features)
                 .filter(([key]) => key !== 'task_id')
                 .map(([key, value]) => (
-                  <div key={key} className="rounded-2xl border border-sky bg-ice px-3 py-2">
+                  <div key={key} className="rounded-lg border border-navy/15 bg-ice px-3 py-2">
                     <dt className="text-xs text-navy/60">{FEATURE_LABELS[key] ?? key}</dt>
                     <dd className="font-mono text-lg text-ink">
                       {typeof value === 'boolean' ? (value ? 'yes' : 'no') : typeof value === 'number' ? Number(value.toFixed(2)) : '—'}

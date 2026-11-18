@@ -46,13 +46,13 @@ function RouteBadges({ meta }: { meta: Partial<TurnMeta> }) {
     <div className="mt-2 min-w-0 text-xs text-navy/70">
       <div className="flex flex-wrap items-center gap-1.5">
         <span
-          className={`rounded-full px-2.5 py-0.5 font-medium ${route.escalated ? 'bg-ember text-ink' : meta.cached ? 'bg-lemon text-ink' : 'bg-cyan/30 text-navy'}`}
+          className={`rounded-md px-2.5 py-0.5 font-medium ${route.escalated ? 'border border-ember/50 bg-ember/10 text-ink' : meta.cached ? 'border border-navy/15 bg-ice text-navy' : 'border border-navy/15 bg-sky/25 text-ink'}`}
           title={route.explanation}
         >
           {route.headline}
         </span>
-        {meta.total_tokens != null ? <span className="rounded-full border border-sky px-2 py-0.5">{meta.total_tokens.toLocaleString()} tokens</span> : null}
-        {meta.latency_ms != null ? <span className="rounded-full border border-sky px-2 py-0.5">{formatSeconds(meta.latency_ms)}</span> : null}
+        {meta.total_tokens != null ? <span className="rounded-md border border-navy/15 px-2 py-0.5">{meta.total_tokens.toLocaleString()} tokens</span> : null}
+        {meta.latency_ms != null ? <span className="rounded-md border border-navy/15 px-2 py-0.5">{formatSeconds(meta.latency_ms)}</span> : null}
       </div>
       <details className="group mt-1">
         <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-navy/60 hover:text-navy">
@@ -76,7 +76,7 @@ function RouteBadges({ meta }: { meta: Partial<TurnMeta> }) {
 function ToolList({ tools }: { tools: ToolCall[] }) {
   if (!tools.length) return null
   return (
-    <details className="group mt-2 rounded-2xl border border-sky/70 bg-ice/60 px-3 py-2 text-sm">
+    <details className="group mt-2 rounded-lg border border-navy/10 bg-ice/60 px-3 py-2 text-sm">
       <summary className="flex cursor-pointer list-none items-center gap-2 text-navy">
         <Wrench className="h-4 w-4 text-wine" /> {tools.length} tool call{tools.length === 1 ? '' : 's'}
         <ChevronDown className="ml-auto h-4 w-4 transition-transform group-open:rotate-180" />
@@ -114,7 +114,7 @@ function AssistantBubble({ message, onRate, onRegenerate }: { message: ChatMessa
             <>
               <button
                 onClick={() => onRate(message.id, rating === 1 ? 0 : 1)}
-                className={`rounded-lg p-2 hover:bg-ice ${rating === 1 ? 'text-navy' : 'text-navy/55'}`}
+                className={`rounded-lg p-2 hover:bg-navy/5 ${rating === 1 ? 'text-navy' : 'text-navy/55'}`}
                 aria-label="Helpful"
                 aria-pressed={rating === 1}
               >
@@ -122,7 +122,7 @@ function AssistantBubble({ message, onRate, onRegenerate }: { message: ChatMessa
               </button>
               <button
                 onClick={() => onRate(message.id, rating === -1 ? 0 : -1)}
-                className={`rounded-lg p-2 hover:bg-ice ${rating === -1 ? 'text-wine' : 'text-navy/55'}`}
+                className={`rounded-lg p-2 hover:bg-navy/5 ${rating === -1 ? 'text-wine' : 'text-navy/55'}`}
                 aria-label="Not helpful"
                 aria-pressed={rating === -1}
               >
@@ -131,11 +131,11 @@ function AssistantBubble({ message, onRate, onRegenerate }: { message: ChatMessa
             </>
           ) : null}
           {onRegenerate && rateable ? (
-            <button onClick={onRegenerate} className="rounded-lg p-2 text-navy/55 hover:bg-ice hover:text-navy" aria-label="Regenerate answer" title="Try again">
+            <button onClick={onRegenerate} className="rounded-lg p-2 text-navy/55 hover:bg-navy/5 hover:text-navy" aria-label="Regenerate answer" title="Try again">
               <RefreshCw className="h-4 w-4" />
             </button>
           ) : null}
-          <button onClick={copy} className="rounded-lg p-2 text-navy/55 transition-opacity hover:bg-ice hover:text-navy focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100" aria-label={copied ? 'Copied' : 'Copy answer'} title={copied ? 'Copied' : 'Copy answer'}>
+          <button onClick={copy} className="rounded-lg p-2 text-navy/55 transition-opacity hover:bg-navy/5 hover:text-navy focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100" aria-label={copied ? 'Copied' : 'Copy answer'} title={copied ? 'Copied' : 'Copy answer'}>
             {copied ? <Check className="h-4 w-4 text-navy" /> : <Copy className="h-4 w-4" />}
           </button>
         </div>
@@ -147,10 +147,10 @@ function AssistantBubble({ message, onRate, onRegenerate }: { message: ChatMessa
 function RoutingPanel({ scores, margin }: { scores: GateScore[]; margin: number }) {
   if (!scores.length) return null
   return (
-    <details className="group border-b border-sky/60 bg-ice/50 px-4 py-2 text-xs">
+    <details className="group border-b border-navy/10 bg-ice/50 px-4 py-2 text-xs">
       <summary className="flex cursor-pointer list-none items-center gap-2 text-navy">
         How auto routing chooses
-        <span className="rounded-full bg-navy px-2 py-0.5 font-mono text-[10px] text-sky">
+        <span className="rounded-md bg-navy px-2 py-0.5 font-mono text-[10px] text-sky">
           now: {GATE_LABELS[scores.find((s) => s.chosen)?.gate ?? 'rule_based']}
         </span>
         <ChevronDown className="ml-auto h-3.5 w-3.5 transition-transform group-open:rotate-180" />
@@ -160,7 +160,7 @@ function RoutingPanel({ scores, margin }: { scores: GateScore[]; margin: number 
       </p>
       <table className="mt-2 w-full font-mono text-[11px]">
         <thead className="text-navy/60">
-          <tr><th className="text-left font-normal">Gate</th><th className="text-right font-normal">≈ tokens</th><th className="text-right font-normal">escalates</th><th className="text-right font-normal">accuracy</th><th className="text-right font-normal">👍 / 👎</th></tr>
+          <tr><th className="text-left font-normal">Gate</th><th className="text-right font-normal">≈ tokens</th><th className="text-right font-normal">escalates</th><th className="text-right font-normal">accuracy</th><th className="text-right font-normal">ratings</th></tr>
         </thead>
         <tbody>
           {scores.map((s) => (
@@ -204,7 +204,7 @@ function LiveBubble({ live }: { live: Live }) {
           const done = order.indexOf(s.id) < order.indexOf(live.stage) || (s.id === 'writing' && live.text)
           const active = s.id === live.stage
           return (
-            <span key={s.id} className={`rounded-full px-2.5 py-0.5 font-mono text-[11px] ${active ? 'bg-lemon text-ink' : done ? 'bg-navy text-sky' : 'border border-sky text-navy/50'}`}>
+            <span key={s.id} className={`rounded-md px-2.5 py-0.5 font-mono text-[11px] ${active ? 'border border-navy bg-navy text-ice' : done ? 'border border-navy/20 bg-ice text-navy' : 'border border-navy/10 text-navy/45'}`}>
               {s.label}
             </span>
           )
@@ -214,7 +214,7 @@ function LiveBubble({ live }: { live: Live }) {
         <Markdown text={live.text + ' ▍'} />
       ) : (
         <div className="flex items-center gap-3">
-          <div className="h-5 w-16 animate-pulse rounded bg-sky/40 motion-reduce:animate-none" />
+          <div className="h-5 w-16 animate-pulse rounded bg-navy/10 motion-reduce:animate-none" />
           <span className="text-xs text-navy/60" role="status">
             {elapsed < 8 ? `Working… ${elapsed} s` : `Still working… ${elapsed} s. Harder questions take longer.`}
           </span>
@@ -457,7 +457,7 @@ export default function Chat() {
         <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Conversation history">
           <div className="absolute inset-0 bg-navy/50" onClick={() => setHistoryOpen(false)} />
           <div className="absolute inset-y-0 left-0 flex w-[85%] max-w-sm flex-col bg-soft p-3 shadow-xl">
-            <button onClick={() => setHistoryOpen(false)} className="mb-2 self-end rounded-lg p-2 text-navy hover:bg-ice" aria-label="Close history">
+            <button onClick={() => setHistoryOpen(false)} className="mb-2 self-end rounded-lg p-2 text-navy hover:bg-navy/5" aria-label="Close history">
               <X className="h-4 w-4" />
             </button>
             <div className="min-h-0 flex-1">
@@ -480,15 +480,15 @@ export default function Chat() {
       ) : null}
 
       <section className="card flex min-h-0 flex-col p-0" aria-label="Chat">
-        <div className="flex flex-wrap items-center gap-2 border-b border-sky/60 px-4 py-2.5">
-          <h1 className="font-display text-lg font-bold text-ink">Chat</h1>
-          <button onClick={() => setHistoryOpen(true)} className="inline-flex items-center gap-1.5 rounded-full border border-sky px-3 py-1 text-xs text-navy hover:bg-ice lg:hidden">
+        <div className="flex flex-wrap items-center gap-2 border-b border-navy/10 px-4 py-2.5">
+          <h1 className="text-lg font-semibold text-ink">Chat</h1>
+          <button onClick={() => setHistoryOpen(true)} className="inline-flex items-center gap-1.5 rounded-md border border-navy/15 px-3 py-1 text-xs text-navy hover:bg-navy/5 lg:hidden">
             <History className="h-3.5 w-3.5" /> History
           </button>
-          <button onClick={newChat} disabled={!!live} className="rounded-full border border-sky px-3 py-1 text-xs text-navy hover:bg-ice disabled:opacity-50 lg:hidden">New chat</button>
+          <button onClick={newChat} disabled={!!live} className="rounded-md border border-navy/15 px-3 py-1 text-xs text-navy hover:bg-navy/5 disabled:opacity-50 lg:hidden">New chat</button>
           <label className="ml-auto flex items-center gap-2 text-xs text-navy/70">
             Mode
-            <select value={gateMode} onChange={(e) => setGateMode(e.target.value)} disabled={!!live} className="max-w-[11rem] rounded-full border border-sky bg-soft px-2.5 py-1 text-xs text-ink disabled:opacity-60 sm:max-w-none" title="How the assistant decides how much effort a question needs">
+            <select value={gateMode} onChange={(e) => setGateMode(e.target.value)} disabled={!!live} className="max-w-[11rem] rounded-md border border-navy/15 bg-soft px-2.5 py-1 text-xs text-ink disabled:opacity-60 sm:max-w-none" title="How the assistant decides how much effort a question needs">
               {GATE_MODES.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
           </label>
@@ -499,18 +499,18 @@ export default function Chat() {
         <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-8">
           {!messages.length && !live ? (
             <div className="mx-auto mt-6 max-w-2xl text-center">
-              <h2 className="text-3xl font-bold text-ink">Ask anything</h2>
+              <h2 className="text-xl font-semibold text-ink">Ask anything</h2>
               <p className="mt-2 text-sm text-navy/70">
                 Easy questions get a direct answer. Harder ones are researched with tools first, so you get accuracy without paying for effort you do not need.
               </p>
               <ul className="mt-3 flex flex-wrap justify-center gap-1.5 text-xs text-navy/70" aria-label="What it can do">
-                {['Attach files and ask about them', 'Looks facts up on Wikipedia', 'Runs Python safely', 'Learns from your 👍 / 👎'].map((t) => (
-                  <li key={t} className="rounded-full border border-sky px-2.5 py-0.5">{t}</li>
+                {['Attach files and ask about them', 'Looks facts up on Wikipedia', 'Runs Python safely', 'Learns from your ratings'].map((t) => (
+                  <li key={t} className="rounded-md border border-navy/15 px-2.5 py-0.5">{t}</li>
                 ))}
               </ul>
               <div className="mt-6 grid gap-2 sm:grid-cols-2">
                 {SUGGESTIONS.map((s) => (
-                  <button key={s} onClick={() => send(s)} disabled={backend !== 'online'} className="rounded-2xl border border-sky bg-soft px-4 py-3 text-left text-sm text-navy hover:bg-ice disabled:opacity-50">
+                  <button key={s} onClick={() => send(s)} disabled={backend !== 'online'} className="rounded-lg border border-navy/15 bg-soft px-4 py-3 text-left text-sm text-navy hover:bg-navy/5 disabled:opacity-50">
                     {s}
                   </button>
                 ))}
@@ -524,32 +524,32 @@ export default function Chat() {
                   {m.meta?.documents?.length ? (
                     <ul className="flex max-w-[85%] flex-wrap justify-end gap-1.5" aria-label="Attached documents">
                       {m.meta.documents.map((name) => (
-                        <li key={name} className="inline-flex items-center gap-1 rounded-full border border-sky bg-soft px-2.5 py-1 text-xs text-navy">
+                        <li key={name} className="inline-flex items-center gap-1 rounded-md border border-navy/15 bg-soft px-2.5 py-1 text-xs text-navy">
                           <Paperclip className="h-3 w-3 text-wine" /> {name}
                         </li>
                       ))}
                     </ul>
                   ) : null}
-                  <p className="max-w-[85%] whitespace-pre-wrap rounded-3xl rounded-br-md bg-navy px-4 py-2.5 text-sm text-ice">{m.content}</p>
+                  <p className="max-w-[85%] whitespace-pre-wrap rounded-xl bg-navy px-4 py-2.5 text-sm text-ice">{m.content}</p>
                 </div>
               ) : (
                 <AssistantBubble key={m.id} message={m} onRate={rate} onRegenerate={m.id === lastAssistantId ? () => regenerate() : undefined} />
               ),
             )}
             {live ? <LiveBubble live={live} /> : null}
-            {error ? <p className="rounded-2xl bg-wine/10 px-4 py-2.5 text-sm text-wine" role="alert">{error}</p> : null}
+            {error ? <p className="rounded-lg bg-wine/10 px-4 py-2.5 text-sm text-wine" role="alert">{error}</p> : null}
             <div ref={bottomRef} />
           </div>
         </div>
 
-        <div className="border-t border-sky/60 p-3 sm:px-8">
+        <div className="border-t border-navy/10 p-3 sm:px-8">
           {selectedDocs.length ? (
             <p className="mx-auto mb-1.5 max-w-3xl px-2 text-xs text-navy/70">
               Answering from {selectedDocs.length} document{selectedDocs.length === 1 ? '' : 's'}:{' '}
               {documents.filter((d) => selectedDocs.includes(d.id)).map((d) => d.name).join(', ')}
             </p>
           ) : null}
-          <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-3xl border border-sky bg-soft px-3 py-2 focus-within:ring-2 focus-within:ring-navy/30">
+          <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-xl border border-navy/15 bg-soft px-3 py-2 focus-within:ring-2 focus-within:ring-navy/30">
             <input
               ref={fileRef}
               type="file"
@@ -561,7 +561,7 @@ export default function Chat() {
             <button
               onClick={() => fileRef.current?.click()}
               disabled={uploading || backend !== 'online'}
-              className="rounded-full p-2 text-navy/60 hover:bg-ice hover:text-navy disabled:opacity-40"
+              className="rounded-lg p-2 text-navy/60 hover:bg-navy/5 hover:text-navy disabled:opacity-40"
               aria-label="Attach a document"
               title="Attach a text, code or PDF file"
             >
@@ -578,11 +578,11 @@ export default function Chat() {
               className="max-h-40 min-h-[2.25rem] flex-1 resize-none bg-transparent py-1.5 text-sm text-ink outline-none"
             />
             {live ? (
-              <button onClick={() => abortRef.current?.abort()} className="rounded-full bg-wine p-2 text-soft" aria-label="Stop">
+              <button onClick={() => abortRef.current?.abort()} className="rounded-lg bg-wine p-2 text-soft" aria-label="Stop">
                 <Square className="h-4 w-4" />
               </button>
             ) : (
-              <button onClick={() => send(input)} disabled={(!input.trim() && !selectedDocs.length) || backend !== 'online'} className="rounded-full bg-ember p-2 text-ink disabled:opacity-40" aria-label="Send">
+              <button onClick={() => send(input)} disabled={(!input.trim() && !selectedDocs.length) || backend !== 'online'} className="rounded-lg bg-navy p-2 text-ice disabled:opacity-30" aria-label="Send">
                 <ArrowUp className="h-4 w-4" />
               </button>
             )}

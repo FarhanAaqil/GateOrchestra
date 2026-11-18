@@ -60,14 +60,14 @@ export default function KeyDialog({
         aria-labelledby="key-dialog-title"
         onSubmit={submit}
         onClick={(e) => e.stopPropagation()}
-        className="w-full max-w-md rounded-3xl bg-soft p-6 shadow-2xl"
+        className="w-full max-w-md rounded-xl bg-soft p-6 shadow-2xl"
       >
         <div className="mb-3 flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <span className="rounded-full bg-lemon p-2 text-ink"><KeyRound className="h-5 w-5" /></span>
-            <h2 id="key-dialog-title" className="text-xl font-bold text-ink">Another API key is needed</h2>
+            <span className="grid h-9 w-9 place-items-center rounded-lg border border-navy/15 bg-ice text-navy"><KeyRound className="h-4 w-4" /></span>
+            <h2 id="key-dialog-title" className="text-xl font-semibold text-ink">Another API key is needed</h2>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-1 text-navy/60 hover:bg-ice" aria-label="Close">
+          <button type="button" onClick={onClose} className="rounded-lg p-1 text-navy/60 hover:bg-navy/5" aria-label="Close">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -89,7 +89,7 @@ export default function KeyDialog({
           {(['groq', 'gemini'] as const).map((p) => (
             <label
               key={p}
-              className={`cursor-pointer rounded-2xl border px-3 py-2 text-sm ${provider === p ? 'border-navy bg-navy text-ice' : 'border-sky text-navy hover:bg-ice'}`}
+              className={`cursor-pointer rounded-lg border px-3 py-2 text-sm ${provider === p ? 'border-navy bg-navy text-ice' : 'border-navy/15 text-navy hover:bg-navy/5'}`}
             >
               <input type="radio" name="provider" value={p} checked={provider === p} onChange={() => setProvider(p)} className="sr-only" />
               <span className="font-semibold">{p === 'groq' ? 'Groq' : 'Google Gemini'}</span>
@@ -116,13 +116,13 @@ export default function KeyDialog({
         {error ? <p className="mt-3 rounded-xl bg-wine/10 px-3 py-2 text-sm text-wine" role="alert">{error}</p> : null}
 
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-full border border-sky px-4 py-2 text-sm text-navy hover:bg-ice">
+          <button type="button" onClick={onClose} className="rounded-lg border border-navy/15 px-4 py-2 text-sm text-navy hover:bg-navy/5">
             Cancel
           </button>
           <button
             type="submit"
             disabled={!key.trim() || saving}
-            className="inline-flex items-center gap-2 rounded-full bg-ink px-5 py-2 text-sm font-bold text-soft disabled:opacity-40"
+            className="inline-flex items-center gap-2 rounded-lg bg-ink px-5 py-2 text-sm font-semibold text-soft disabled:opacity-40"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {saving ? 'Checking…' : 'Save and retry'}
