@@ -51,6 +51,11 @@ class ChatRequest(BaseModel):
     conversation_id: str | None = None
     gate_mode: str | None = Field(default=None, description="auto, or a gate name to force")
     document_ids: list[str] | None = None
+    edit_from: str | None = Field(
+        default=None,
+        max_length=40,
+        description="id of an earlier question of yours: it and everything after it are replaced",
+    )
     replace_last: bool = Field(
         default=False, description="drop the last question and answer first (regenerate or edit)"
     )
@@ -70,7 +75,7 @@ class DocumentRequest(BaseModel):
 
 
 class KeyRequest(BaseModel):
-    provider: str = Field(..., pattern="^(groq|gemini)$")
+    provider: str = Field(..., pattern="^(groq|gemini|openai)$")
     key: str = Field(..., min_length=20, max_length=200)
 
 
@@ -112,6 +117,7 @@ def chat(body: ChatRequest, owner: str | None = Depends(chat_owner)) -> Streamin
                 gate_mode=body.gate_mode,
                 document_ids=body.document_ids,
                 replace_last=body.replace_last,
+                edit_from=body.edit_from,
             )
             yield from _sse(_counted(turn, service, admission))
         finally:

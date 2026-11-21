@@ -76,6 +76,23 @@ export interface BenchmarkRun {
   main: boolean
 }
 
+interface ThresholdMethod {
+  n: number
+  accuracy: number
+  accuracy_ci95: [number, number]
+  avg_tokens: number
+  escalation_rate: number
+  tokens_vs_always_mas_pct: number
+}
+
+export interface ThresholdBaseline {
+  available: boolean
+  chosen_threshold: string
+  chosen_method: string
+  test: Record<string, ThresholdMethod>
+  paired_tests: { a: string; b: string; a_only_correct: number; b_only_correct: number; p_value: number }[]
+}
+
 export const api = {
   models: () => cachedGet<ModelsResponse>('/models'),
   tasks: (split: 'train' | 'val' | 'test', limit = 100, offset = 0) =>
@@ -84,6 +101,7 @@ export const api = {
   summary: (run?: string) => cachedGet<SummaryResponse>(run && run !== 'final' ? `/demo/summary?run=${encodeURIComponent(run)}` : '/demo/summary'),
   runs: () => cachedGet<{ runs: BenchmarkRun[] }>('/results/runs'),
   gateImportance: () => cachedGet<ImportanceResponse>('/gate/importance'),
+  thresholdBaseline: () => cachedGet<ThresholdBaseline>('/results/threshold'),
   resultsDetail: (run?: string) => cachedGet<ResultsDetail>(run && run !== 'final' ? `/results/detail?run=${encodeURIComponent(run)}` : '/results/detail'),
   run: async (body: RunRequest, signal?: AbortSignal) => {
     const result = await request<RunResult>('/run', {

@@ -7,11 +7,12 @@ import type { ModelsResponse, RunResult } from './types'
 
 const PERF_KEY = 'gateorchestra.performanceMode'
 
+/** The flat 2D view is the default; the 3D scene is opt-in ("0" stored = 3D on). */
 function readStoredPerformanceMode(): boolean {
   try {
-    return localStorage.getItem(PERF_KEY) === '1'
+    return localStorage.getItem(PERF_KEY) !== '0'
   } catch {
-    return false
+    return true
   }
 }
 

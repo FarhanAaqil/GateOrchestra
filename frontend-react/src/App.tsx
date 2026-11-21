@@ -29,6 +29,7 @@ const Signup = lazy(() => import('./pages/Auth').then((m) => ({ default: m.Signu
 const ForgotPassword = lazy(() => import('./pages/Auth').then((m) => ({ default: m.ForgotPassword })))
 const ResetPassword = lazy(() => import('./pages/Auth').then((m) => ({ default: m.ResetPassword })))
 const VerifyEmail = lazy(() => import('./pages/Auth').then((m) => ({ default: m.VerifyEmail })))
+const ConfirmEmail = lazy(() => import('./pages/Auth').then((m) => ({ default: m.ConfirmEmail })))
 
 /** A hosted server greets visitors with the product page; the research overview moves to /overview. */
 function Home() {
@@ -65,6 +66,7 @@ export default function App() {
             <Route path="/forgot" element={<ForgotPassword />} />
             <Route path="/reset" element={<ResetPassword />} />
             <Route path="/verify" element={<VerifyEmail />} />
+            <Route path="/confirm-email" element={<ConfirmEmail />} />
             <Route path="*" element={<Overview />} />
           </Routes>
         </AnimatePresence>

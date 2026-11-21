@@ -115,7 +115,7 @@ async function json<T>(path: string, init?: RequestInit): Promise<T> {
 
 /** Send one message and receive the turn's events as they stream in. */
 export async function streamChat(
-  body: { message: string; conversation_id?: string | null; gate_mode?: string | null; document_ids?: string[] | null; replace_last?: boolean },
+  body: { message: string; conversation_id?: string | null; gate_mode?: string | null; document_ids?: string[] | null; replace_last?: boolean; edit_from?: string | null },
   onEvent: (event: ChatEvent) => void,
   signal?: AbortSignal,
 ): Promise<void> {
@@ -177,7 +177,7 @@ export const chatApi = {
       body: JSON.stringify({ name: file.name, content_base64: btoa(binary) }),
     })
   },
-  addKey: (provider: 'groq' | 'gemini', key: string) =>
+  addKey: (provider: 'groq' | 'gemini' | 'openai', key: string) =>
     json<{ provider: string; key: string; models: number }>('/assistant/keys', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },

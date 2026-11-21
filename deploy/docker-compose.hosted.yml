@@ -15,12 +15,16 @@ services:
       GATE_LLM_PROVIDER: ${GATE_LLM_PROVIDER:-groq}
       GATE_API_BASE: ""
     # Without --proxy-headers: the API reads X-Forwarded-For itself, and only from the proxies above.
-    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "3700"]
+    # Several workers share their limits through the database (assistant/shared_limits.py).
+    command: ["uvicorn", "api.main:app", "--host", "0.0.0.0", "--port", "3700", "--workers", "${GATE_WORKERS:-2}"]
     extra_hosts: !reset []
     networks: [gate]
 
   web:
     ports: !reset []
+    networks: [gate]
+
+  sandbox:
     networks: [gate]
 
   caddy:

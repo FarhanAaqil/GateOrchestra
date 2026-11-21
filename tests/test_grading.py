@@ -96,3 +96,12 @@ def test_approximate_gold_answers_allow_five_percent() -> None:
     assert not is_correct("Final Answer: 250,000", "approximately 200,000")
     # Exact gold answers keep exact precision.
     assert not is_correct("$14,500", "$14,450")
+
+
+def test_thousands_written_with_thin_or_no_break_spaces_are_one_number() -> None:
+    from shared.grading import is_correct, parse_numbers
+
+    assert parse_numbers("31\u202f622\u202f400 seconds") == [(31622400.0, 0)]
+    assert parse_numbers("12\u00a0345.5") == [(12345.5, 1)]
+    assert parse_numbers("3 1") == [(3.0, 0), (1.0, 0)]  # an ordinary space still separates
+    assert is_correct("Answer: 31\u202f622\u202f400 seconds", "31622400")

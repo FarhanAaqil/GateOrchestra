@@ -1,0 +1,21 @@
+Copyright (c) 2026 Farhan Aaqil Durrani and the GateOrchestra team
+(Shaik Mohammed Umaruddin, Muzra Fatima, Kounain Sanaliya Khan).
+All rights reserved.
+
+This repository is published so the research can be read and checked. No
+licence is granted to copy, modify, distribute, sell, sublicense, host as a
+service, or create derivative works from any part of it, in source or compiled
+form, without prior written permission from the copyright holders.
+
+Viewing the code and reproducing the published benchmark results for academic
+review is permitted.
+
+Third-party components keep their own licences (see the package manifests).
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS
+FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR
+COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY ARISING
+FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR ITS USE.
+
+Contact: open an issue at https://github.com/FarhanAaqil/GateOrchestra

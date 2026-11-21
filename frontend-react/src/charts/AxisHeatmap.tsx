@@ -20,22 +20,22 @@ export default function AxisHeatmap({
   // Navy for accuracy, ember for escalation rate.
   const color = metric === 'accuracy' ? '27,38,59' : '255,107,53'
 
-  if (!own.length) return <p className="text-sm text-navy/60">No per-task results for this method.</p>
+  if (!own.length) return <p className="text-sm text-navy/70">No per-task results for this method.</p>
   return (
-    <div className="overflow-x-auto">
+    <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Depth by Parallel heatmap">
       <table className="w-full border-separate border-spacing-1.5 font-mono text-xs">
         <thead>
           <tr>
-            <th className="text-left text-navy/60">Depth ↓ / Parallel →</th>
+            <th className="text-left text-navy/70">Depth ↓ / Parallel →</th>
             {parallels.map((p) => (
-              <th key={p} className="text-navy/60">P{p}</th>
+              <th key={p} className="text-navy/70">P{p}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {depths.map((d) => (
             <tr key={d}>
-              <th className="text-left text-navy/60">D{d}</th>
+              <th className="text-left text-navy/70">D{d}</th>
               {parallels.map((p) => {
                 const cell = find(d, p)
                 const value = cell ? cell[metric] : null

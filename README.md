@@ -12,9 +12,9 @@ GateOrchestra places a lightweight, trainable **gate** in front of a Multi-Agent
 - **STOP** → return the inexpensive CoT-SC probe answer (single agent), or
 - **ESCALATE** → invoke the full MAS orchestrator, capped at `k × probe_tokens`.
 
-**Research Goal:** ≥40% token savings vs. Always-MAS at ≤2 points accuracy cost, measured under equal token budgets (see the [Blueprint](Blueprint) hypotheses H1/RQ1–RQ3).
+**Research Goal:** ≥40% token savings vs. Always-MAS at ≤2 points accuracy cost, measured under equal token budgets (the hypotheses H1 and RQ1–RQ3 are set out in the [research report](reports/research_report.md)).
 
-**Outcome:** 33% token savings and higher accuracy than Always-MAS on Qwen2.5-3B (97.9% vs 92.2%), but only because MAS was not better than the probe at this scale, so the gate learned to stop. See [Results](#results).
+**Outcome:** a negative result for the hypothesis. The gate saved 33% of tokens against Always-MAS on Qwen2.5-3B with higher accuracy (97.9% vs 92.2%), short of the 40% target, and only because MAS was not better than the probe at this scale, so the gate learned to stop. It is not measurably better than a one-line threshold or than never escalating. See [Results](#results).
 
 ---
 
@@ -42,6 +42,8 @@ What it shows:
 - **The gate learned the right policy.** It escalated 3% of test tasks, beating Always-MAS by 5.7 points
   at 33% fewer tokens (pooled McNemar p = 0.007, optimistic because the seeds share tasks) and matching
   CoT-SC. The rule-based gate, which escalates 70% of tasks, is significantly worse than CoT-SC (p = 0.004).
+- **No better than a one-line rule here.** A threshold on probe agreement, or never escalating at all, does statistically as well (96.9% at 722 tokens for never escalating vs 97.9% at 784 for the gate, exact McNemar p = 0.5). The results show that gating is safe on this benchmark, not that a learned gate is needed; see [`reports/threshold_baseline.md`](reports/threshold_baseline.md).
+- **MAS loses partly on formatting.** A concise-answer step (`GATE_MAS_CONCISE=1`, off by default) lifts Always-MAS on gpt-oss-120b from 95.8% to 99.0% on the test split, level with CoT-SC. On 48 harder multi-step tasks CoT-SC still scores 95.8%, so even harder tasks of this kind leave a gate almost nothing to win ([`reports/hard_split.md`](reports/hard_split.md)).
 - **Little room for any gate.** An oracle would escalate only 2-5% of questions here. Probe consistency is
   the one feature the logistic gate depends on.
 - **Stronger models change little.** Reduced runs (1 seed, 1 calibration repeat) on Qwen3.8-27B and gpt-oss-120b
@@ -99,6 +101,13 @@ The **Chat** page answers any question: explanations, code, math, facts, and que
 documents you upload. It runs on Groq by default, falls back to Gemini, and can fall back to a
 local Ollama model.
 
+**Measured accuracy** (`python scripts/chat_eval.py`, [`reports/chat_eval.md`](reports/chat_eval.md)): on 80 questions
+with checkable answers (facts, arithmetic, multi-step questions, Python output), answering directly was right
+98.8% of the time at 1,003 tokens and 1.3 s; researching first was right
+100.0% at 2,825 tokens and 3.1 s. Research fixed 1 question and broke
+0. The benchmark-trained gate escalated 0% of these questions and scored 98.8%, the
+same as answering directly. Open-ended requests (explanations, writing) are not graded by this test.
+
 How a message is answered:
 
 1. **Small talk first:** greetings, thanks and similar one-liners ("hi", "thanks!", "who are you?")
@@ -107,7 +116,7 @@ How a message is answered:
    also label the request type; creative requests skip the gate. The prompt-injection screen runs
    alongside the probe instead of before it.
 3. **Gate:** in auto mode, the cheapest gate whose rated accuracy is within 2 points of the best.
-   Every turn records every gate's verdict and cost, and your 👍/👎 ratings count for every gate
+   Every turn records every gate's verdict and cost, and your ratings count for every gate
    that would have routed the answer the same way.
 4. **STOP** answers directly. The small fast model is used only when the probe is confident and its
    answer is a few words; lists, explanations and creative requests go to the larger model. **ESCALATE** first runs
@@ -116,7 +125,8 @@ How a message is answered:
 5. The answer streams back as Markdown with highlighted code and rendered math, plus badges for
    the route, tokens, time and model. "How this was answered" shows the gate's reason, the models
    used and where the time went (safety check, probe, gate, first text). **Regenerate** replaces the
-   last answer; the old one is kept if the retry fails. A chat that starts with "hi" is renamed after
+   last answer and any earlier question can be **edited** and sent again; the old messages are kept if
+   the retry fails. A chat that starts with "hi" is renamed after
    its first real question.
 
 Reliability:
@@ -172,8 +182,10 @@ Before exposing the stack publicly:
 Conversations, ratings, usage, the cache and any key added from the console live in the
 `gateorchestra-data` Docker volume (`/app/logs`, with keys in `keys.env`). It is a named volume
 rather than a folder of this repo because SQLite needs real file locking, which synced folders
-such as Google Drive do not provide. The compose API container has no Docker, so the Python code
-sandbox is off there; run the API on the host (`python scripts/dev.py`) to use it. CI runs the Python and console tests, a browser smoke test
+such as Google Drive do not provide. The compose API container has no Docker access. For the Python code
+sandbox, start the `sandbox` profile (`docker compose --profile sandbox up`, with `ASSISTANT_SANDBOX_URL=http://sandbox:8090`
+and `GATE_SANDBOX_TOKEN`): a small service that alone holds the Docker socket and can only start the locked-down
+container. Or run the API on the host (`python scripts/dev.py`). CI runs the Python and console tests, a browser smoke test
 against the offline mock provider, and both Docker builds.
 
 ### Hosted, multi-user mode
@@ -361,3 +373,7 @@ $env:GROQ_MODEL_NAME = "openai/gpt-oss-120b"
 python scripts/final_benchmark.py --resume
 python scripts/verify_final_results.py
 ```
+
+## License
+
+All rights reserved. The code is published so the research can be read and the benchmark reproduced for review; any other use needs written permission. See [LICENSE](LICENSE).

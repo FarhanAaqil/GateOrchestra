@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion'
-import { Card, Page, PageHeader, Tag } from '../components/ui'
+import { Card, Page, PageHeader, SectionTitle, Tag } from '../components/ui'
 import { rise } from '../lib/motion'
 
 const QUESTIONS = [
@@ -26,16 +26,16 @@ const initials = (name: string) =>
 export default function About() {
   return (
     <Page>
-      <PageHeader number="08" kicker="About" title={<>Why a gate <span className="mark-lemon">in front</span> of the orchestra</>}>
+      <PageHeader kicker="About" title="Why a gate in front of the orchestra">
         A capstone research project on when multi-agent decomposition is worth its tokens.
       </PageHeader>
 
-      <Card navy className="md:p-10">
-        <p className="font-mono text-xs uppercase tracking-widest text-cyan">The research gap</p>
-        <p className="mt-4 max-w-4xl text-xl leading-relaxed text-ice md:text-2xl">
+      <Card navy className="p-8! md:p-10!">
+        <p className="eyebrow text-sky/70!">The research gap</p>
+        <p className="mt-4 max-w-4xl text-xl leading-relaxed text-ice md:text-[22px]">
           Multi-agent systems such as MAS-Orchestra often lose to a well-tuned single-agent CoT-SC baseline once thinking-token
-          budgets are held equal, at up to <span className="font-semibold text-wine">10× the cost</span>. No published orchestrator decides,
-          before spending multi-agent compute, whether decomposition is worth it at all. <span className="text-lemon">GateOrchestra is that decision.</span>
+          budgets are held equal, at up to 10× the cost. No published orchestrator decides, before spending multi-agent compute,
+          whether decomposition is worth it at all. <span className="text-cyan">GateOrchestra is that decision.</span>
         </p>
         <div className="mt-6 flex flex-wrap gap-2">
           <Tag tone="navy">IlluMAS, 2026</Tag>
@@ -44,41 +44,33 @@ export default function About() {
         </div>
       </Card>
 
-      <div className="mt-5 grid gap-4 lg:grid-cols-4">
-        {QUESTIONS.map((q) => (
-          <Card key={q.id}>
-            <p className="font-mono text-4xl font-semibold text-sky">{q.id}</p>
-            <p className="mt-3 text-sm leading-relaxed text-ink">{q.text}</p>
-          </Card>
+      <SectionTitle>Research questions and hypothesis</SectionTitle>
+      <motion.div variants={rise} className="card grid overflow-hidden md:grid-cols-2 lg:grid-cols-4">
+        {[...QUESTIONS, { id: 'H1', text: 'The gate routes at least 75% of low-Depth, low-Parallel tasks to CoT-SC, cutting average tokens by at least 40% versus always orchestrating, at no more than a 2-point accuracy cost.' }].map((q) => (
+          <div key={q.id} className="border-navy/10 p-5 max-lg:border-b md:max-lg:odd:border-r lg:border-r lg:last:border-r-0">
+            <p className={`num text-xs font-medium ${q.id === 'H1' ? 'font-semibold text-ink' : 'text-navy/70'}`}>{q.id}</p>
+            <p className="mt-2 text-sm leading-relaxed text-ink">{q.text}</p>
+          </div>
         ))}
-        <Card className="bg-lemon!">
-          <p className="font-mono text-4xl font-semibold text-ink">H1</p>
-          <p className="mt-3 text-sm leading-relaxed text-ink">
-            The gate routes at least 75% of low-Depth, low-Parallel tasks to CoT-SC, cutting average tokens by at least 40% versus
-            always orchestrating, at no more than a 2-point accuracy cost.
-          </p>
-        </Card>
-      </div>
+      </motion.div>
 
-      <motion.h2 variants={rise} className="mb-4 mt-12 text-3xl font-bold text-ink">
-        <span className="font-mono text-base text-wine">Team </span>The people behind it
-      </motion.h2>
-      <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
-        {TEAM.map((m, i) => (
-          <Card key={m.name}>
-            <div className={`grid h-12 w-12 place-items-center rounded-full font-display text-lg font-bold ${i === 0 ? 'bg-ember text-soft' : 'bg-sky text-ink'}`}>
+      <SectionTitle>The people behind it</SectionTitle>
+      <motion.ul variants={rise} className="card divide-y divide-navy/10">
+        {TEAM.map((m) => (
+          <li key={m.name} className="flex items-center gap-3.5 px-5 py-3.5">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-navy/15 bg-soft text-xs font-semibold text-navy">
               {initials(m.name)}
-            </div>
-            <p className="mt-4 font-bold text-ink">{m.name}</p>
-            <p className="mt-1 text-sm text-navy/60">{m.role}</p>
-          </Card>
+            </span>
+            <span className="text-sm font-medium text-ink">{m.name}</span>
+            <span className="ml-auto text-sm text-navy/70">{m.role}</span>
+          </li>
         ))}
-        <Card navy>
-          <div className="grid h-12 w-12 place-items-center rounded-full bg-cyan font-display text-lg font-bold text-navy">KR</div>
-          <p className="mt-4 font-bold text-ice">K. Radhika</p>
-          <p className="mt-1 text-sm text-cyan">Guide</p>
-        </Card>
-      </div>
+        <li className="flex items-center gap-3.5 px-5 py-3.5">
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-navy text-xs font-semibold text-ice">KR</span>
+          <span className="text-sm font-medium text-ink">K. Radhika</span>
+          <span className="ml-auto text-sm text-navy/70">Guide</span>
+        </li>
+      </motion.ul>
     </Page>
   )
 }

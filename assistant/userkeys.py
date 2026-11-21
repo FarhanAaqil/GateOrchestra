@@ -33,7 +33,7 @@ CREATE TABLE IF NOT EXISTS user_keys (
     PRIMARY KEY (user_id, provider)
 );
 """
-PROVIDERS = ("groq", "gemini")
+PROVIDERS = ("groq", "gemini", "openai")
 
 
 class KeyStoreError(RuntimeError):
@@ -67,7 +67,7 @@ class UserKeys:
 
     def put(self, user_id: str, provider: str, key: str) -> None:
         if provider not in PROVIDERS:
-            raise KeyStoreError("Provider must be groq or gemini.")
+            raise KeyStoreError("Provider must be groq, gemini or openai.")
         token = _cipher().encrypt(key.encode("utf-8")).decode("ascii")
         with self.store.transaction() as db:
             db.execute(

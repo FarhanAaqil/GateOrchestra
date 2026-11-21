@@ -21,8 +21,10 @@ small talk and cached answers, which would never have been researched.
 
 from __future__ import annotations
 
+import json
 import os
 import time
+from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
@@ -40,7 +42,7 @@ router = APIRouter()
 
 
 class OwnKey(BaseModel):
-    provider: str = Field(..., pattern="^(groq|gemini)$")
+    provider: str = Field(..., pattern="^(groq|gemini|openai)$")
     key: str = Field(..., min_length=20, max_length=200)
 
 
@@ -78,6 +80,20 @@ def delete_key(provider: str, owner: str = Depends(owner_required)) -> dict[str,
 
 ESTIMATE_WINDOW_DAYS = 30
 MIN_ESCALATIONS_FOR_ESTIMATE = 5
+CHAT_EVAL_SUMMARY = (
+    Path(__file__).resolve().parent.parent / "results" / "chat_eval" / "summary.json"
+)
+
+
+def measured_research_cost(path: Path | None = None) -> dict[str, Any] | None:
+    """Extra tokens research cost per question in the 80-question chat evaluation, if recorded."""
+    path = path or CHAT_EVAL_SUMMARY
+    try:
+        summary = json.loads(path.read_text(encoding="utf-8"))
+        extra = float(summary["research_vs_direct"]["avg_extra_tokens_for_research"])
+        return {"per_escalation": round(extra), "sample_size": int(summary["paired"])}
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
 
 
 def research_cost_estimate(service: Any) -> dict[str, Any]:
@@ -89,13 +105,17 @@ def research_cost_estimate(service: Any) -> dict[str, Any]:
         if e.get("decision") == "ESCALATE" and not e.get("cached")
     ]
     agent = [a for a in agent if a > 0]
-    if len(agent) < MIN_ESCALATIONS_FOR_ESTIMATE:
-        return {"available": False, "sample_size": len(agent), "per_escalation": None}
-    return {
-        "available": True,
-        "sample_size": len(agent),
-        "per_escalation": round(sum(agent) / len(agent)),
-    }
+    if len(agent) >= MIN_ESCALATIONS_FOR_ESTIMATE:
+        return {
+            "available": True,
+            "source": "server",
+            "sample_size": len(agent),
+            "per_escalation": round(sum(agent) / len(agent)),
+        }
+    measured = measured_research_cost()
+    if measured:  # until this server has enough of its own, the measured evaluation cost
+        return {"available": True, "source": "evaluation", **measured}
+    return {"available": False, "source": None, "sample_size": len(agent), "per_escalation": None}
 
 
 @router.get("/account/usage")
@@ -120,10 +140,15 @@ def usage(owner: str = Depends(owner_required)) -> dict[str, Any]:
             "saved_tokens": saved,
             "window_days": ESTIMATE_WINDOW_DAYS,
             "method": (
-                "Estimate only: answers handled directly this month x the average "
-                "research-agent tokens of escalated answers on this server over the last "
-                f"{ESTIMATE_WINDOW_DAYS} days. Small talk and cached answers are left out. "
-                "It is not a measurement of what those answers would really have cost."
+                "Estimate only: answers handled directly this month x the extra tokens research "
+                + (
+                    f"used on escalated answers on this server over the last {ESTIMATE_WINDOW_DAYS} days"
+                    if cost.get("source") == "server"
+                    else "cost per question in our 80-question evaluation (reports/chat_eval.md), "
+                    "until this server has enough researched answers of its own"
+                )
+                + ". Small talk and cached answers are left out. It is not a measurement of what "
+                "those answers would really have cost."
             ),
         },
     }
@@ -216,3 +241,116 @@ def delete_account(body: PasswordCheck, request: Request, response: Response) ->
     service.accounts.delete(user["id"])  # cascades to sessions, email tokens, keys and usage
     response.delete_cookie(COOKIE, path="/", secure=cookie_secure(), samesite="strict")
     return {"status": "deleted"}
+
+
+# Two-factor sign-in and email change
+
+
+class TwoFactorCode(BaseModel):
+    code: str = Field(..., min_length=6, max_length=20)
+
+
+class TwoFactorOff(BaseModel):
+    password: str = Field(..., min_length=1, max_length=256)
+    code: str = Field(..., min_length=6, max_length=20)
+
+
+class EmailChange(BaseModel):
+    new_email: str = Field(..., min_length=3, max_length=254)
+    password: str = Field(..., min_length=1, max_length=256)
+
+
+@router.get("/account/security")
+def security_status(request: Request) -> dict[str, Any]:
+    user = _signed_in(request)
+    accounts = get_service().accounts
+    return {
+        "two_factor": user["two_factor"],
+        "recovery_codes_left": (
+            accounts.recovery_codes_left(user["id"]) if user["two_factor"] else 0
+        ),
+    }
+
+
+@router.post("/account/2fa/setup")
+def two_factor_setup(body: PasswordCheck, request: Request) -> dict[str, str]:
+    """A new secret for the authenticator app; it only counts once a code is confirmed."""
+    from assistant.totp import otpauth_uri  # noqa: PLC0415
+    from assistant.userkeys import KeyStoreError  # noqa: PLC0415
+
+    user = _signed_in(request)
+    _check_password(user, body.password)
+    try:
+        secret = get_service().accounts.begin_two_factor(user["id"])
+    except KeyStoreError as err:
+        raise HTTPException(
+            status_code=503, detail="Two-factor sign-in is not available right now."
+        ) from err
+    return {"secret": secret, "otpauth_uri": otpauth_uri(secret, user["email"])}
+
+
+@router.post("/account/2fa/enable")
+def two_factor_enable(body: TwoFactorCode, request: Request) -> dict[str, Any]:
+    user = _signed_in(request)
+    codes = get_service().accounts.enable_two_factor(user["id"], body.code)
+    if codes is None:
+        raise HTTPException(
+            status_code=400,
+            detail="That code is not right. Check the time on your phone and try again.",
+        )
+    return {"recovery_codes": codes}
+
+
+@router.post("/account/2fa/disable")
+def two_factor_disable(body: TwoFactorOff, request: Request) -> dict[str, str]:
+    user = _signed_in(request)
+    _check_password(user, body.password)
+    accounts = get_service().accounts
+    if not accounts.check_second_factor(user["id"], body.code):
+        raise HTTPException(status_code=403, detail="That code is not right.")
+    accounts.disable_two_factor(user["id"])
+    return {"status": "disabled"}
+
+
+@router.post("/account/email", status_code=202)
+def request_email_change(body: EmailChange, request: Request) -> dict[str, str]:
+    """Email a confirmation link to the new address and a notice to the current one."""
+    from api.auth_routes import _limit, public_url  # noqa: PLC0415
+    from assistant.accounts import normalize_email  # noqa: PLC0415
+    from assistant.mailer import MailError, send_mail  # noqa: PLC0415
+
+    user = _signed_in(request)
+    _limit(request, user["email"])
+    _check_password(user, body.password)
+    try:
+        new_email = normalize_email(body.new_email)
+    except AccountError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
+    if new_email == user["email"]:
+        raise HTTPException(status_code=400, detail="That is already your address.")
+    accounts = get_service().accounts
+    try:
+        if accounts.by_email(new_email):
+            # Same reply as a free address, so this cannot be used to find who has an account.
+            send_mail(
+                new_email,
+                "Someone tried to move a GateOrchestra account to this address",
+                "This address already has a GateOrchestra account, so nothing was changed.",
+            )
+        else:
+            token = accounts.issue_token(user["id"], "email_change", data=new_email)
+            send_mail(
+                new_email,
+                "Confirm your new GateOrchestra email",
+                f"Confirm this address for your GateOrchestra account:\n{public_url()}/confirm-email?token={token}\n\n"
+                "The link works once and expires in 1 hour. If you did not ask for this, ignore it.",
+            )
+        send_mail(
+            user["email"],
+            "Your GateOrchestra email is being changed",
+            f"Someone signed in to your account asked to move it to {new_email}. It changes only "
+            "when that address confirms. If this was not you, change your password now.",
+        )
+    except MailError as err:
+        raise HTTPException(status_code=503, detail=str(err)) from err
+    return {"status": "check_email"}

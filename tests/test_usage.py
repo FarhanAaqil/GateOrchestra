@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import pytest
 from fastapi.testclient import TestClient
 
 from assistant.service import AssistantService
@@ -24,8 +25,11 @@ def test_usage_counts_turns_against_the_plan(service: AssistantService, hosted: 
 
 
 def test_the_saved_estimate_waits_for_real_escalations(
-    service: AssistantService, hosted: None
+    service: AssistantService, hosted: None, monkeypatch: pytest.MonkeyPatch, tmp_path
 ) -> None:
+    from api import account_routes
+
+    monkeypatch.setattr(account_routes, "CHAT_EVAL_SUMMARY", tmp_path / "missing.json")
     ada = signed_in("ada@example.com")
     estimate = ada.get("/account/usage").json()["estimate"]
     assert estimate["available"] is False and estimate["saved_tokens"] is None
@@ -58,3 +62,17 @@ def test_usage_is_hosted_only(service: AssistantService) -> None:
     from api.main import app
 
     assert TestClient(app).get("/account/usage").status_code == 404
+
+
+def test_the_estimate_uses_the_measured_evaluation_cost_until_the_server_has_its_own(
+    service: AssistantService, hosted: None
+) -> None:
+    from api.account_routes import measured_research_cost
+
+    measured = measured_research_cost()
+    assert measured and measured["per_escalation"] > 0 and measured["sample_size"] == 80
+    ada = signed_in("ada@example.com")
+    estimate = ada.get("/account/usage").json()["estimate"]
+    assert estimate["available"] is True and estimate["source"] == "evaluation"
+    assert estimate["per_escalation"] == measured["per_escalation"]
+    assert "80-question evaluation" in estimate["method"]

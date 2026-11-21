@@ -13,28 +13,31 @@ function planFeatures(plan: PlanInfo): string[] {
   ]
 }
 
-/** One card per plan; ``action`` renders the button under each (sign up, upgrade, current). */
+/** One panel per plan; ``action`` renders the button under each (sign up, upgrade, current). */
 export function PlanCards({ plans, action }: { plans: PlanInfo[]; action: (plan: PlanInfo) => ReactNode }) {
   return (
     <div className="grid gap-4 md:grid-cols-2">
       {plans.map((plan) => {
         const paid = plan.price_usd_month > 0
         return (
-          <Card key={plan.id} navy={paid} tilt={false}>
-            <p className={`font-mono text-xs uppercase tracking-widest ${paid ? 'text-cyan' : 'text-wine'}`}>{plan.label}</p>
-            <p className={`mt-3 text-4xl font-bold ${paid ? 'text-ice' : 'text-ink'}`}>
-              {paid ? `$${plan.price_usd_month}` : 'Free'}
-              {paid ? <span className="text-base font-normal opacity-70"> / month</span> : null}
+          <Card key={plan.id} className={`flex flex-col p-6! ${paid ? 'border-t-2! border-t-ember!' : ''}`}>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-[15px] font-semibold text-ink">{plan.label}</p>
+              {paid ? <span className="chip border-ember/40! bg-ember/10!">Most capacity</span> : null}
+            </div>
+            <p className="mt-4 flex items-baseline gap-1.5">
+              <span className="num text-[40px] font-medium leading-none text-ink">${plan.price_usd_month}</span>
+              <span className="text-sm text-navy/70">/ month</span>
             </p>
-            {plan.blurb ? <p className={`mt-2 text-sm ${paid ? 'text-sky' : 'text-navy/70'}`}>{plan.blurb}</p> : null}
-            <ul className="mt-4 space-y-1.5 text-sm">
+            {plan.blurb ? <p className="mt-2 text-sm text-navy/70">{plan.blurb}</p> : null}
+            <ul className="mt-5 space-y-2 border-t border-navy/10 pt-5 text-sm">
               {planFeatures(plan).map((f) => (
-                <li key={f} className={`flex items-start gap-2 ${paid ? 'text-ice' : 'text-navy'}`}>
-                  <Check className={`mt-0.5 h-4 w-4 shrink-0 ${paid ? 'text-lemon' : 'text-wine'}`} aria-hidden /> {f}
+                <li key={f} className="flex items-start gap-2.5 text-navy/85">
+                  <Check className={`mt-0.5 h-4 w-4 shrink-0 ${paid ? 'text-ember' : 'text-navy/70'}`} aria-hidden /> {f}
                 </li>
               ))}
             </ul>
-            <div className="mt-5">{action(plan)}</div>
+            <div className="mt-auto pt-6">{action(plan)}</div>
           </Card>
         )
       })}

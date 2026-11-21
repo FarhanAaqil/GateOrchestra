@@ -80,6 +80,7 @@ logger = logging.getLogger(__name__)
 
 MASTER_RESULTS_PATH = ROOT / "results" / "real" / "final" / "master_results.json"
 RESULTS_ROOT = ROOT / "results" / "real"
+THRESHOLD_BASELINE_PATH = RESULTS_ROOT / "analysis" / "threshold_baseline.json"
 RUN_LABELS = {
     "final": "Qwen2.5-3B, main benchmark (2 seeds)",
     "groq-qwen3-27b": "Qwen3.8-27B, reduced run (1 seed)",
@@ -709,3 +710,18 @@ def results_detail(run: str | None = Query(default=None, max_length=80)) -> dict
 
     paths = [path, *(p for s in ("train", "val", "test") for p in _split_paths(s))]
     return {"status": status, **_cached(f"results_detail:{path}", paths, build)}
+
+
+@app.get("/results/threshold")
+def threshold_baseline() -> dict[str, Any]:
+    """The learned gate against one-line threshold rules on probe agreement (main run).
+
+    Written by scripts/threshold_baseline.py from the recorded benchmark outcomes.
+    """
+    path = THRESHOLD_BASELINE_PATH
+    if not path.exists():
+        return {"available": False}
+    return {
+        "available": True,
+        **_cached("threshold", [path], lambda: json.loads(path.read_text(encoding="utf-8"))),
+    }

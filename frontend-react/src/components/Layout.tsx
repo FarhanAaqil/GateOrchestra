@@ -1,10 +1,10 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import {
-  Activity,
   BarChart3,
+  Box,
   ChartPie,
-  CreditCard,
   Coins,
+  CreditCard,
   Database,
   FlaskConical,
   Gauge,
@@ -19,17 +19,27 @@ import {
   Play,
   ServerCog,
   Settings as SettingsIcon,
-  Zap,
+  X,
 } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { authApi } from '../lib/account'
 import { setToken } from '../lib/auth'
 import { chatApi } from '../lib/chat'
 import { useApp } from '../lib/context'
-import Background from '../three/Background'
 
-const NAV_GROUPS = [
+interface NavItem {
+  to: string
+  label: string
+  icon: typeof Info
+  adminOnly?: boolean
+  /** Only for a signed-in person on a hosted server. */
+  accountOnly?: boolean
+  /** Only on a hosted server. */
+  hostedOnly?: boolean
+}
+
+const NAV_GROUPS: { label: string; items: NavItem[] }[] = [
   {
     label: 'Assistant',
     items: [
@@ -60,24 +70,26 @@ const NAV_GROUPS = [
   },
 ]
 
-function BrandMark() {
-  return (
-    <div className="relative grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-ice">
-      <div className="h-4 w-4 rounded-full border-[3px] border-ember" />
-      <div className="absolute right-1.5 top-1.5 h-1.5 w-1.5 rounded-full bg-cyan" />
-    </div>
-  )
-}
-
-interface NavItem {
-  to: string
-  label: string
-  icon: typeof Info
-  adminOnly?: boolean
-  /** Only for a signed-in person on a hosted server. */
-  accountOnly?: boolean
-  /** Only on a hosted server. */
-  hostedOnly?: boolean
+/** Page names for the top bar, by path. */
+const TITLES: Record<string, string> = {
+  '/chat': 'Chat',
+  '/usage': 'Usage',
+  '/run': 'Run a Task',
+  '/overview': 'Overview',
+  '/results': 'Results',
+  '/benchmark': 'Benchmark',
+  '/baselines': 'Baselines',
+  '/gate': 'Gate Inspector',
+  '/tokens': 'Token Accountant',
+  '/pricing': 'Pricing',
+  '/settings': 'Settings',
+  '/admin': 'Admin',
+  '/about': 'About',
+  '/login': 'Log in',
+  '/signup': 'Sign up',
+  '/terms': 'Terms',
+  '/privacy': 'Privacy',
+  '/acceptable-use': 'Acceptable use',
 }
 
 /** The menu this visitor may use: operator pages are left out for non-admins when hosted. */
@@ -87,60 +99,77 @@ function useNavGroups(): { label: string; items: NavItem[] }[] {
     (isAdmin || !i.adminOnly) && (!i.accountOnly || (hosted && user)) && (!i.hostedOnly || hosted)
   // Hosted servers show the product page at /, so the research overview lives at /overview.
   const place = (i: NavItem) => (hosted && i.to === '/' ? { ...i, to: '/overview' } : i)
-  return NAV_GROUPS.map((g) => ({ ...g, items: (g.items as NavItem[]).filter(allowed).map(place) })).filter((g) => g.items.length)
+  return NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter(allowed).map(place) })).filter((g) => g.items.length)
+}
+
+function BrandMark() {
+  return (
+    <span className="relative grid h-7 w-7 shrink-0 place-items-center rounded-md bg-navy" aria-hidden>
+      <span className="h-3 w-3 rounded-full border-2 border-ice" />
+      <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-ember" />
+    </span>
+  )
 }
 
 function Sidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onToggle?: () => void; onNavigate?: () => void }) {
   const groups = useNavGroups()
+  const { hosted } = useApp()
   return (
-    <nav aria-label="Main" className="flex h-full flex-col gap-1">
-      <div className={`mb-6 flex items-center ${collapsed ? 'justify-center' : 'justify-between'} gap-2`}>
-        <div className="flex items-center gap-2.5">
+    <nav aria-label="Main" className="flex h-full flex-col">
+      <div className={`flex h-14 items-center border-b border-navy/10 px-3 ${collapsed ? 'justify-center' : 'justify-between'}`}>
+        <Link to="/" onClick={onNavigate} className="flex items-center gap-2.5 rounded-md" aria-label="GateOrchestra home">
           <BrandMark />
-          {!collapsed ? <span className="font-display text-lg font-bold text-ice">GateOrchestra</span> : null}
-        </div>
+          {!collapsed ? <span className="text-[15px] font-semibold tracking-tight text-ink">GateOrchestra</span> : null}
+        </Link>
         {onToggle && !collapsed ? (
-          <button onClick={onToggle} className="rounded-lg p-1.5 text-sky/70 hover:bg-ice/10 hover:text-ice" aria-label="Collapse sidebar">
+          <button onClick={onToggle} className="btn btn-ghost p-1.5!" aria-label="Collapse sidebar">
             <PanelLeftClose className="h-4 w-4" />
           </button>
         ) : null}
       </div>
-      {groups.map((group) => (
-        <div key={group.label} className="flex flex-col gap-1" role="group" aria-label={group.label}>
-          {collapsed ? <div className="mx-3 my-1 h-px bg-ice/10" aria-hidden /> : <p className="px-3.5 pb-0.5 pt-3 font-mono text-[10px] uppercase tracking-widest text-sky/60">{group.label}</p>}
-      {group.items.map(({ to, label, icon: Icon }) => (
-        <NavLink
-          key={to}
-          to={to}
-          end={to === '/'}
-          onClick={onNavigate}
-          title={collapsed ? label : undefined}
-          className={({ isActive }) =>
-            `relative flex items-center gap-3 rounded-full px-3.5 py-2.5 text-sm transition-colors ${collapsed ? 'justify-center' : ''} ${
-              isActive ? 'font-semibold text-ink' : 'text-sky/75 hover:bg-ice/10 hover:text-ice'
-            }`
-          }
-        >
-          {({ isActive }) => (
-            <>
-              {isActive ? (
-                <motion.span layoutId="nav-active" className="absolute inset-0 rounded-full bg-ember glow-ember" transition={{ type: 'spring', stiffness: 400, damping: 32 }} />
-              ) : null}
-              <Icon className="relative h-[18px] w-[18px] shrink-0" />
-              {!collapsed ? <span className="relative font-medium">{label}</span> : null}
-            </>
-          )}
-        </NavLink>
-      ))}
-        </div>
-      ))}
-      {onToggle && collapsed ? (
-        <button onClick={onToggle} className="mt-auto rounded-lg p-2 text-sky/70 hover:bg-ice/10 hover:text-ice" aria-label="Expand sidebar">
-          <PanelLeftOpen className="mx-auto h-4 w-4" />
-        </button>
-      ) : (
-        <p className="mt-auto px-3 font-mono text-[10px] uppercase tracking-widest text-sky/70">AIML Capstone · 2026</p>
-      )}
+
+      <div className="flex-1 overflow-y-auto px-2 py-3">
+        {groups.map((group) => (
+          <div key={group.label} className="mb-4" role="group" aria-label={group.label}>
+            {collapsed ? <div className="mx-2 mb-2 h-px bg-navy/10" aria-hidden /> : <p className="eyebrow px-2.5 pb-1.5">{group.label}</p>}
+            <ul className="space-y-0.5">
+              {group.items.map(({ to, label, icon: Icon }) => (
+                <li key={to}>
+                  <NavLink
+                    to={to}
+                    end={to === '/'}
+                    onClick={onNavigate}
+                    title={collapsed ? label : undefined}
+                    className={({ isActive }) =>
+                      `group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors ${collapsed ? 'justify-center' : ''} ${
+                        isActive ? 'bg-navy/[0.07] font-medium text-ink' : 'text-navy/70 hover:bg-navy/[0.04] hover:text-ink'
+                      }`
+                    }
+                  >
+                    {({ isActive }) => (
+                      <>
+                        {isActive ? <span className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-ember" aria-hidden /> : null}
+                        <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-ink' : 'text-navy/70 group-hover:text-navy'}`} />
+                        {!collapsed ? <span>{label}</span> : null}
+                      </>
+                    )}
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))}
+      </div>
+
+      <div className="border-t border-navy/10 px-3 py-3">
+        {onToggle && collapsed ? (
+          <button onClick={onToggle} className="btn btn-ghost w-full p-1.5!" aria-label="Expand sidebar">
+            <PanelLeftOpen className="h-4 w-4" />
+          </button>
+        ) : (
+          <p className="eyebrow">{hosted ? 'GateOrchestra' : 'AIML Capstone · 2026'}</p>
+        )}
+      </div>
     </nav>
   )
 }
@@ -149,27 +178,27 @@ function TokenPrompt() {
   const [token, setTokenValue] = useState('')
   return (
     <form
-      className="mx-4 mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-sky bg-soft px-4 py-3 text-sm md:mx-8"
+      className="mx-auto mt-6 flex w-full max-w-6xl flex-wrap items-center gap-2 rounded-lg border border-navy/15 bg-ice px-4 py-3 text-sm"
       onSubmit={(e) => {
         e.preventDefault()
         setToken(token.trim())
         window.location.reload()
       }}
     >
-      <label htmlFor="api-token" className="font-medium text-navy">This server needs its API token</label>
+      <label htmlFor="api-token" className="font-medium text-ink">This server needs its API token</label>
       <input
         id="api-token"
         type="password"
         autoComplete="off"
         value={token}
         onChange={(e) => setTokenValue(e.target.value)}
-        className="min-w-0 flex-1 rounded-full border border-sky bg-ice px-3 py-1.5 font-mono text-xs"
+        className="min-w-0 flex-1 rounded-md border border-navy/15 bg-soft px-3 py-1.5 font-mono text-xs outline-none focus:border-navy/40"
         placeholder="GATE_API_TOKEN"
       />
-      <button type="submit" disabled={!token.trim()} className="rounded-full bg-ink px-4 py-1.5 text-xs font-bold text-soft disabled:opacity-40">
+      <button type="submit" disabled={!token.trim()} className="btn btn-primary py-1.5!">
         Sign in
       </button>
-      <span className="w-full text-xs text-navy/60">Kept only in this browser tab.</span>
+      <span className="w-full text-xs text-navy/70">Kept only in this browser tab.</span>
     </form>
   )
 }
@@ -189,36 +218,48 @@ function useChatModel(active: boolean, online: boolean): string | null {
         setModel(fast && answer && fast !== answer ? `${fast} · ${answer}` : (answer ?? fast ?? null))
       })
       .catch(() => undefined)
-    return () => { cancelled = true }
+    return () => {
+      cancelled = true
+    }
   }, [active, online])
   return model
 }
 
 function AccountControls() {
   const { hosted, user, setUser } = useApp()
-  const navigate = useNavigate()
   if (!hosted) return null
   if (!user) {
     return (
       <div className="flex items-center gap-1.5">
-        <Link to="/login" className="inline-flex items-center gap-1.5 rounded-full border border-sky px-3 py-1 text-xs text-navy hover:bg-soft">
-          <LogIn className="h-3.5 w-3.5" /> Log in
+        <Link to="/login" className="btn btn-ghost py-1.5!">
+          <LogIn className="h-4 w-4" /> Log in
         </Link>
-        <Link to="/signup" className="hidden rounded-full bg-ember px-3 py-1 text-xs font-semibold text-ink sm:inline-flex">Sign up</Link>
+        <Link to="/signup" className="btn btn-primary hidden py-1.5! sm:inline-flex">Sign up</Link>
       </div>
     )
   }
   const signOut = async () => {
     await authApi.logout().catch(() => undefined)
     setUser(null)
-    navigate('/login')
+    // A full load of the home page: no page guard can race the redirect, and nothing of the
+    // signed-out person (conversations, usage) stays in memory on a shared computer.
+    window.location.assign('/')
   }
   return (
-    <div className="flex items-center gap-1.5">
-      <span className="hidden max-w-[12rem] truncate font-mono text-xs text-navy/70 lg:inline" title={user.email}>{user.email}</span>
-      <button onClick={signOut} className="inline-flex items-center gap-1.5 rounded-full border border-sky px-3 py-1 text-xs text-navy hover:bg-soft" aria-label="Log out">
+    <div className="flex items-center gap-2">
+      <span className="hidden max-w-[14rem] truncate text-xs text-navy/70 lg:inline" title={user.email}>{user.email}</span>
+      <button onClick={signOut} className="btn btn-secondary py-1.5!" aria-label="Log out">
         <LogOut className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Log out</span>
       </button>
+    </div>
+  )
+}
+
+function Banner({ tone, children }: { tone: 'warn' | 'error'; children: ReactNode }) {
+  const style = tone === 'warn' ? 'border-tangerine/40 bg-tangerine/10 text-ink' : 'border-wine/30 bg-wine/5 text-wine'
+  return (
+    <div className={`mx-auto mt-6 flex w-full max-w-6xl flex-wrap items-center gap-2 rounded-lg border px-4 py-2.5 text-sm ${style}`} role={tone === 'error' ? 'alert' : 'status'}>
+      {children}
     </div>
   )
 }
@@ -229,13 +270,13 @@ function VerifyBanner() {
   if (!hosted || !user || user.verified) return null
   const resend = () => authApi.resendVerification().then(() => setState('sent'), () => setState('failed'))
   return (
-    <div className="mx-4 mt-4 flex flex-wrap items-center gap-2 rounded-2xl border border-lemon bg-lemon/30 px-4 py-3 text-sm text-ink md:mx-8" role="status">
-      <span>Confirm <strong>{user.email}</strong> with the link we emailed you before you start chatting.</span>
+    <Banner tone="warn">
+      <span>Confirm <strong className="font-semibold">{user.email}</strong> with the link we emailed you before you start chatting.</span>
       {state === 'sent' ? <span className="text-navy/70">A new link is on its way.</span> : (
-        <button onClick={resend} className="rounded-full border border-ink/30 px-3 py-1 text-xs font-semibold hover:bg-soft">Send the link again</button>
+        <button onClick={resend} className="btn btn-secondary ml-auto py-1!">Send the link again</button>
       )}
       {state === 'failed' ? <span className="text-wine">Could not send it; try again shortly.</span> : null}
-    </div>
+    </Banner>
   )
 }
 
@@ -243,55 +284,66 @@ function LegalFooter() {
   const { hosted } = useApp()
   if (!hosted) return null
   return (
-    <footer className="flex flex-wrap gap-x-4 gap-y-1 border-t border-sky/60 px-4 py-4 text-xs text-navy/60 md:px-10">
-      <Link to="/terms" className="hover:text-navy">Terms</Link>
-      <Link to="/privacy" className="hover:text-navy">Privacy</Link>
-      <Link to="/acceptable-use" className="hover:text-navy">Acceptable use</Link>
-      <Link to="/pricing" className="hover:text-navy">Pricing</Link>
-      <Link to="/about" className="hover:text-navy">About</Link>
+    <footer className="border-t border-navy/10 px-4 md:px-8">
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-5 gap-y-1 py-5 text-xs text-navy/70">
+        <span>© GateOrchestra</span>
+        <Link to="/terms" className="hover:text-ink">Terms</Link>
+        <Link to="/privacy" className="hover:text-ink">Privacy</Link>
+        <Link to="/acceptable-use" className="hover:text-ink">Acceptable use</Link>
+        <Link to="/pricing" className="hover:text-ink">Pricing</Link>
+        <Link to="/about" className="hover:text-ink">About</Link>
+      </div>
     </footer>
+  )
+}
+
+function StatusDot() {
+  const { backend } = useApp()
+  const label = backend === 'online' ? 'Backend online' : backend === 'error' ? 'Backend unreachable' : backend === 'locked' ? 'Sign in needed' : 'Connecting'
+  const dot = backend === 'online' ? 'bg-cyan ring-2 ring-cyan/25' : backend === 'error' ? 'bg-wine' : 'bg-tangerine'
+  return (
+    <span className="hidden items-center gap-1.5 text-xs text-navy/70 md:inline-flex" role="status">
+      <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
+      {label}
+    </span>
   )
 }
 
 function TopBar({ onMenu }: { onMenu: () => void }) {
   const { backend, models, performanceMode, setPerformanceMode } = useApp()
-  const onChat = useLocation().pathname.startsWith('/chat')
+  const { pathname } = useLocation()
+  const onChat = pathname.startsWith('/chat')
   const chatModel = useChatModel(onChat, backend === 'online')
+  const title = TITLES[pathname] ?? (pathname === '/' ? 'Home' : '')
+  const has3D = pathname === '/run'
   return (
-    <header className="sticky top-0 z-30 flex items-center gap-3 border-b border-sky/60 bg-ice/80 px-4 py-3 backdrop-blur-xl md:px-8">
-      <button onClick={onMenu} className="rounded-lg p-2 text-navy hover:bg-soft md:hidden" aria-label="Open menu">
-        <Menu className="h-5 w-5" />
-      </button>
-      <div className="flex min-w-0 items-center gap-2 font-mono text-xs">
-        <span className="hidden text-navy/60 sm:inline">{onChat ? 'Chat models' : 'Benchmark model'}</span>
-        <span className="truncate rounded-full bg-navy px-3 py-1 text-ice" title={onChat ? 'The smaller model answers directly; the larger one writes answers after research' : 'The model used in the recorded benchmark'}>
-          {onChat ? (chatModel ?? '—') : models ? models.default_model : '—'}
-          {onChat ? null : <span className="text-cyan"> · {models?.current_provider ?? '…'}</span>}
-        </span>
-      </div>
-      <div className="ml-auto flex items-center gap-2">
-        <span
-          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-xs ${
-            backend === 'online' ? 'border-sky bg-soft text-navy' : backend === 'error' ? 'border-wine bg-wine text-soft' : 'border-sky text-navy/60'
-          }`}
-          role="status"
-        >
-          <span className={`h-2 w-2 rounded-full ${backend === 'online' ? 'bg-cyan glow-cyan' : backend === 'error' ? 'bg-lemon' : 'bg-sky'}`} />
-          <Activity className="h-3.5 w-3.5" aria-hidden />
-          {backend === 'online' ? 'Backend online' : backend === 'error' ? 'Backend unreachable' : backend === 'locked' ? 'Sign in needed' : 'Connecting'}
-        </span>
-        <button
-          onClick={() => setPerformanceMode(!performanceMode)}
-          aria-pressed={performanceMode}
-          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1 font-mono text-xs transition-colors ${
-            performanceMode ? 'border-lemon bg-lemon text-ink' : 'border-sky text-navy hover:bg-soft'
-          }`}
-          title="Performance mode turns off the 3D scenes"
-        >
-          <Zap className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Performance</span>
+    <header className="sticky top-0 z-30 border-b border-navy/10 bg-soft/85 backdrop-blur-md">
+      <div className="flex h-14 items-center gap-3 px-4 md:px-8">
+        <button onClick={onMenu} className="btn btn-ghost p-1.5! md:hidden" aria-label="Open menu">
+          <Menu className="h-5 w-5" />
         </button>
-        <AccountControls />
+        <span className="text-sm font-medium text-ink">{title}</span>
+        <span className="hidden h-4 w-px bg-navy/15 sm:block" aria-hidden />
+        <span className="hidden min-w-0 items-center gap-2 text-xs text-navy/70 sm:flex">
+          <span>{onChat ? 'Chat models' : 'Benchmark model'}</span>
+          <span className="chip truncate" title={onChat ? 'The smaller model answers directly; the larger one writes answers after research' : 'The model used in the recorded benchmark'}>
+            {onChat ? (chatModel ?? '—') : models ? `${models.default_model} · ${models.current_provider}` : '—'}
+          </span>
+        </span>
+        <div className="ml-auto flex items-center gap-3">
+          <StatusDot />
+          {has3D ? (
+            <button
+              onClick={() => setPerformanceMode(!performanceMode)}
+              aria-pressed={!performanceMode}
+              className={`btn py-1.5! ${performanceMode ? 'btn-secondary' : 'btn-primary'}`}
+              title="Show the pipeline as a 3D scene instead of the flat diagram"
+            >
+              <Box className="h-3.5 w-3.5" /> <span className="hidden sm:inline">3D view</span>
+            </button>
+          ) : null}
+          <AccountControls />
+        </div>
       </div>
     </header>
   )
@@ -303,23 +355,25 @@ export default function Layout({ children }: { children: ReactNode }) {
   const { backend, backendError } = useApp()
 
   return (
-    <div className="grain flex min-h-screen">
-      <Background />
-      <aside className={`sticky top-0 hidden h-screen shrink-0 bg-navy p-3 transition-[width] duration-300 md:block ${collapsed ? 'w-[76px]' : 'w-64'}`}>
+    <div className="flex min-h-screen bg-soft">
+      <aside className={`sticky top-0 hidden h-screen shrink-0 border-r border-navy/10 bg-ice transition-[width] duration-200 md:block ${collapsed ? 'w-[60px]' : 'w-60'}`}>
         <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
       </aside>
 
       <AnimatePresence>
         {mobileOpen ? (
           <motion.div className="fixed inset-0 z-50 md:hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <div className="absolute inset-0 bg-navy/50" onClick={() => setMobileOpen(false)} />
+            <div className="absolute inset-0 bg-ink/40" onClick={() => setMobileOpen(false)} />
             <motion.aside
-              className="relative h-full w-64 bg-navy p-3"
+              className="relative h-full w-64 border-r border-navy/10 bg-ice"
               initial={{ x: -260 }}
               animate={{ x: 0 }}
               exit={{ x: -260 }}
-              transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+              transition={{ type: 'tween', duration: 0.18 }}
             >
+              <button onClick={() => setMobileOpen(false)} className="btn btn-ghost absolute right-2 top-3 z-10 p-1.5!" aria-label="Close menu">
+                <X className="h-4 w-4" />
+              </button>
               <Sidebar collapsed={false} onNavigate={() => setMobileOpen(false)} />
             </motion.aside>
           </motion.div>
@@ -328,14 +382,12 @@ export default function Layout({ children }: { children: ReactNode }) {
 
       <div className="flex min-w-0 flex-1 flex-col">
         <TopBar onMenu={() => setMobileOpen(true)} />
-        {backend === 'locked' ? <TokenPrompt /> : null}
-        <VerifyBanner />
-        {backend === 'error' && backendError ? (
-          <div className="mx-4 mt-4 rounded-2xl border border-wine/30 bg-wine/10 px-4 py-3 text-sm text-wine md:mx-8" role="alert">
-            {backendError}
-          </div>
-        ) : null}
-        <main className="flex-1 px-4 py-8 md:px-10 md:py-10">{children}</main>
+        <div className="px-4 md:px-8">
+          {backend === 'locked' ? <TokenPrompt /> : null}
+          <VerifyBanner />
+          {backend === 'error' && backendError ? <Banner tone="error">{backendError}</Banner> : null}
+        </div>
+        <main className="flex-1 px-4 py-8 md:px-8 md:py-10">{children}</main>
         <LegalFooter />
       </div>
     </div>

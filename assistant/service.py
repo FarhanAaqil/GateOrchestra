@@ -265,8 +265,8 @@ class AssistantService:
     def check_user_key(self, provider: str, key: str) -> None:
         """Ask the provider whether ``key`` works, without keeping it anywhere."""
         provider, key = provider.strip().lower(), key.strip()
-        if provider not in ("groq", "gemini"):
-            raise KeyRejected("Provider must be groq or gemini.")
+        if provider not in ("groq", "gemini", "openai"):
+            raise KeyRejected("Provider must be groq, gemini or openai.")
         if not valid_key_shape(key):
             raise KeyRejected("That does not look like an API key.")
         try:
@@ -282,8 +282,8 @@ class AssistantService:
         """Check a key with its provider, then keep it in memory and in .env."""
         provider = provider.strip().lower()
         key = key.strip()
-        if provider not in ("groq", "gemini"):
-            raise KeyRejected("Provider must be groq or gemini.")
+        if provider not in ("groq", "gemini", "openai"):
+            raise KeyRejected("Provider must be groq, gemini or openai.")
         if not valid_key_shape(key):
             raise KeyRejected("That does not look like an API key.")
         try:

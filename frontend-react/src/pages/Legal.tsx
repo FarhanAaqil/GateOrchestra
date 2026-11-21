@@ -12,7 +12,7 @@ function Draft({ number, title, children }: { number: string; title: string; chi
   return (
     <Page>
       <PageHeader number={number} kicker="Legal" title={title} />
-      <div className="mb-5 flex items-start gap-2 rounded-2xl border-2 border-wine bg-wine/10 px-4 py-3 text-sm text-wine" role="note">
+      <div className="mb-5 flex items-start gap-2 rounded-lg border-2 border-wine bg-wine/10 px-4 py-3 text-sm text-wine" role="note">
         <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
         <p>
           <strong>DRAFT: needs human review.</strong> This text is a starting point written from how the software works. It is not
@@ -27,7 +27,7 @@ function Draft({ number, title, children }: { number: string; title: string; chi
 }
 
 function H({ children }: { children: ReactNode }) {
-  return <h2 className="pt-2 text-lg font-bold text-ink">{children}</h2>
+  return <h2 className="pt-2 text-lg font-semibold text-ink">{children}</h2>
 }
 
 export function Terms() {
@@ -48,7 +48,7 @@ export function Terms() {
       <p>You can delete your account at any time in Settings. We may end the service with [30] days' notice, giving you time to export your data.</p>
       <H>Liability</H>
       <p>[The service is provided as is. Limitation of liability, governing law and jurisdiction, to be written for the operator's country.]</p>
-      <p className="text-xs text-navy/60">Contact: [contact email]. Last updated: [date].</p>
+      <p className="text-xs text-navy/70">Contact: [contact email]. Last updated: [date].</p>
     </Draft>
   )
 }
@@ -63,12 +63,12 @@ export function Privacy() {
         <li><strong>Sign-in:</strong> one session cookie, which is needed for the site to work, and a hash of its value on our side. No advertising or tracking cookies.</li>
         <li><strong>What you write:</strong> your conversations, the text extracted from documents you upload, your ratings of answers, and cached answers to repeated questions (kept for [24 hours]).</li>
         <li><strong>Usage counts:</strong> per day, how many answers you received, how many tokens they used and how each was routed. No content.</li>
-        <li><strong>Your own API keys</strong>, if you add any, encrypted.</li>
+        <li><strong>Your own API keys</strong>, if you add any, encrypted. If you switch on two-factor sign-in, its secret (encrypted) and one-way hashes of your recovery codes.</li>
         <li><strong>Server logs:</strong> for each request, the time, a request id, your account id, the address path, the result and how long it took. Never what you wrote.</li>
       </ul>
       <H>Who else receives data</H>
       <ul className="list-disc space-y-1 pl-5">
-        <li>Your questions, the conversation so far and relevant document passages are sent to the AI model providers that write answers: Groq and Google (Gemini). Their own terms apply to that processing. [Check each provider's data-retention and training terms.]</li>
+        <li>Your questions, the conversation so far and relevant document passages are sent to the AI model providers that write answers: [the providers you use: Groq, Google (Gemini) and/or an OpenAI-compatible provider such as OpenAI or OpenRouter]. Their own terms apply to that processing. [Check each provider's data-retention and training terms.]</li>
         <li>When the assistant researches a question it sends search terms to Wikipedia.</li>
         <li>Our email provider [name] sends account emails; our payment provider [name] handles payments, and we never see your card details.</li>
         <li>[If error tracking is used: error reports go to Sentry without request data, cookies or content.]</li>
@@ -78,7 +78,7 @@ export function Privacy() {
       <p>Until you delete it or your account. Backups of the database are kept for [14] days, so deleted data disappears from them within that time.</p>
       <H>Your choices</H>
       <p>In <Link to="/settings" className="underline">Settings</Link> you can export your conversations and delete your account, which removes your conversations, documents, cached answers, ratings, keys and usage history. [Describe the rights that apply in the operator's country (for example access, correction, objection, complaint to a regulator) and the legal basis for processing.]</p>
-      <p className="text-xs text-navy/60">Last updated: [date].</p>
+      <p className="text-xs text-navy/70">Last updated: [date].</p>
     </Draft>
   )
 }
@@ -97,7 +97,7 @@ export function AcceptableUse() {
         <li>scrape the service or resell access without our written permission.</li>
       </ul>
       <p>We may refuse a message, limit an account, or close it for breaking this policy. [Describe how people can report abuse and appeal: contact email.]</p>
-      <p className="text-xs text-navy/60">Last updated: [date].</p>
+      <p className="text-xs text-navy/70">Last updated: [date].</p>
     </Draft>
   )
 }

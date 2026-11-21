@@ -19,7 +19,7 @@ import ipaddress
 import os
 from collections.abc import Mapping
 
-CLOUD_PROVIDERS = {"groq", "gemini"}
+CLOUD_PROVIDERS = {"groq", "gemini", "openai"}
 MIN_SECRET_LENGTH = 24
 
 
@@ -34,6 +34,12 @@ def hosted_mode(env: Mapping[str, str] | None = None) -> bool:
 def cors_origins(env: Mapping[str, str] | None = None) -> list[str]:
     source = os.environ if env is None else env
     return [o.strip() for o in source.get("GATE_CORS_ORIGINS", "*").split(",") if o.strip()]
+
+
+def _has_groq_key(env: Mapping[str, str]) -> bool:
+    from assistant.keys import KeyPool
+
+    return bool(KeyPool.from_env(dict(env)).keys.get("groq"))
 
 
 def _has_cloud_key(env: Mapping[str, str]) -> bool:
@@ -66,14 +72,27 @@ def hosted_config_problems(env: Mapping[str, str] | None = None) -> list[str]:
     local = [p for p in providers if p not in CLOUD_PROVIDERS]
     if local:
         problems.append(
-            f"ASSISTANT_PROVIDERS may only name cloud providers (groq, gemini); found {', '.join(local)}."
+            f"ASSISTANT_PROVIDERS may only name cloud providers (groq, gemini, openai); found {', '.join(local)}."
         )
     if _truthy(source.get("ASSISTANT_LOCAL_FALLBACK")):
         problems.append("ASSISTANT_LOCAL_FALLBACK must be off: hosted mode never uses Ollama.")
     if source.get("GATE_LLM_PROVIDER", "ollama").strip().lower() not in {"groq", "mock"}:
         problems.append("GATE_LLM_PROVIDER must be groq (or mock) in hosted mode, not ollama.")
     if not _has_cloud_key(source):
-        problems.append("A Groq or Gemini API key is required (GROQ_API_KEY or GEMINI_API_KEY).")
+        problems.append(
+            "A cloud API key is required (GROQ_API_KEY, GEMINI_API_KEY or OPENAI_API_KEY)."
+        )
+    guard_on = source.get("ASSISTANT_GUARD", "true").strip().lower() not in {
+        "0",
+        "false",
+        "no",
+        "off",
+    }
+    if guard_on and not _has_groq_key(source):
+        problems.append(
+            "The prompt-injection screen runs on Groq's prompt-guard model, so it needs a Groq key. "
+            "Add GROQ_API_KEY, or set ASSISTANT_GUARD=false to run without the screen on purpose."
+        )
 
     url = source.get("GATE_PUBLIC_URL", "").strip()
     local = url.startswith(("http://localhost", "http://127.0.0.1"))

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import AxisHeatmap from '../charts/AxisHeatmap'
 import KSweepChart from '../charts/KSweepChart'
 import ParetoChart from '../charts/ParetoChart'
+import ThresholdComparison from '../components/ThresholdComparison'
 import { Card, NoCitableResults, Page, PageHeader, SkeletonCards, StatusBadge, Term } from '../components/ui'
 import { api } from '../lib/api'
 import { isCitable, METHOD_LABELS } from '../lib/format'
@@ -25,15 +26,15 @@ export default function Results() {
 
   return (
     <Page>
-      <PageHeader number="06" kicker="Results" title={<>Accuracy, cost, and <span className="mark-lemon">where it escalates</span></>}>
+      <PageHeader kicker="Results" title="Accuracy, cost, and where it escalates">
         Every chart is computed from a recorded benchmark run. The main run is Qwen2.5-3B with two seeds; the larger models were
         run once each with fewer calibration repeats (section 8.9 of the research report).
       </PageHeader>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         {runList.length > 1 ? (
-          <label className="flex items-center gap-2 text-sm text-navy">
+          <label className="flex items-center gap-2 text-sm text-navy/70">
             Benchmark run
-            <select value={run} onChange={(e) => setRun(e.target.value)} className="rounded-full border border-sky bg-soft px-3 py-1.5 text-sm text-ink">
+            <select value={run} onChange={(e) => setRun(e.target.value)} className="rounded-lg border border-navy/15 bg-ice px-3 py-1.5 text-sm text-ink outline-none focus:border-navy/40">
               {runList.map((r) => (
                 <option key={r.id} value={r.id}>{r.label}</option>
               ))}
@@ -42,7 +43,7 @@ export default function Results() {
         ) : null}
         {status ? <StatusBadge status={status} /> : null}
         {current && !current.main ? (
-          <span className="text-xs text-navy/60">One seed only, so there is no run-to-run spread. Shown for comparison, not as the headline result.</span>
+          <span className="text-xs text-navy/70">One seed only, so there is no run-to-run spread. Shown for comparison, not as the headline result.</span>
         ) : null}
       </div>
       {(summary.loading && !summary.data) || (detail.loading && !detail.data) ? <SkeletonCards count={3} height="h-48" /> : null}
@@ -52,22 +53,22 @@ export default function Results() {
       {citable && summary.data && detail.data ? (
         <div className="grid gap-4 lg:grid-cols-2">
           <Card tilt={false} className="lg:col-span-2">
-            <h2 className="text-xl font-bold text-ink">Accuracy vs average tokens</h2>
-            <p className="mb-2 text-xs text-navy/60">Up and to the left is better. GateOrchestra is the ember star.</p>
+            <h2 className="text-lg font-semibold text-ink">Accuracy vs average tokens</h2>
+            <p className="mb-2 text-xs text-navy/70">Up and to the left is better. GateOrchestra is the ember star.</p>
             <ParetoChart rows={summary.data.aggregated} />
           </Card>
 
           <Card tilt={false}>
             <div className="mb-3 flex flex-wrap items-center gap-2">
-              <h2 className="mr-auto text-xl font-bold text-ink">Depth × Parallel</h2>
-              <select value={method} onChange={(e) => setMethod(e.target.value as ResultMethod)} className={`${FIELD} w-auto py-1.5 text-xs`}>
+              <h2 className="mr-auto text-lg font-semibold text-ink">Depth × Parallel</h2>
+              <select aria-label="Method shown in the heatmap" value={method} onChange={(e) => setMethod(e.target.value as ResultMethod)} className={`${FIELD} w-auto py-1.5 text-xs`}>
                 {METHODS.map((m) => (
                   <option key={m} value={m}>
                     {METHOD_LABELS[m]}
                   </option>
                 ))}
               </select>
-              <select value={metric} onChange={(e) => setMetric(e.target.value as typeof metric)} className={`${FIELD} w-auto py-1.5 text-xs`}>
+              <select aria-label="Metric shown in the heatmap" value={metric} onChange={(e) => setMetric(e.target.value as typeof metric)} className={`${FIELD} w-auto py-1.5 text-xs`}>
                 <option value="accuracy">Accuracy</option>
                 <option value="escalation_rate">Escalation rate</option>
               </select>
@@ -76,25 +77,25 @@ export default function Results() {
           </Card>
 
           <Card tilt={false}>
-            <h2 className="text-xl font-bold text-ink">Escalation precision / recall</h2>
-            <p className="mb-1 text-xs text-navy/60">Against the oracle: a task needs the agent team (MAS) when MAS is right and the quick check (CoT-SC) is wrong.</p>
-            <p className="mb-3 text-xs text-navy/60">
+            <h2 className="text-lg font-semibold text-ink">Escalation precision / recall</h2>
+            <p className="mb-1 text-xs text-navy/70">Against the oracle: a task needs the agent team (MAS) when MAS is right and the quick check (CoT-SC) is wrong.</p>
+            <p className="mb-3 text-xs text-navy/70">
               <Term term="precision">Precision</Term>: of the tasks sent to the agent team, how many needed it.{' '}
               <Term term="recall">Recall</Term>: of the tasks that needed it, how many were sent.
             </p>
             <div className="space-y-3">
               {detail.data.escalation_quality.map((q) => (
-                <div key={q.method} className={`rounded-2xl p-4 ${q.method === 'GateOrchestra' ? 'bg-navy text-ice' : 'border border-sky bg-ice text-ink'}`}>
-                  <p className="font-bold">{METHOD_LABELS[q.method]}</p>
-                  <div className="mt-1 grid grid-cols-2 gap-2 font-mono text-sm">
+                <div key={q.method} className={`rounded-lg border p-4 text-ink ${q.method === 'GateOrchestra' ? 'border-ember/40 bg-ember/[0.05]' : 'border-navy/10 bg-soft/60'}`}>
+                  <p className="font-semibold">{METHOD_LABELS[q.method]}</p>
+                  <div className="mt-1 grid grid-cols-2 gap-2 text-sm text-navy/70">
                     <span>
-                      <Term term="precision">precision</Term> <span className={`font-semibold ${q.method === 'GateOrchestra' ? 'text-ember' : 'text-wine'}`}>{q.precision == null ? '—' : `${(q.precision * 100).toFixed(0)}%`}</span>
+                      <Term term="precision">precision</Term> <span className="num font-semibold text-ink">{q.precision == null ? '—' : `${(q.precision * 100).toFixed(0)}%`}</span>
                     </span>
                     <span>
-                      <Term term="recall">recall</Term> <span className={`font-semibold ${q.method === 'GateOrchestra' ? 'text-ember' : 'text-wine'}`}>{q.recall == null ? '—' : `${(q.recall * 100).toFixed(0)}%`}</span>
+                      <Term term="recall">recall</Term> <span className="num font-semibold text-ink">{q.recall == null ? '—' : `${(q.recall * 100).toFixed(0)}%`}</span>
                     </span>
                   </div>
-                  <p className="mt-1 font-mono text-[11px] opacity-70">
+                  <p className="mt-1 font-mono text-[11px] text-navy/70">
                     <Term term="tp">TP</Term> {q.true_positive} · <Term term="fp">FP</Term> {q.false_positive} · <Term term="fn">FN</Term> {q.false_negative}
                   </p>
                 </div>
@@ -102,9 +103,11 @@ export default function Results() {
             </div>
           </Card>
 
+          {run === 'final' ? <ThresholdComparison /> : null}
+
           <Card tilt={false} className="lg:col-span-2">
-            <h2 className="text-xl font-bold text-ink">k sweep (validation)</h2>
-            <p className="mb-2 text-xs text-navy/60">The selected classifier and <Term term="tauAcc">τ_acc</Term> per seed, averaged across seeds. <Term term="k">k</Term> is the agent team's token budget.</p>
+            <h2 className="text-lg font-semibold text-ink">k sweep (validation)</h2>
+            <p className="mb-2 text-xs text-navy/70">The selected classifier and <Term term="tauAcc">τ_acc</Term> per seed, averaged across seeds. <Term term="k">k</Term> is the agent team's token budget.</p>
             {detail.data.k_sweep.length ? (
               <KSweepChart points={detail.data.k_sweep} />
             ) : (

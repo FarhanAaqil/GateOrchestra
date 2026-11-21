@@ -13,6 +13,12 @@ endpoints answer 404 and nothing here is used.
   POST /auth/forgot                 email a password-reset link (same reply whether or not
                                     the address has an account)
   POST /auth/reset                  set a new password with the emailed token
+  POST /auth/login/2fa              finish a login with an authenticator or recovery code
+  POST /auth/confirm-email          switch to a new address with the link sent to it
+
+After GATE_LOGIN_FAILURES (5) wrong passwords or codes in 15 minutes an
+account's sign-in is paused for the rest of that window, whichever address
+the attempts come from, and the owner gets an email saying so.
 
 The session lives in an httpOnly, SameSite=Strict cookie. Every request that
 changes something and is authenticated by that cookie must also send the
@@ -32,7 +38,7 @@ from pydantic import BaseModel, Field
 from assistant.accounts import SESSION_SECONDS, AccountError, Accounts, normalize_email
 from assistant.hosted import client_address, hosted_mode
 from assistant.mailer import MailError, send_mail
-from assistant.security import RateLimiter
+from assistant.shared_limits import SharedRateLimiter
 
 router = APIRouter()
 
@@ -40,8 +46,17 @@ COOKIE = "gate_session"
 CSRF_HEADER = "x-csrf-token"
 SAFE_METHODS = {"GET", "HEAD", "OPTIONS"}
 
-_by_address = RateLimiter(int(os.getenv("GATE_AUTH_RATE_LIMIT_PER_MINUTE", "10")), window=60)
-_by_email = RateLimiter(int(os.getenv("GATE_AUTH_EMAIL_LIMIT", "8")), window=900)
+# Kept in the database, so the limits hold across worker processes and restarts.
+_by_address = SharedRateLimiter(
+    "auth-address", int(os.getenv("GATE_AUTH_RATE_LIMIT_PER_MINUTE", "10")), window=60
+)
+_by_email = SharedRateLimiter(
+    "auth-email", int(os.getenv("GATE_AUTH_EMAIL_LIMIT", "8")), window=900
+)
+# Failed passwords or codes per account: the lockout.
+_failures = SharedRateLimiter(
+    "login-failures", int(os.getenv("GATE_LOGIN_FAILURES", "5")), window=900
+)
 
 
 class Credentials(BaseModel):
@@ -55,6 +70,11 @@ class EmailOnly(BaseModel):
 
 class TokenOnly(BaseModel):
     token: str = Field(..., min_length=10, max_length=200)
+
+
+class SecondFactor(BaseModel):
+    challenge: str = Field(..., min_length=10, max_length=200)
+    code: str = Field(..., min_length=6, max_length=20)
 
 
 class ResetRequest(BaseModel):
@@ -208,13 +228,72 @@ def signup(body: Credentials, request: Request) -> dict[str, str]:
     return {"status": "check_email"}
 
 
+def _locked(email: str | None) -> None:
+    wait = _failures.blocked(email) if email else 0.0
+    if wait:
+        raise HTTPException(
+            status_code=429,
+            detail=(
+                f"Sign-in for this account is paused for {max(1, round(wait / 60))} min after too "
+                "many failed attempts. If that was not you, reset your password."
+            ),
+            headers={"Retry-After": str(max(1, round(wait)))},
+        )
+
+
+def _count_failure(email: str | None) -> None:
+    """Count a failed attempt; tell the owner when it locks the account."""
+    if not email:
+        return
+    _failures.check(email)
+    if _failures.blocked(email):
+        user = accounts().by_email(email)
+        if user:
+            try:
+                send_mail(
+                    email,
+                    "Sign-in to your GateOrchestra account was paused",
+                    "There were several failed attempts to sign in to your account, so sign-in is "
+                    "paused for 15 minutes.\n\nIf that was you, wait and try again. If not, "
+                    f"reset your password at {public_url()}/forgot.",
+                )
+            except MailError:
+                pass  # the lockout matters more than the notice
+
+
 @router.post("/auth/login")
 def login(body: Credentials, request: Request, response: Response) -> dict[str, Any]:
     _hosted_only()
-    _limit(request, _email_key(body.email))
+    email = _email_key(body.email)
+    _limit(request, email)
+    _locked(email)
     user = accounts().authenticate(body.email, body.password)
     if user is None:
+        _count_failure(email)
         raise HTTPException(status_code=401, detail="Wrong email or password.")
+    if user.get("totp_enabled_at") is not None:
+        # The password was right; a code from the authenticator app finishes the login.
+        return {"two_factor_required": True, "challenge": accounts().issue_token(user["id"], "2fa")}
+    _failures.clear(user["email"])
+    return _start_session(response, user)
+
+
+@router.post("/auth/login/2fa")
+def login_second_factor(body: SecondFactor, request: Request, response: Response) -> dict[str, Any]:
+    _hosted_only()
+    _limit(request)
+    found = accounts().peek_token(body.challenge, "2fa")
+    user = accounts().get(found[0]) if found else None
+    if user is None:
+        raise HTTPException(
+            status_code=400, detail="This sign-in expired. Enter your password again."
+        )
+    _locked(user["email"])
+    if not accounts().check_second_factor(user["id"], body.code):
+        _count_failure(user["email"])
+        raise HTTPException(status_code=401, detail="That code is not right.")
+    accounts().consume_token(body.challenge, "2fa")
+    _failures.clear(user["email"])
     return _start_session(response, user)
 
 
@@ -297,3 +376,20 @@ def reset(body: ResetRequest, request: Request) -> dict[str, str]:
     accounts().set_password(user_id, body.password)
     accounts().mark_verified(user_id)  # the link proved they read this inbox
     return {"status": "reset"}
+
+
+@router.post("/auth/confirm-email")
+def confirm_email_change(body: TokenOnly, request: Request, response: Response) -> dict[str, str]:
+    """Switch to the new address from the link sent to it; every session is signed out."""
+    _hosted_only()
+    _limit(request)
+    found = accounts().consume_token_data(body.token, "email_change")
+    if found is None or not found[1]:
+        raise HTTPException(status_code=400, detail="This link is invalid or has expired.")
+    user_id, new_email = found
+    try:
+        accounts().change_email(user_id, new_email)
+    except AccountError as err:
+        raise HTTPException(status_code=409, detail=str(err)) from err
+    response.delete_cookie(COOKIE, path="/", secure=cookie_secure(), samesite="strict")
+    return {"status": "changed", "email": new_email}

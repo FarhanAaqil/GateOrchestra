@@ -59,15 +59,15 @@ export default function TokenGauge({ probeTokens, masTokens, cap, size = 200 }: 
       </svg>
       <dl className="grid w-full grid-cols-3 gap-2 text-center font-mono text-xs">
         <div>
-          <dt className="text-navy/60">Probe</dt>
+          <dt className="text-navy/70">Probe</dt>
           <dd className="text-navy">{num(probeTokens)}</dd>
         </div>
         <div>
-          <dt className="text-navy/60">MAS</dt>
-          <dd className={over ? 'font-semibold text-wine' : 'text-tangerine'}>{num(masTokens)}</dd>
+          <dt className="text-navy/70">MAS</dt>
+          <dd className={over ? 'font-semibold text-wine' : 'text-ink'}>{num(masTokens)}</dd>
         </div>
         <div>
-          <dt className="text-navy/60">MAS cap</dt>
+          <dt className="text-navy/70">MAS cap</dt>
           <dd className="text-ink">{cap == null ? '—' : num(cap)}</dd>
         </div>
       </dl>

@@ -2,6 +2,7 @@
 // API running the offline mock provider (no model calls, no keys).
 //   CHROME_PATH=/usr/bin/google-chrome BASE_URL=http://localhost:4173 node e2e/smoke.mjs
 import puppeteer from 'puppeteer-core'
+import { axeProblems } from './a11y.mjs'
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:4173'
 const browser = await puppeteer.launch({
@@ -71,9 +72,38 @@ try {
     await page.waitForSelector('button[aria-label="Helpful"][aria-pressed="true"]', { timeout: 5000 })
   })
 
+  await check('an earlier question can be edited and sent again', async () => {
+    await page.hover('button[aria-label="Edit this question"]').catch(() => undefined)
+    await page.click('button[aria-label="Edit this question"]')
+    await page.waitForSelector('textarea[aria-label="Edit your question"]', { timeout: 5000 })
+    await page.click('textarea[aria-label="Edit your question"]', { clickCount: 3 })
+    await page.keyboard.down('Control')
+    await page.keyboard.press('KeyA')
+    await page.keyboard.up('Control')
+    await page.type('textarea[aria-label="Edit your question"]', 'An edited question')
+    await page.keyboard.press('Enter')
+    // Wait for the new answer itself, not just the edited question (which shows at once).
+    await page.waitForFunction(
+      () =>
+        document.body.innerText.includes('An edited question') &&
+        !document.querySelector('button[aria-label="Stop"]') &&
+        document.querySelectorAll('button[aria-label="Copy answer"]').length === 1,
+      { timeout: 20000 },
+    )
+    if ((await page.evaluate(() => document.body.innerText)).includes('What is the answer to everything?')) throw new Error('the old question is still shown')
+  })
+
   await check('the admin page counts the turn', async () => {
     await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle0' })
     await page.waitForFunction(() => /Chat turns\s*[1-9]/.test(document.body.innerText), { timeout: 15000 })
+  })
+
+  await check('operator pages are accessible', async () => {
+    for (const path of ['/chat', '/admin', '/run', '/tokens']) {
+      await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle0' })
+      const problems = await axeProblems(page)
+      if (problems.length) throw new Error(`${path}: ${problems.join(' | ')}`)
+    }
   })
 
   if (errors.length) {

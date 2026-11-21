@@ -317,6 +317,32 @@ class GroqClient:
         return [m["id"] for m in json.load(response).get("data", [])]
 
 
+class OpenAICompatibleClient(GroqClient):
+    """Any OpenAI-compatible chat-completions API: OpenAI, OpenRouter, Together, Fireworks,
+    DeepInfra, Groq's paid tier, a self-hosted vLLM... (ASSISTANT_OPENAI_BASE).
+
+    The same request as Groq's, minus Groq-only fields (reasoning_format and the
+    gpt-oss reasoning_effort), which other providers reject.
+    """
+
+    name = "openai"
+
+    def _body(
+        self,
+        model: str,
+        messages: list[Message],
+        max_tokens: int,
+        temperature: float,
+        tools: list[dict] | None,
+        stream: bool,
+        json_mode: bool = False,
+    ) -> dict[str, Any]:
+        body = super()._body(model, messages, max_tokens, temperature, tools, stream, json_mode)
+        body.pop("reasoning_format", None)
+        body.pop("reasoning_effort", None)
+        return body
+
+
 def _gemini_payload(
     messages: list[Message], max_tokens: int, temperature: float, json_mode: bool = False
 ) -> dict[str, Any]:
@@ -616,6 +642,12 @@ class Gateway:
             "gemini": GeminiClient(
                 settings.gemini_base, settings.timeout_seconds, settings.stream_timeout_seconds
             ),
+            "openai": OpenAICompatibleClient(
+                settings.openai_base,
+                settings.timeout_seconds,
+                settings.reasoning_effort,
+                settings.stream_timeout_seconds,
+            ),
             "ollama": OllamaClient(settings.ollama_base, settings.timeout_seconds),
             "mock": MockClient(),
         }
@@ -648,6 +680,8 @@ class Gateway:
             return self.settings.ollama_model
         if provider == "mock":
             return f"mock-{role}"
+        if provider == "openai":
+            return self.settings.openai_model_for(role)
         return str(getattr(self.settings, f"{role}_model"))
 
     def _another_key(self, provider: str, model: str, tried: set[str]) -> bool:

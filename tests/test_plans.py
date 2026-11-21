@@ -21,7 +21,6 @@ DAY = 86400
 @pytest.fixture(autouse=True)
 def _fresh_limits(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setattr(limits, "_per_user", RateLimiter(10_000))
-    monkeypatch.setattr(limits, "_running", type(limits._running)(int))
 
 
 def uid(client) -> str:

@@ -1,0 +1,44 @@
+{
+  "model": "openai/gpt-oss-120b",
+  "n": 96,
+  "recorded_always_mas_correct": 92,
+  "always_mas": {
+    "accuracy": 95.8,
+    "accuracy_ci95": [
+      89.8,
+      98.4
+    ],
+    "avg_tokens": 2001.2
+  },
+  "always_mas_concise": {
+    "accuracy": 99.0,
+    "accuracy_ci95": [
+      94.3,
+      99.8
+    ],
+    "avg_tokens": 2205.5
+  },
+  "fixed": 3,
+  "broke": 0,
+  "p_value": 0.25,
+  "changed": [
+    {
+      "task_id": "arith_048",
+      "plain": "The simple interest on \\$2,500 at 6 % per year for 4 years is **\\$600**. (Total amount after 4 years = \\$2,500 + \\$600 =",
+      "concise": "$600​",
+      "now_correct": true
+    },
+    {
+      "task_id": "cmp_036",
+      "plain": "- *Wikipedia*, “Gutenberg press”, https://en",
+      "concise": "Gutenberg's printing press.",
+      "now_correct": true
+    },
+    {
+      "task_id": "cmp_040",
+      "plain": "- NASA Planetary Fact Sheets: “Venus – Mean Surface Temperature ≈ 735 K (≈ 462 °C)” and “Mercury – Mean Surface Temperat",
+      "concise": "Venus",
+      "now_correct": true
+    }
+  ]
+}
