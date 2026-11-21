@@ -18,10 +18,24 @@ services:
       GATE_CORS_ORIGINS: http://localhost:${WEB_PORT:-3700}
       # Run a Task uses Ollama on the host machine (inside a container, localhost is the container).
       GATE_API_BASE: ${GATE_API_BASE:-http://host.docker.internal:11434}
+      # Set to http://sandbox:8090 (with GATE_SANDBOX_TOKEN) when the sandbox profile runs.
+      ASSISTANT_SANDBOX_URL: ${ASSISTANT_SANDBOX_URL:-}
     volumes:
       - gateorchestra-data:/app/logs
     extra_hosts:
       - "host.docker.internal:host-gateway"
+    restart: unless-stopped
+
+  # Optional code sandbox for the research agent:  docker compose --profile sandbox up -d
+  # The only container with the Docker socket; it can only start the fixed, locked-down
+  # container in sandbox_service/server.py. Not reachable from outside the stack.
+  sandbox:
+    build: ./sandbox_service
+    profiles: [sandbox]
+    environment:
+      GATE_SANDBOX_TOKEN: ${GATE_SANDBOX_TOKEN:-}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
     restart: unless-stopped
 
   web:

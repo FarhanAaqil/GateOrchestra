@@ -100,6 +100,13 @@ The **Chat** page answers any question: explanations, code, math, facts, and que
 documents you upload. It runs on Groq by default, falls back to Gemini, and can fall back to a
 local Ollama model.
 
+**Measured accuracy** (`python scripts/chat_eval.py`, [`reports/chat_eval.md`](reports/chat_eval.md)): on 80 questions
+with checkable answers (facts, arithmetic, multi-step questions, Python output), answering directly was right
+98.8% of the time at 1,003 tokens and 1.3 s; researching first was right
+100.0% at 2,825 tokens and 3.1 s. Research fixed 1 question and broke
+0. The benchmark-trained gate escalated 0% of these questions and scored 98.8%, the
+same as answering directly. Open-ended requests (explanations, writing) are not graded by this test.
+
 How a message is answered:
 
 1. **Small talk first:** greetings, thanks and similar one-liners ("hi", "thanks!", "who are you?")
@@ -108,7 +115,7 @@ How a message is answered:
    also label the request type; creative requests skip the gate. The prompt-injection screen runs
    alongside the probe instead of before it.
 3. **Gate:** in auto mode, the cheapest gate whose rated accuracy is within 2 points of the best.
-   Every turn records every gate's verdict and cost, and your 👍/👎 ratings count for every gate
+   Every turn records every gate's verdict and cost, and your ratings count for every gate
    that would have routed the answer the same way.
 4. **STOP** answers directly. The small fast model is used only when the probe is confident and its
    answer is a few words; lists, explanations and creative requests go to the larger model. **ESCALATE** first runs
@@ -117,7 +124,8 @@ How a message is answered:
 5. The answer streams back as Markdown with highlighted code and rendered math, plus badges for
    the route, tokens, time and model. "How this was answered" shows the gate's reason, the models
    used and where the time went (safety check, probe, gate, first text). **Regenerate** replaces the
-   last answer; the old one is kept if the retry fails. A chat that starts with "hi" is renamed after
+   last answer and any earlier question can be **edited** and sent again; the old messages are kept if
+   the retry fails. A chat that starts with "hi" is renamed after
    its first real question.
 
 Reliability:
@@ -173,8 +181,10 @@ Before exposing the stack publicly:
 Conversations, ratings, usage, the cache and any key added from the console live in the
 `gateorchestra-data` Docker volume (`/app/logs`, with keys in `keys.env`). It is a named volume
 rather than a folder of this repo because SQLite needs real file locking, which synced folders
-such as Google Drive do not provide. The compose API container has no Docker, so the Python code
-sandbox is off there; run the API on the host (`python scripts/dev.py`) to use it. CI runs the Python and console tests, a browser smoke test
+such as Google Drive do not provide. The compose API container has no Docker access. For the Python code
+sandbox, start the `sandbox` profile (`docker compose --profile sandbox up`, with `ASSISTANT_SANDBOX_URL=http://sandbox:8090`
+and `GATE_SANDBOX_TOKEN`): a small service that alone holds the Docker socket and can only start the locked-down
+container. Or run the API on the host (`python scripts/dev.py`). CI runs the Python and console tests, a browser smoke test
 against the offline mock provider, and both Docker builds.
 
 ### Hosted, multi-user mode

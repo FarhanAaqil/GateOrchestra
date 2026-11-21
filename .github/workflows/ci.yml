@@ -162,6 +162,8 @@ jobs:
         run: docker build -t gateorchestra-api .
       - name: Build the console image
         run: docker build -t gateorchestra-web frontend-react
+      - name: Build the sandbox service image
+        run: docker build -t gateorchestra-sandbox sandbox_service
       - name: The console's nginx configuration is valid
         run: docker run --rm --add-host api:127.0.0.1 gateorchestra-web nginx -t
 

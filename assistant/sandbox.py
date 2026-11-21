@@ -9,6 +9,11 @@ escalation, 256 MB of memory, half a CPU, 64 processes and 15 seconds. The
 code is passed on stdin, never written into the image. When Docker is not
 running the tool says so instead of falling back to running code on the host.
 
+With ASSISTANT_SANDBOX_URL set (the Docker deployment), runs go to the
+sandbox service in sandbox_service/ instead, which alone holds the Docker
+socket and can only start this same locked-down container; the API container
+never gets Docker access.
+
 In hosted mode runs are also rationed: at most GATE_SANDBOX_PER_USER (1) at a
 time per person and GATE_SANDBOX_MAX_CONCURRENT (4) across everyone. A run
 that cannot get a slot within a few seconds is refused, not queued forever.
@@ -16,11 +21,14 @@ that cannot get a slot within a few seconds is refused, not queued forever.
 
 from __future__ import annotations
 
+import json
 import os
 import shutil
 import subprocess
 import threading
 import time
+import urllib.error
+import urllib.request
 import uuid
 from collections import defaultdict
 from typing import Any
@@ -41,7 +49,42 @@ def sandbox_status() -> tuple[bool, str]:
     return ok, why
 
 
+def _remote_url() -> str:
+    return os.getenv("ASSISTANT_SANDBOX_URL", "").strip().rstrip("/")
+
+
+def _remote_status(url: str) -> tuple[bool, str]:
+    try:
+        with urllib.request.urlopen(f"{url}/status", timeout=10) as response:
+            data = json.load(response)
+    except (OSError, ValueError):
+        return False, "The sandbox service is not reachable."
+    return bool(data.get("ok")), str(data.get("why") or "")
+
+
+def _remote_run(url: str, code: str) -> str:
+    request = urllib.request.Request(
+        f"{url}/run",
+        data=json.dumps({"code": code}).encode(),
+        headers={
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {os.getenv('GATE_SANDBOX_TOKEN', '')}",
+        },
+        method="POST",
+    )
+    try:
+        with urllib.request.urlopen(request, timeout=TIMEOUT_SECONDS + 30) as response:
+            return str(json.load(response).get("output", "(no output)"))
+    except urllib.error.HTTPError as err:
+        return f"Code execution is unavailable: the sandbox service answered {err.code}."
+    except (OSError, ValueError):
+        return "Code execution is unavailable: the sandbox service is not reachable."
+
+
 def _probe() -> tuple[bool, str]:
+    url = _remote_url()
+    if url:
+        return _remote_status(url)
     if shutil.which("docker") is None:
         return False, "Docker is not installed."
     try:
@@ -196,6 +239,9 @@ def run_python(code: str) -> str:
     ok, why = sandbox_status()
     if not ok:
         return f"Code execution is unavailable: {why}"
+    url = _remote_url()
+    if url:
+        return _remote_run(url, code)
     name = f"gateorchestra-sbx-{uuid.uuid4().hex[:10]}"
     try:
         done = subprocess.run(

@@ -21,8 +21,10 @@ small talk and cached answers, which would never have been researched.
 
 from __future__ import annotations
 
+import json
 import os
 import time
+from pathlib import Path
 from typing import Any
 from urllib.parse import quote
 
@@ -78,6 +80,20 @@ def delete_key(provider: str, owner: str = Depends(owner_required)) -> dict[str,
 
 ESTIMATE_WINDOW_DAYS = 30
 MIN_ESCALATIONS_FOR_ESTIMATE = 5
+CHAT_EVAL_SUMMARY = (
+    Path(__file__).resolve().parent.parent / "results" / "chat_eval" / "summary.json"
+)
+
+
+def measured_research_cost(path: Path | None = None) -> dict[str, Any] | None:
+    """Extra tokens research cost per question in the 80-question chat evaluation, if recorded."""
+    path = path or CHAT_EVAL_SUMMARY
+    try:
+        summary = json.loads(path.read_text(encoding="utf-8"))
+        extra = float(summary["research_vs_direct"]["avg_extra_tokens_for_research"])
+        return {"per_escalation": round(extra), "sample_size": int(summary["paired"])}
+    except (OSError, ValueError, KeyError, TypeError):
+        return None
 
 
 def research_cost_estimate(service: Any) -> dict[str, Any]:
@@ -89,13 +105,17 @@ def research_cost_estimate(service: Any) -> dict[str, Any]:
         if e.get("decision") == "ESCALATE" and not e.get("cached")
     ]
     agent = [a for a in agent if a > 0]
-    if len(agent) < MIN_ESCALATIONS_FOR_ESTIMATE:
-        return {"available": False, "sample_size": len(agent), "per_escalation": None}
-    return {
-        "available": True,
-        "sample_size": len(agent),
-        "per_escalation": round(sum(agent) / len(agent)),
-    }
+    if len(agent) >= MIN_ESCALATIONS_FOR_ESTIMATE:
+        return {
+            "available": True,
+            "source": "server",
+            "sample_size": len(agent),
+            "per_escalation": round(sum(agent) / len(agent)),
+        }
+    measured = measured_research_cost()
+    if measured:  # until this server has enough of its own, the measured evaluation cost
+        return {"available": True, "source": "evaluation", **measured}
+    return {"available": False, "source": None, "sample_size": len(agent), "per_escalation": None}
 
 
 @router.get("/account/usage")
@@ -120,10 +140,15 @@ def usage(owner: str = Depends(owner_required)) -> dict[str, Any]:
             "saved_tokens": saved,
             "window_days": ESTIMATE_WINDOW_DAYS,
             "method": (
-                "Estimate only: answers handled directly this month x the average "
-                "research-agent tokens of escalated answers on this server over the last "
-                f"{ESTIMATE_WINDOW_DAYS} days. Small talk and cached answers are left out. "
-                "It is not a measurement of what those answers would really have cost."
+                "Estimate only: answers handled directly this month x the extra tokens research "
+                + (
+                    f"used on escalated answers on this server over the last {ESTIMATE_WINDOW_DAYS} days"
+                    if cost.get("source") == "server"
+                    else "cost per question in our 80-question evaluation (reports/chat_eval.md), "
+                    "until this server has enough researched answers of its own"
+                )
+                + ". Small talk and cached answers are left out. It is not a measurement of what "
+                "those answers would really have cost."
             ),
         },
     }

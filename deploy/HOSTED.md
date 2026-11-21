@@ -167,19 +167,23 @@ accounts, conversations, uploaded documents (their text), usage and encrypted ke
 ## 7. The code sandbox
 
 The research agent can run Python in a locked-down container: no network, read-only,
-every Linux capability dropped, 256 MB of memory, 15 seconds, and rationed per person in
-hosted mode. To start those containers the API needs Docker itself. By default the API
-runs inside a container without Docker access, so the Python tool is simply unavailable
-and every other feature works.
+every Linux capability dropped, an unprivileged user, 256 MB of memory, half a CPU and
+15 seconds, rationed per person in hosted mode. It is off unless you start the
+`sandbox` profile:
 
-To enable it, either:
+```bash
+echo "ASSISTANT_SANDBOX_URL=http://sandbox:8090" >> .env   # GATE_SANDBOX_TOKEN is already in .env
+docker compose -f docker-compose.yml -f deploy/docker-compose.hosted.yml --profile sandbox up -d --build
+```
 
-- run the API directly on the VM (`pip install .`, then `uvicorn api.main:app --port 3700`
-  as an unprivileged user in the `docker` group, with the same `.env`), point the console's
-  `/api/` proxy in `frontend-react/nginx.conf` at the host instead of `api:3700`, and
-  `docker pull python:3.12-slim`; or
-- mount `/var/run/docker.sock` into the API container. Only do this if you accept that
-  anyone who breaks into the API container then controls the VM.
+The sandbox service (`sandbox_service/`) is the only container with the Docker socket.
+It accepts exactly one request, "run this code", from the API with `GATE_SANDBOX_TOKEN`,
+and can only start the fixed container described above. The API container never gets
+Docker access, so a bug in the API cannot be turned into control of the server. The
+service is reachable only on the stack's private network. Its own risk is the usual one
+for anything holding the Docker socket, so it stays a few dozen lines of standard-library
+Python with no other inputs. Without the profile, every other feature works and the agent
+simply has no Python tool.
 
 ## 8. Security checklist
 

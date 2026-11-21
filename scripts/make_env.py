@@ -49,6 +49,8 @@ def hosted_values(domain: str, admin_emails: list[str]) -> dict[str, str]:
         "ASSISTANT_PROVIDERS": "groq,gemini",
         "ASSISTANT_LOCAL_FALLBACK": "false",
         "GATE_MAIL_BACKEND": "smtp",
+        # Only used with the optional sandbox profile (docker compose --profile sandbox).
+        "GATE_SANDBOX_TOKEN": secrets.token_urlsafe(32),
     }
 
 

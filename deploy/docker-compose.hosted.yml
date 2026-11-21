@@ -24,6 +24,9 @@ services:
     ports: !reset []
     networks: [gate]
 
+  sandbox:
+    networks: [gate]
+
   caddy:
     image: caddy:2.8
     restart: unless-stopped

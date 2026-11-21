@@ -133,6 +133,7 @@ export interface UsageReport {
   own_key: boolean
   estimate: {
     available: boolean
+    source: 'server' | 'evaluation' | null
     sample_size: number
     per_escalation: number | null
     saved_tokens: number | null

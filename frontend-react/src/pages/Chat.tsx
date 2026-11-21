@@ -1,4 +1,4 @@
-import { ArrowUp, Check, ChevronDown, Copy, History, Loader2, Paperclip, RefreshCw, Square, ThumbsDown, ThumbsUp, Wrench, X } from 'lucide-react'
+import { ArrowUp, Check, ChevronDown, Copy, History, Loader2, Paperclip, Pencil, RefreshCw, Square, ThumbsDown, ThumbsUp, Wrench, X } from 'lucide-react'
 import { useCallback, useEffect, useRef, useState, type KeyboardEvent } from 'react'
 import ChatSidebar from '../components/ChatSidebar'
 import KeyDialog from '../components/KeyDialog'
@@ -90,6 +90,73 @@ function ToolList({ tools }: { tools: ToolCall[] }) {
         ))}
       </ol>
     </details>
+  )
+}
+
+/** A question you asked, which you can edit and send again (later messages are replaced). */
+function UserBubble({ message, busy, onEdit }: { message: ChatMessage; busy: boolean; onEdit?: (text: string) => void }) {
+  const [editing, setEditing] = useState(false)
+  const [draft, setDraft] = useState(message.content)
+  const save = () => {
+    const text = draft.trim()
+    if (!text || !onEdit) return
+    setEditing(false)
+    onEdit(text)
+  }
+  return (
+    <div className="group flex flex-col items-end gap-1.5">
+      {message.meta?.documents?.length ? (
+        <ul className="flex max-w-[85%] flex-wrap justify-end gap-1.5" aria-label="Attached documents">
+          {message.meta.documents.map((name) => (
+            <li key={name} className="inline-flex items-center gap-1 rounded-md border border-navy/15 bg-soft px-2.5 py-1 text-xs text-navy">
+              <Paperclip className="h-3 w-3 text-navy/70" /> {name}
+            </li>
+          ))}
+        </ul>
+      ) : null}
+      {editing ? (
+        <div className="w-full max-w-[85%] rounded-xl border border-navy/20 bg-ice p-2">
+          <textarea
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault()
+                save()
+              }
+              if (e.key === 'Escape') setEditing(false)
+            }}
+            rows={Math.min(6, Math.max(2, draft.split('\n').length))}
+            aria-label="Edit your question"
+            className="w-full resize-none bg-transparent px-2 py-1 text-sm text-ink outline-none"
+            autoFocus
+          />
+          <div className="flex justify-end gap-2">
+            <button onClick={() => setEditing(false)} className="btn btn-ghost py-1!">Cancel</button>
+            <button onClick={save} disabled={!draft.trim() || busy} className="btn btn-primary py-1!">Send</button>
+          </div>
+          <p className="px-2 pt-1 text-[11px] text-navy/70">Sending replaces this question and everything after it.</p>
+        </div>
+      ) : (
+        <div className="flex max-w-[85%] items-start gap-1">
+          {onEdit ? (
+            <button
+              onClick={() => {
+                setDraft(message.content)
+                setEditing(true)
+              }}
+              disabled={busy}
+              className="mt-1.5 rounded-lg p-1.5 text-navy/70 transition-opacity hover:bg-navy/5 hover:text-ink focus-visible:opacity-100 disabled:opacity-30 sm:opacity-0 sm:group-hover:opacity-100"
+              aria-label="Edit this question"
+              title="Edit and send again"
+            >
+              <Pencil className="h-3.5 w-3.5" />
+            </button>
+          ) : null}
+          <p className="whitespace-pre-wrap rounded-xl bg-navy px-4 py-2.5 text-sm text-ice">{message.content}</p>
+        </div>
+      )}
+    </div>
   )
 }
 
@@ -349,14 +416,15 @@ export default function Chat() {
     loadConversations()
   }
 
-  const send = async (text: string, options: { replaceLast?: boolean } = {}) => {
+  const send = async (text: string, options: { replaceLast?: boolean; editFrom?: string } = {}) => {
     const attachedNames = documents.filter((d) => selectedDocs.includes(d.id)).map((d) => d.name)
     // A file on its own is a valid message: ask about it.
     const message =
       text.trim() ||
       (attachedNames.length ? `Summarise ${attachedNames.length === 1 ? 'the attached document' : 'the attached documents'}.` : '')
     if (!message || live) return
-    if (options.replaceLast) setMessages((m) => m.slice(0, Math.max(0, m.length - 2)))
+    if (options.editFrom) setMessages((m) => m.slice(0, Math.max(0, m.findIndex((x) => x.id === options.editFrom))))
+    else if (options.replaceLast) setMessages((m) => m.slice(0, Math.max(0, m.length - 2)))
     localId.current += 1
     const optimistic: ChatMessage = {
       id: `local-${localId.current}`,
@@ -369,14 +437,18 @@ export default function Chat() {
     setError(null)
     setLive({ stage: 'probe', tools: [], text: '' })
     textRef.current = ''
+    let savedId = ''
     const controller = new AbortController()
     abortRef.current = controller
     try {
       await streamChat(
-        { message, conversation_id: activeId, gate_mode: gateMode, document_ids: selectedDocs.length ? selectedDocs : null, replace_last: !!options.replaceLast },
+        { message, conversation_id: activeId, gate_mode: gateMode, document_ids: selectedDocs.length ? selectedDocs : null, replace_last: !!options.replaceLast, edit_from: options.editFrom ?? null },
         (event) => {
           if (event.type === 'meta') {
             setActiveId(event.conversation_id)
+            // The saved question's real id, so it can be edited later in this session.
+            savedId = event.user_message_id
+            setMessages((m) => m.map((x) => (x.id === optimistic.id ? { ...x, id: event.user_message_id } : x)))
           } else if (event.type === 'probe') {
             setLive((l) => l && { ...l, probe: event, stage: 'gate' })
           } else if (event.type === 'gate') {
@@ -393,7 +465,7 @@ export default function Chat() {
             setMessages((m) => [...m, { id: event.message_id, role: 'assistant', content, meta: event.meta }])
             setLive(null)
           } else if (event.type === 'error') {
-            setMessages((m) => m.filter((x) => x.id !== optimistic.id))
+            setMessages((m) => m.filter((x) => x.id !== optimistic.id && x.id !== savedId))
             // Only the operator can add a server key; everyone else just hears that it is busy.
             if (event.code === 'needs_key' && isAdmin) setKeyPrompt({ attempts: event.attempts ?? [], message })
             else if (event.code === 'needs_key') setError('The assistant is at capacity right now. Try again in a minute.')
@@ -412,7 +484,7 @@ export default function Chat() {
         setError(partial.trim() ? 'Stopped. The partial answer was kept.' : 'Stopped.')
       } else {
         setError((err as Error).message)
-        setMessages((m) => m.filter((x) => x.id !== optimistic.id))
+        setMessages((m) => m.filter((x) => x.id !== optimistic.id && x.id !== savedId))
       }
     } finally {
       abortRef.current = null
@@ -520,18 +592,12 @@ export default function Chat() {
           <div className="mx-auto max-w-3xl space-y-6">
             {messages.map((m) =>
               m.role === 'user' ? (
-                <div key={m.id} className="flex flex-col items-end gap-1.5">
-                  {m.meta?.documents?.length ? (
-                    <ul className="flex max-w-[85%] flex-wrap justify-end gap-1.5" aria-label="Attached documents">
-                      {m.meta.documents.map((name) => (
-                        <li key={name} className="inline-flex items-center gap-1 rounded-md border border-navy/15 bg-soft px-2.5 py-1 text-xs text-navy">
-                          <Paperclip className="h-3 w-3 text-wine" /> {name}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : null}
-                  <p className="max-w-[85%] whitespace-pre-wrap rounded-xl bg-navy px-4 py-2.5 text-sm text-ice">{m.content}</p>
-                </div>
+                <UserBubble
+                  key={m.id}
+                  message={m}
+                  busy={!!live}
+                  onEdit={m.id.startsWith('local-') ? undefined : (text) => send(text, { editFrom: m.id })}
+                />
               ) : (
                 <AssistantBubble key={m.id} message={m} onRate={rate} onRegenerate={m.id === lastAssistantId ? () => regenerate() : undefined} />
               ),

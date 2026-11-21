@@ -72,6 +72,23 @@ try {
     await page.waitForSelector('button[aria-label="Helpful"][aria-pressed="true"]', { timeout: 5000 })
   })
 
+  await check('an earlier question can be edited and sent again', async () => {
+    await page.hover('button[aria-label="Edit this question"]').catch(() => undefined)
+    await page.click('button[aria-label="Edit this question"]')
+    await page.waitForSelector('textarea[aria-label="Edit your question"]', { timeout: 5000 })
+    await page.click('textarea[aria-label="Edit your question"]', { clickCount: 3 })
+    await page.keyboard.down('Control')
+    await page.keyboard.press('KeyA')
+    await page.keyboard.up('Control')
+    await page.type('textarea[aria-label="Edit your question"]', 'An edited question')
+    await page.keyboard.press('Enter')
+    await page.waitForFunction(() => document.body.innerText.includes('An edited question'), { timeout: 20000 })
+    await page.waitForFunction(() => !document.querySelector('button[aria-label="Stop"]'), { timeout: 20000 })
+    const answers = await page.$$eval('button[aria-label="Copy answer"]', (els) => els.length)
+    if (answers !== 1) throw new Error(`expected 1 answer after editing, found ${answers}`)
+    if ((await page.evaluate(() => document.body.innerText)).includes('What is the answer to everything?')) throw new Error('the old question is still shown')
+  })
+
   await check('the admin page counts the turn', async () => {
     await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle0' })
     await page.waitForFunction(() => /Chat turns\s*[1-9]/.test(document.body.innerText), { timeout: 15000 })

@@ -86,8 +86,10 @@ export default function Usage() {
                 <>
                   <p className="mt-3 font-mono text-xl font-semibold text-ink">≈ {u.estimate.saved_tokens.toLocaleString()} tokens</p>
                   <p className="mt-1 text-sm text-navy/70">
-                    {u.month.direct.toLocaleString()} answers handled directly × ≈ {u.estimate.per_escalation?.toLocaleString()} tokens, the average the
-                    research agent used on {u.estimate.sample_size.toLocaleString()} escalated answers on this server in the last {u.estimate.window_days} days.
+                    {u.month.direct.toLocaleString()} answers handled directly × ≈ {u.estimate.per_escalation?.toLocaleString()} tokens,{' '}
+                    {u.estimate.source === 'server'
+                      ? `the average the research agent used on ${u.estimate.sample_size.toLocaleString()} escalated answers on this server in the last ${u.estimate.window_days} days.`
+                      : `what research cost per question in our ${u.estimate.sample_size}-question evaluation, until this server has enough researched answers of its own.`}
                   </p>
                 </>
               ) : (

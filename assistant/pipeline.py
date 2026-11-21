@@ -82,6 +82,7 @@ class ChatPipeline:
         gate_mode: str | None = None,
         document_ids: list[str] | None = None,
         replace_last: bool = False,
+        edit_from: str | None = None,
     ) -> Iterator[dict[str, Any]]:
         settings = self.service.settings
         text = (message or "").strip()
@@ -102,7 +103,19 @@ class ChatPipeline:
         cid = conversation_id or store.create_conversation(text[:60])
         # Regenerate or edit: the model must not see the exchange being replaced, but it is only
         # deleted once the new answer is saved, so a failed attempt keeps the old one.
-        replaced = self._last_exchange_ids(cid) if replace_last and conversation_id else []
+        if edit_from and conversation_id:
+            # Editing an earlier question: it and everything after it are replaced.
+            replaced = self._ids_from(cid, edit_from)
+            if not replaced:
+                yield {
+                    "type": "error",
+                    "code": "not_found",
+                    "message": "That message is no longer here.",
+                }
+                return
+            replace_last = True
+        else:
+            replaced = self._last_exchange_ids(cid) if replace_last and conversation_id else []
         kept = [r for r in store.messages(cid) if r["id"] not in replaced]
         history = _history_for_model(kept[-settings.history_messages :])
         attached = [d["name"] for d in store.documents() if d["id"] in (document_ids or [])]
@@ -161,6 +174,14 @@ class ChatPipeline:
                 "code": "internal",
                 "message": f"Something went wrong: {type(err).__name__}.",
             }
+
+    def _ids_from(self, cid: str, message_id: str) -> list[str]:
+        """Ids of a user message of this conversation and every message after it (empty if absent)."""
+        rows = self.store.messages(cid)
+        index = next(
+            (i for i, r in enumerate(rows) if r["id"] == message_id and r["role"] == "user"), None
+        )
+        return [] if index is None else [r["id"] for r in rows[index:]]
 
     def _last_exchange_ids(self, cid: str) -> list[str]:
         """Ids of the last answer and the question it answered (what regenerate replaces)."""
