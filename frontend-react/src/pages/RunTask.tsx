@@ -2,6 +2,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { CheckCircle2, ChevronDown, Dice5, Loader2, Play, Square, XCircle } from 'lucide-react'
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import TokenGauge from '../charts/TokenGauge'
+import { Markdown } from '../components/Markdown'
 import { Card, ErrorNote, Page, PageHeader } from '../components/ui'
 import { api } from '../lib/api'
 import { useApp } from '../lib/context'
@@ -68,6 +69,8 @@ function FeatureGrid({ features }: { features: NonNullable<RunResult['features']
 function Pipeline({ result, k, probeBudget }: { result: RunResult; k: number; probeBudget: number | null }) {
   const decision = result.gate_decision
   const masCap = decision?.token_budget_cap ?? (result.method === 'Always-MAS' && probeBudget ? k * probeBudget : null)
+  // Open-ended questions: show the whole response, not just the short graded part.
+  const longForm = Boolean(result.full_response && result.full_response.trim().length > Math.max(200, result.predicted_answer.length + 40))
   let index = 0
   return (
     <div className="space-y-4">
@@ -122,8 +125,19 @@ function Pipeline({ result, k, probeBudget }: { result: RunResult; k: number; pr
         title={result.mas_tokens ? `Answer from the agent team (${result.mas_strategy ? STRATEGY_LABELS[result.mas_strategy] : 'MAS'})` : 'Answer from the quick check'}
         badge={result.mas_tokens ? 'ember' : 'sky'}
       >
+        {longForm ? (
+          <div tabIndex={0} role="region" aria-label="Full response" className="mb-3 max-h-[32rem] overflow-auto rounded-lg border border-navy/15 bg-white/60 px-4 py-3 text-sm leading-relaxed text-ink">
+            <Markdown text={result.full_response ?? ''} />
+          </div>
+        ) : null}
         <div className="flex flex-wrap items-center gap-3">
-          <p className="text-xl font-semibold text-ink">{result.predicted_answer}</p>
+          {longForm ? (
+            <p className="text-sm text-navy/70">
+              Extracted answer (the part that gets graded): <span className="font-mono text-ink">{result.predicted_answer}</span>
+            </p>
+          ) : (
+            <p className="text-xl font-semibold text-ink">{result.predicted_answer}</p>
+          )}
           {result.is_correct === true ? (
             <span className="chip"><CheckCircle2 className="h-3.5 w-3.5" /> correct</span>
           ) : result.is_correct === false ? (

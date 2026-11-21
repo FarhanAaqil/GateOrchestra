@@ -63,6 +63,7 @@ from gate.rule_based_gate import RuleBasedGate  # noqa: E402
 from integration.pipeline import run_pipeline  # noqa: E402
 from shared.config import (  # noqa: E402
     BEST_MODEL_PATH,
+    FINAL_MODELS_DIR,
     GROQ_MODEL_NAME,
     K_DEFAULT,
     K_VALUES,
@@ -71,8 +72,10 @@ from shared.config import (  # noqa: E402
     MODEL_NAME,
     MODELS_DIR,
     PROBE_TOKEN_BUDGET,
+    RUN_TAG,
 )
 from shared.data_loader import ANSWER_ALIASES_PATH, DATASET_DIR, load_split  # noqa: E402
+from shared.grading import answers_equivalent  # noqa: E402
 from shared.schemas import ProbeResult, Task  # noqa: E402
 from shared.token_logger import TokenAccountant  # noqa: E402
 
@@ -208,7 +211,13 @@ _RANDOM_GATE_LOCK = threading.Lock()
 
 
 def _gate_model_candidates() -> list[Path]:
-    """Gates written by benchmark calibration, newest first."""
+    """Gates written by benchmark calibration, newest first.
+
+    With GATE_RUN_TAG set (for example ``groq-gpt-oss-120b``) only the gate calibrated on
+    that model is used, so a Groq model is never paired with the Qwen2.5-3B gate.
+    """
+    if RUN_TAG:
+        return benchmark_gate_paths(FINAL_MODELS_DIR)
     return [*benchmark_gate_paths(MODELS_DIR), BEST_MODEL_PATH]
 
 
@@ -527,6 +536,21 @@ def _probe_details(probe: ProbeResult) -> dict[str, Any]:
     }
 
 
+def _full_response(mas: Any, mas_tokens: int | None, probe: ProbeResult | None) -> str | None:
+    """The final response in full; ``predicted_answer`` is only the part that gets graded.
+
+    From the agent team when it ran, otherwise a probe sample that agreed with the vote.
+    """
+    if mas is not None and mas_tokens and getattr(mas, "_last_full_output", ""):
+        return str(mas._last_full_output)
+    if probe is not None:
+        for output in probe.raw_outputs:
+            if not output.startswith("Error:") and output != "No response":
+                if answers_equivalent(extract_answer(output), probe.answer):
+                    return output
+    return None
+
+
 def _mas_trace(mas: Any, mas_tokens: int | None) -> list[dict[str, Any]]:
     """Steps the chosen sub-agent took in this request (empty when MAS did not run)."""
     if mas is None or not mas_tokens:
@@ -577,6 +601,7 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
         data = result.model_dump(mode="json")
         data["probe"] = _probe_details(probes[-1])
         data["trace"] = []
+        data["full_response"] = _full_response(None, 0, probes[-1])
         return _respond(data, use_sim)
 
     # 2. Baseline: Always-MAS
@@ -597,6 +622,7 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
             data["mas_strategy"] = mas._last_strategy
         data["probe"] = None
         data["trace"] = _mas_trace(mas, result.mas_tokens)
+        data["full_response"] = _full_response(mas, result.mas_tokens, None)
         return _respond(data, use_sim)
 
     # 3. Gating Methods
@@ -637,6 +663,7 @@ def run_gateorchestra(request: RunRequest) -> dict[str, Any]:
     data["features"] = extract_features(task, probes[-1]).model_dump(mode="json")
     data["probe"] = _probe_details(probes[-1])
     data["trace"] = _mas_trace(mas, result.mas_tokens)
+    data["full_response"] = _full_response(mas, result.mas_tokens, probes[-1])
     return _respond(data, use_sim)
 
 

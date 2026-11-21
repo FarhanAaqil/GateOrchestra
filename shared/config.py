@@ -80,8 +80,9 @@ scripts/verify_final_results.py read this, so they cannot disagree."""
 RUN_TAG: str = re.sub(r"[^A-Za-z0-9_.-]", "", os.getenv("GATE_RUN_TAG", ""))
 """Names a benchmark run on another model (for example ``groq-gpt-oss-120b``). With a tag
 set, the run writes its results, checkpoints, gate, router and reports into folders of
-its own and never touches the default (untagged) Qwen2.5-3B artifacts, and the API and
-assistant never load its gate. Empty by default."""
+its own and never touches the default (untagged) Qwen2.5-3B artifacts. The API's Run a
+Task loads the gate of the tagged run when the tag is set (the chat assistant keeps its
+own). Empty by default."""
 
 FINAL_RESULTS_DIR: Path = ROOT_DIR / "results" / "real" / (RUN_TAG or "final")
 FINAL_CHECKPOINTS_DIR: Path = LOGS_DIR / "results" / "checkpoints" / RUN_TAG

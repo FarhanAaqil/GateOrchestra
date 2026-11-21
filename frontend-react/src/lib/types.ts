@@ -100,6 +100,8 @@ export interface RunResult {
   features?: GateFeatures
   probe?: ProbeDetails | null
   trace?: TraceStep[]
+  /** The final response in full; predicted_answer is only the graded part. */
+  full_response?: string | null
 }
 
 export interface RunRequest {
