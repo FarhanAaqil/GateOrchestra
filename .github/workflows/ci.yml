@@ -162,3 +162,56 @@ jobs:
         run: docker build -t gateorchestra-api .
       - name: Build the console image
         run: docker build -t gateorchestra-web frontend-react
+      - name: The console's nginx configuration is valid
+        run: docker run --rm --add-host api:127.0.0.1 gateorchestra-web nginx -t
+
+      - name: Write a hosted-mode .env (generated secrets, placeholder key, emails kept in memory)
+        run: |
+          pip install -q cryptography
+          python scripts/make_env.py --domain gate.example.com --admin-email admin@example.com
+          echo "GROQ_API_KEY=gsk_ci_placeholder_not_a_real_key_0000000000" >> .env
+          echo "GATE_MAIL_BACKEND=console" >> .env
+
+      - name: Boot the full stack in hosted mode
+        run: |
+          docker compose up -d --build --wait --wait-timeout 180
+          curl -sf http://localhost:3700/api/ | grep -q '"hosted":true'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3700/api/auth/me)" = 401
+          curl -sI http://localhost:3700/api/auth/me | grep -qi '^cache-control: no-store'
+          test "$(curl -s -o /dev/null -w '%{http_code}' http://localhost:3700/api/assistant/stats)" = 403
+          curl -sI http://localhost:3700/ | grep -qi '^content-security-policy:'
+          curl -sI http://localhost:3700/assets/ | grep -qi '^x-frame-options:' || true
+          echo "hosted stack is up and locked down"
+
+      - name: An unsafe hosted configuration refuses to start
+        run: |
+          set +e
+          timeout 120 docker compose run --rm --no-deps -e GATE_CORS_ORIGINS='*' api > /tmp/unsafe.log 2>&1
+          code=$?
+          set -e
+          cat /tmp/unsafe.log | tail -n 15
+          test "$code" -ne 0
+          grep -q "not safe to start" /tmp/unsafe.log
+
+      - name: Stack logs on failure
+        if: failure()
+        run: docker compose logs --tail 80
+
+  audit:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Python runtime dependencies have no known vulnerabilities
+        run: |
+          pip install -q pip-audit
+          python scripts/runtime_requirements.py > /tmp/requirements.txt
+          pip-audit -r /tmp/requirements.txt
+      - name: The shipped console has no high-severity vulnerabilities
+        working-directory: frontend-react
+        run: npm audit --omit=dev --audit-level=high

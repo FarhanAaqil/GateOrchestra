@@ -64,6 +64,11 @@ class AssistantSettings:
         )
     )
     gemini_model: str = field(default_factory=lambda: _env("GEMINI_MODEL_NAME", "gemini-2.5-flash"))
+    # Any OpenAI-compatible API (OpenAI, OpenRouter, Together, a paid Groq account...).
+    openai_base: str = field(
+        default_factory=lambda: _env("ASSISTANT_OPENAI_BASE", "https://api.openai.com/v1")
+    )
+    openai_model: str = field(default_factory=lambda: _env("ASSISTANT_OPENAI_MODEL", "gpt-4o-mini"))
     ollama_base: str = MODEL_API_BASE
     ollama_model: str = MODEL_NAME
 
@@ -115,6 +120,14 @@ class AssistantSettings:
     env_path: Path = field(
         default_factory=lambda: Path(_env("ASSISTANT_ENV_PATH", str(ROOT_DIR / ".env")))
     )
+
+
+def _openai_model_for(self: AssistantSettings, role: str) -> str:
+    """ASSISTANT_OPENAI_<ROLE>_MODEL if set (e.g. ASSISTANT_OPENAI_ANSWER_MODEL), else the one model."""
+    return _env(f"ASSISTANT_OPENAI_{role.upper()}_MODEL", self.openai_model) or self.openai_model
+
+
+AssistantSettings.openai_model_for = _openai_model_for  # type: ignore[attr-defined]
 
 
 def get_settings() -> AssistantSettings:

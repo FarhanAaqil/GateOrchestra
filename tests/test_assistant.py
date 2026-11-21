@@ -436,7 +436,7 @@ def test_adding_keys_is_checked_and_local_only(service: AssistantService, monkey
     )
     assert remote.status_code == 403
     with pytest.raises(KeyRejected):
-        service.add_key("openai", KEY_B)
+        service.add_key("mystery", KEY_B)
 
 
 def test_store_cache_documents_and_feedback(tmp_path: Path) -> None:

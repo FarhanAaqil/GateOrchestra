@@ -70,7 +70,7 @@ class DocumentRequest(BaseModel):
 
 
 class KeyRequest(BaseModel):
-    provider: str = Field(..., pattern="^(groq|gemini)$")
+    provider: str = Field(..., pattern="^(groq|gemini|openai)$")
     key: str = Field(..., min_length=20, max_length=200)
 
 

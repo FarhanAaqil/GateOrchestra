@@ -1,7 +1,11 @@
 import { KeyRound, Loader2, X } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent } from 'react'
+import type { KeyProvider } from '../lib/account'
 import { chatApi, type KeyAttempt } from '../lib/chat'
 import { FIELD } from '../lib/styles'
+
+const LABEL: Record<KeyProvider, string> = { groq: 'Groq', gemini: 'Google Gemini', openai: 'OpenAI-compatible' }
+const HINT: Record<KeyProvider, string> = { groq: 'starts with gsk_', gemini: 'from Google AI Studio', openai: 'ASSISTANT_OPENAI_BASE' }
 
 const REASON: Record<string, string> = {
   rate_limited: 'hit its rate limit',
@@ -21,7 +25,7 @@ export default function KeyDialog({
   onSaved: (provider: string) => void
 }) {
   const groqFailed = attempts.some((a) => a.provider === 'groq' && a.reason !== 'no_key')
-  const [provider, setProvider] = useState<'groq' | 'gemini'>(groqFailed ? 'gemini' : 'groq')
+  const [provider, setProvider] = useState<KeyProvider>(groqFailed ? 'gemini' : 'groq')
   const [key, setKey] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -84,16 +88,16 @@ export default function KeyDialog({
           )}
         </ul>
 
-        <fieldset className="mb-3 grid grid-cols-2 gap-2">
+        <fieldset className="mb-3 grid grid-cols-3 gap-2">
           <legend className="mb-1.5 text-sm font-medium text-navy">Provider</legend>
-          {(['groq', 'gemini'] as const).map((p) => (
+          {(['groq', 'gemini', 'openai'] as const).map((p) => (
             <label
               key={p}
               className={`cursor-pointer rounded-lg border px-3 py-2 text-sm ${provider === p ? 'border-navy bg-navy text-ice' : 'border-navy/15 text-navy hover:bg-navy/5'}`}
             >
               <input type="radio" name="provider" value={p} checked={provider === p} onChange={() => setProvider(p)} className="sr-only" />
-              <span className="font-semibold">{p === 'groq' ? 'Groq' : 'Google Gemini'}</span>
-              <span className="block text-xs opacity-75">{p === 'groq' ? 'starts with gsk_' : 'from Google AI Studio'}</span>
+              <span className="font-semibold">{LABEL[p]}</span>
+              <span className="block text-xs opacity-75">{HINT[p]}</span>
             </label>
           ))}
         </fieldset>
@@ -107,11 +111,11 @@ export default function KeyDialog({
           spellCheck={false}
           value={key}
           onChange={(e) => setKey(e.target.value)}
-          placeholder={provider === 'groq' ? 'gsk_…' : 'AIza…'}
+          placeholder={provider === 'groq' ? 'gsk_…' : provider === 'gemini' ? 'AIza…' : 'sk-…'}
           className={`${FIELD} mt-1.5 font-mono text-sm`}
         />
         <p className="mt-2 text-xs text-navy/70">
-          The key is checked with {provider === 'groq' ? 'Groq' : 'Google'}, then saved only to this server's <code>.env</code>. It is never shown again.
+          The key is checked with the provider, then saved only to this server's <code>.env</code>. It is never shown again.
         </p>
         {error ? <p className="mt-3 rounded-xl bg-wine/10 px-3 py-2 text-sm text-wine" role="alert">{error}</p> : null}
 

@@ -10,7 +10,10 @@ export interface SessionUser {
   plan: string
   paid_until: number | null
   created_at: number
+  two_factor?: boolean
 }
+
+export type LoginResult = { user: SessionUser; challenge?: undefined } | { challenge: string; user?: undefined }
 
 interface SessionReply {
   user: SessionUser
@@ -49,11 +52,19 @@ export const authApi = {
       throw err
     }
   },
-  login: async (email: string, password: string): Promise<SessionUser> => {
-    const { data } = await post<SessionReply>('/auth/login', { email, password })
+  /** A session, or a challenge when the account uses two-factor sign-in. */
+  login: async (email: string, password: string): Promise<LoginResult> => {
+    const { data } = await post<SessionReply | { two_factor_required: true; challenge: string }>('/auth/login', { email, password })
+    if ('two_factor_required' in data) return { challenge: data.challenge }
+    configureSession(true, data.csrf_token)
+    return { user: data.user }
+  },
+  loginSecondFactor: async (challenge: string, code: string): Promise<SessionUser> => {
+    const { data } = await post<SessionReply>('/auth/login/2fa', { challenge, code })
     configureSession(true, data.csrf_token)
     return data.user
   },
+  confirmEmail: (token: string) => post<{ status: string; email: string }>('/auth/confirm-email', { token }).then((r) => r.data),
   logout: async (): Promise<void> => {
     try {
       await post('/auth/logout')
@@ -70,8 +81,10 @@ export const authApi = {
 
 export const MIN_PASSWORD = 10
 
+export type KeyProvider = 'groq' | 'gemini' | 'openai'
+
 export interface OwnKey {
-  provider: 'groq' | 'gemini'
+  provider: KeyProvider
   added_at: number
 }
 
@@ -86,7 +99,7 @@ function send<T>(path: string, method: string, body?: unknown) {
 /** The signed-in person's own settings (hosted mode). */
 export const accountApi = {
   keys: () => call<{ keys: OwnKey[] }>('/account/keys').then((r) => r.data),
-  putKey: (provider: 'groq' | 'gemini', key: string) => send<{ keys: OwnKey[] }>('/account/keys', 'PUT', { provider, key }),
+  putKey: (provider: KeyProvider, key: string) => send<{ keys: OwnKey[] }>('/account/keys', 'PUT', { provider, key }),
   deleteKey: (provider: string) => send<{ keys: OwnKey[] }>(`/account/keys/${provider}`, 'DELETE'),
 }
 
@@ -165,4 +178,17 @@ export const profileApi = {
     configureSession(true, data.csrf_token)
   },
   deleteAccount: (password: string) => send<{ status: string }>('/account', 'DELETE', { password }),
+}
+
+export const securityApi = {
+  status: () => call<{ two_factor: boolean; recovery_codes_left: number }>('/account/security').then((r) => r.data),
+  setup: (password: string) =>
+    call<{ secret: string; otpauth_uri: string }>('/account/2fa/setup', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ password }),
+    }).then((r) => r.data),
+  enable: (code: string) => send<{ recovery_codes: string[] }>('/account/2fa/enable', 'POST', { code }),
+  disable: (password: string, code: string) => send<{ status: string }>('/account/2fa/disable', 'POST', { password, code }),
+  changeEmail: (newEmail: string, password: string) => send<{ status: string }>('/account/email', 'POST', { new_email: newEmail, password }),
 }

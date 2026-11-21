@@ -5,6 +5,7 @@ What one person may use in hosted mode, checked before a chat turn starts:
 
   * a request rate per person (GATE_USER_RATE_LIMIT_PER_MINUTE, default 10),
     on top of the per-address limit in the middleware;
+  (all of these are kept in the database, so several worker processes share them)
   * answers in progress at once (the plan's ``concurrent_chats``);
   * the plan's answers per day (every turn counts, whoever's key answers it);
   * the plan's daily token allowance on the operator's keys;
@@ -19,20 +20,20 @@ before it starts, so the last one of the day can go a little over.
 from __future__ import annotations
 
 import os
-import threading
-from collections import defaultdict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from fastapi import HTTPException
 
 from assistant.llm import Gateway
 from assistant.plans import Plan, effective_plan, global_daily_tokens
-from assistant.security import RateLimiter
 from assistant.service import AssistantService
+from assistant.shared_limits import Leases, SharedRateLimiter
 
-_per_user = RateLimiter(int(os.getenv("GATE_USER_RATE_LIMIT_PER_MINUTE", "10")))
-_running: dict[str, int] = defaultdict(int)
-_running_lock = threading.Lock()
+# Shared by every worker process through the database (assistant/shared_limits.py).
+_per_user = SharedRateLimiter("user-rate", int(os.getenv("GATE_USER_RATE_LIMIT_PER_MINUTE", "10")))
+_leases = Leases()
+# A turn normally ends in seconds; a lease left by a crashed worker frees itself after this.
+CHAT_LEASE_SECONDS = 900
 
 
 def limit_rate(user_id: str) -> None:
@@ -71,10 +72,11 @@ class Admission:
     plan: Plan
     gateway: Gateway
     own_key: bool
+    lease: str = field(default="", repr=False)
 
     def release(self) -> None:
-        with _running_lock:
-            _running[self.user_id] = max(0, _running[self.user_id] - 1)
+        _leases.release(self.lease)
+        self.lease = ""
 
 
 def admit_turn(service: AssistantService, user_id: str) -> Admission:
@@ -107,11 +109,10 @@ def admit_turn(service: AssistantService, user_id: str) -> Admission:
                 "It resets at midnight UTC, or upgrade for more."
             ),
         )
-    with _running_lock:
-        if _running[user_id] >= plan.concurrent_chats:
-            raise HTTPException(
-                status_code=429,
-                detail="Wait for your other answer to finish before asking again.",
-            )
-        _running[user_id] += 1
-    return Admission(user_id, plan, gateway, own_key)
+    lease = _leases.acquire(f"chat:{user_id}", plan.concurrent_chats, CHAT_LEASE_SECONDS)
+    if lease is None:
+        raise HTTPException(
+            status_code=429,
+            detail="Wait for your other answer to finish before asking again.",
+        )
+    return Admission(user_id, plan, gateway, own_key, lease)

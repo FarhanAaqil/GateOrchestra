@@ -26,6 +26,7 @@ from pathlib import Path
 PROVIDER_ENV = {
     "groq": ("GROQ_API_KEY", "GROQ_API_KEYS"),
     "gemini": ("GEMINI_API_KEY", "GEMINI_API_KEYS"),
+    "openai": ("OPENAI_API_KEY", "OPENAI_API_KEYS"),
 }
 _KEY_SHAPE = re.compile(r"^[A-Za-z0-9_\-]{20,200}$")
 

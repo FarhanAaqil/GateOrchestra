@@ -1,6 +1,7 @@
 // End-to-end test of hosted (multi-user) mode: a real browser against the API started by
 // scripts/e2e_hosted_server.py (offline mock model, emails written to a file).
 //   CHROME_PATH=... BASE_URL=http://127.0.0.1:4174 MAIL_LOG=/tmp/e2e-hosted/mail.log node e2e/hosted.mjs
+import { createHmac } from 'node:crypto'
 import { readFileSync } from 'node:fs'
 import puppeteer from 'puppeteer-core'
 import { axeProblems } from './a11y.mjs'
@@ -26,6 +27,19 @@ function linkFor(email, kind = 'verify') {
   const match = blocks.reverse().map((b) => b.match(new RegExp(`(https?://\\S+/${kind}\\?token=[\\w-]+)`))).find(Boolean)
   if (!match) throw new Error(`no ${kind} link for ${email}`)
   return match[1].replace(/^https?:\/\/[^/]+/, BASE)
+}
+
+/** RFC 6238 code for a base32 secret at a 30-second step (what an authenticator app shows). */
+function totp(secret, step = Math.floor(Date.now() / 30000)) {
+  const alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567'
+  let bits = ''
+  for (const ch of secret.toUpperCase()) bits += alphabet.indexOf(ch).toString(2).padStart(5, '0')
+  const key = Buffer.from(bits.match(/.{8}/g).map((b) => parseInt(b, 2)))
+  const counter = Buffer.alloc(8)
+  counter.writeBigUInt64BE(BigInt(step))
+  const digest = createHmac('sha1', key).update(counter).digest()
+  const offset = digest[digest.length - 1] & 15
+  return String((digest.readUInt32BE(offset) & 0x7fffffff) % 1_000_000).padStart(6, '0')
 }
 
 const text = (page) => page.evaluate(() => document.body.innerText)
@@ -124,6 +138,29 @@ try {
       await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle0' })
       await page.waitForFunction(() => location.pathname === '/', { timeout: 10000 })
     }
+  })
+
+  await check('two-factor sign-in can be switched on and is then required', async () => {
+    await page.goto(`${BASE}/settings`, { waitUntil: 'networkidle0' })
+    await page.waitForSelector('input[aria-label="Password to set up two-factor sign-in"]', { timeout: 10000 })
+    await page.type('input[aria-label="Password to set up two-factor sign-in"]', PASSWORD)
+    await page.click('xpath/.//button[normalize-space()="Set up"]')
+    await page.waitForSelector('img[alt="QR code for your authenticator app"]', { timeout: 10000 })
+    const secret = await page.$eval('p.break-all', (el) => el.textContent.trim())
+    const step = Math.floor(Date.now() / 30000)
+    await page.type('input[aria-label="Code from your authenticator app"]', totp(secret, step))
+    await page.click('xpath/.//button[normalize-space()="Turn on"]')
+    await waitText(page, 'Save these recovery codes now')
+    await logOut(page)
+    await page.goto(`${BASE}/login`, { waitUntil: 'networkidle0' })
+    await page.waitForSelector('#email', { timeout: 10000 })
+    await page.type('#email', 'ada@example.com')
+    await page.type('#password', PASSWORD)
+    await page.click('button[type="submit"]')
+    await waitText(page, 'Two-factor sign-in')
+    await page.type('#code', totp(secret, step + 1)) // the next code: the first one cannot be replayed
+    await page.click('button[type="submit"]')
+    await page.waitForFunction(() => location.pathname === '/chat', { timeout: 15000 })
   })
 
   await check('settings, pricing and legal pages are accessible', async () => {

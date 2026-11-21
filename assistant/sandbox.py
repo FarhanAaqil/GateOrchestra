@@ -23,6 +23,7 @@ import threading
 import time
 import uuid
 from collections import defaultdict
+from typing import Any
 
 IMAGE = os.getenv("ASSISTANT_SANDBOX_IMAGE", "python:3.12-slim")
 TIMEOUT_SECONDS = 15
@@ -129,9 +130,56 @@ LIMITS = SandboxLimits(
 )
 
 
-def run_python_for(user_id: str, code: str, limits: SandboxLimits | None = None) -> str:
+class SharedSandboxLimits:
+    """The same rationing, kept in the database so every worker process shares it."""
+
+    TTL = TIMEOUT_SECONDS + 45  # a crashed run's slot frees itself
+
+    def __init__(self, per_user: int, total: int, leases: Any = None) -> None:
+        from assistant.shared_limits import Leases  # noqa: PLC0415
+
+        self.per_user = max(1, per_user)
+        self.total = max(1, total)
+        self.leases = leases or Leases()
+        self._held: dict[str, list[str]] = {}
+
+    def acquire(self, user_id: str, wait: float = 5.0) -> str | None:
+        if self.leases.held(f"sandbox-user:{user_id}") >= self.per_user:
+            return "you already have code running; wait for it to finish"
+        deadline = time.time() + wait
+        while True:
+            taken = self.leases.acquire_all(
+                [(f"sandbox-user:{user_id}", self.per_user), ("sandbox-all", self.total)], self.TTL
+            )
+            if taken:
+                self._held.setdefault(user_id, []).append(",".join(taken))
+                return None
+            if time.time() >= deadline:
+                return "the sandbox is busy with other people's code; try again shortly"
+            time.sleep(0.25)
+
+    def release(self, user_id: str) -> None:
+        held = self._held.get(user_id) or []
+        if held:
+            self.leases.release(*held.pop().split(","))
+
+
+def default_limits() -> SandboxLimits | SharedSandboxLimits:
+    """Shared limits when hosted (several workers), the in-process ones otherwise."""
+    from assistant.hosted import hosted_mode  # noqa: PLC0415
+
+    if hosted_mode():
+        return SharedSandboxLimits(
+            LIMITS.per_user, int(os.getenv("GATE_SANDBOX_MAX_CONCURRENT", "4"))
+        )
+    return LIMITS
+
+
+def run_python_for(
+    user_id: str, code: str, limits: SandboxLimits | SharedSandboxLimits | None = None
+) -> str:
     """``run_python`` within one person's share of the sandbox (hosted mode)."""
-    limits = limits or LIMITS
+    limits = limits or default_limits()
     refused = limits.acquire(user_id)
     if refused:
         return f"Code execution is unavailable right now: {refused}."

@@ -40,7 +40,7 @@ router = APIRouter()
 
 
 class OwnKey(BaseModel):
-    provider: str = Field(..., pattern="^(groq|gemini)$")
+    provider: str = Field(..., pattern="^(groq|gemini|openai)$")
     key: str = Field(..., min_length=20, max_length=200)
 
 
@@ -216,3 +216,116 @@ def delete_account(body: PasswordCheck, request: Request, response: Response) ->
     service.accounts.delete(user["id"])  # cascades to sessions, email tokens, keys and usage
     response.delete_cookie(COOKIE, path="/", secure=cookie_secure(), samesite="strict")
     return {"status": "deleted"}
+
+
+# Two-factor sign-in and email change
+
+
+class TwoFactorCode(BaseModel):
+    code: str = Field(..., min_length=6, max_length=20)
+
+
+class TwoFactorOff(BaseModel):
+    password: str = Field(..., min_length=1, max_length=256)
+    code: str = Field(..., min_length=6, max_length=20)
+
+
+class EmailChange(BaseModel):
+    new_email: str = Field(..., min_length=3, max_length=254)
+    password: str = Field(..., min_length=1, max_length=256)
+
+
+@router.get("/account/security")
+def security_status(request: Request) -> dict[str, Any]:
+    user = _signed_in(request)
+    accounts = get_service().accounts
+    return {
+        "two_factor": user["two_factor"],
+        "recovery_codes_left": (
+            accounts.recovery_codes_left(user["id"]) if user["two_factor"] else 0
+        ),
+    }
+
+
+@router.post("/account/2fa/setup")
+def two_factor_setup(body: PasswordCheck, request: Request) -> dict[str, str]:
+    """A new secret for the authenticator app; it only counts once a code is confirmed."""
+    from assistant.totp import otpauth_uri  # noqa: PLC0415
+    from assistant.userkeys import KeyStoreError  # noqa: PLC0415
+
+    user = _signed_in(request)
+    _check_password(user, body.password)
+    try:
+        secret = get_service().accounts.begin_two_factor(user["id"])
+    except KeyStoreError as err:
+        raise HTTPException(
+            status_code=503, detail="Two-factor sign-in is not available right now."
+        ) from err
+    return {"secret": secret, "otpauth_uri": otpauth_uri(secret, user["email"])}
+
+
+@router.post("/account/2fa/enable")
+def two_factor_enable(body: TwoFactorCode, request: Request) -> dict[str, Any]:
+    user = _signed_in(request)
+    codes = get_service().accounts.enable_two_factor(user["id"], body.code)
+    if codes is None:
+        raise HTTPException(
+            status_code=400,
+            detail="That code is not right. Check the time on your phone and try again.",
+        )
+    return {"recovery_codes": codes}
+
+
+@router.post("/account/2fa/disable")
+def two_factor_disable(body: TwoFactorOff, request: Request) -> dict[str, str]:
+    user = _signed_in(request)
+    _check_password(user, body.password)
+    accounts = get_service().accounts
+    if not accounts.check_second_factor(user["id"], body.code):
+        raise HTTPException(status_code=403, detail="That code is not right.")
+    accounts.disable_two_factor(user["id"])
+    return {"status": "disabled"}
+
+
+@router.post("/account/email", status_code=202)
+def request_email_change(body: EmailChange, request: Request) -> dict[str, str]:
+    """Email a confirmation link to the new address and a notice to the current one."""
+    from api.auth_routes import _limit, public_url  # noqa: PLC0415
+    from assistant.accounts import normalize_email  # noqa: PLC0415
+    from assistant.mailer import MailError, send_mail  # noqa: PLC0415
+
+    user = _signed_in(request)
+    _limit(request, user["email"])
+    _check_password(user, body.password)
+    try:
+        new_email = normalize_email(body.new_email)
+    except AccountError as err:
+        raise HTTPException(status_code=400, detail=str(err)) from err
+    if new_email == user["email"]:
+        raise HTTPException(status_code=400, detail="That is already your address.")
+    accounts = get_service().accounts
+    try:
+        if accounts.by_email(new_email):
+            # Same reply as a free address, so this cannot be used to find who has an account.
+            send_mail(
+                new_email,
+                "Someone tried to move a GateOrchestra account to this address",
+                "This address already has a GateOrchestra account, so nothing was changed.",
+            )
+        else:
+            token = accounts.issue_token(user["id"], "email_change", data=new_email)
+            send_mail(
+                new_email,
+                "Confirm your new GateOrchestra email",
+                f"Confirm this address for your GateOrchestra account:\n{public_url()}/confirm-email?token={token}\n\n"
+                "The link works once and expires in 1 hour. If you did not ask for this, ignore it.",
+            )
+        send_mail(
+            user["email"],
+            "Your GateOrchestra email is being changed",
+            f"Someone signed in to your account asked to move it to {new_email}. It changes only "
+            "when that address confirms. If this was not you, change your password now.",
+        )
+    except MailError as err:
+        raise HTTPException(status_code=503, detail=str(err)) from err
+    return {"status": "check_email"}

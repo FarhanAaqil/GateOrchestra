@@ -22,7 +22,7 @@ import {
   X,
 } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
-import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import { authApi } from '../lib/account'
 import { setToken } from '../lib/auth'
 import { chatApi } from '../lib/chat'
@@ -227,7 +227,6 @@ function useChatModel(active: boolean, online: boolean): string | null {
 
 function AccountControls() {
   const { hosted, user, setUser } = useApp()
-  const navigate = useNavigate()
   if (!hosted) return null
   if (!user) {
     return (
@@ -241,9 +240,10 @@ function AccountControls() {
   }
   const signOut = async () => {
     await authApi.logout().catch(() => undefined)
-    // Home (the product page) from anywhere, so an admin-only page's guard cannot race the redirect.
-    navigate('/', { replace: true })
     setUser(null)
+    // A full load of the home page: no page guard can race the redirect, and nothing of the
+    // signed-out person (conversations, usage) stays in memory on a shared computer.
+    window.location.assign('/')
   }
   return (
     <div className="flex items-center gap-2">

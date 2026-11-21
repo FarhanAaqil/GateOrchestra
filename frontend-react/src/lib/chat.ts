@@ -177,7 +177,7 @@ export const chatApi = {
       body: JSON.stringify({ name: file.name, content_base64: btoa(binary) }),
     })
   },
-  addKey: (provider: 'groq' | 'gemini', key: string) =>
+  addKey: (provider: 'groq' | 'gemini' | 'openai', key: string) =>
     json<{ provider: string; key: string; models: number }>('/assistant/keys', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
