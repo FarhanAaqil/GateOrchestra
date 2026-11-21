@@ -15,9 +15,9 @@ function Table({ data }: { data: ThresholdBaseline }) {
   const vsCot = data.paired_tests.find((c) => c.b.startsWith('CoT-SC'))
   return (
     <>
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Gate comparison">
         <table className="w-full min-w-[560px] text-sm">
-          <thead className="border-b border-navy/10 text-left text-xs font-medium text-navy/60">
+          <thead className="border-b border-navy/10 text-left text-xs font-medium text-navy/70">
             <tr>
               <th className="py-2 font-medium">Method (test, 2 seeds)</th>
               <th className="py-2 text-right font-medium">Accuracy</th>
@@ -36,7 +36,7 @@ function Table({ data }: { data: ThresholdBaseline }) {
                   <td className="py-2.5 pr-3">
                     <span className="font-medium text-ink">{label}</span>
                     {chosen ? <span className="chip ml-2">chosen on validation</span> : null}
-                    {note ? <span className="block text-xs text-navy/55">{note}</span> : null}
+                    {note ? <span className="block text-xs text-navy/70">{note}</span> : null}
                   </td>
                   <td className="num py-2.5 text-right text-ink">{m.accuracy.toFixed(1)}%</td>
                   <td className="num py-2.5 text-right text-ink">{Math.round(m.avg_tokens).toLocaleString()}</td>
@@ -63,7 +63,7 @@ export default function ThresholdComparison() {
   return (
     <motion.section variants={rise} className="card p-5 lg:col-span-2">
       <h2 className="text-lg font-semibold text-ink">Against a one-line rule</h2>
-      <p className="mb-4 mt-1 text-xs text-navy/60">
+      <p className="mb-4 mt-1 text-xs text-navy/70">
         The gate relies on how much the probe's three samples agree, so here it faces gates that use only that number. Escalated tasks are
         scored with the recorded Always-MAS answer plus the probe's tokens.
       </p>

@@ -63,7 +63,7 @@ export default function ChatSidebar({
       {conversations.length > 5 ? (
         <label className="relative mb-2 block">
           <span className="sr-only">Search conversations</span>
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-navy/40" />
+          <Search className="pointer-events-none absolute left-3 top-1/2 h-3.5 w-3.5 -translate-y-1/2 text-navy/70" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
@@ -76,7 +76,7 @@ export default function ChatSidebar({
       <div className="min-h-0 flex-1 overflow-y-auto" aria-label="Conversations">
         {groups.map((group) => (
           <section key={group.label} className="mb-2">
-            <h3 className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-navy/50">{group.label}</h3>
+            <h3 className="px-3 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-wide text-navy/70">{group.label}</h3>
             <ul className="space-y-0.5">
               {group.items.map((c) => (
                 <li key={c.id} className="group flex items-center">
@@ -110,14 +110,14 @@ export default function ChatSidebar({
                       </button>
                       <button
                         onClick={() => startEdit(c)}
-                        className="ml-0.5 rounded-lg p-1.5 text-navy/50 hover:bg-navy/5 hover:text-navy focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                        className="ml-0.5 rounded-lg p-1.5 text-navy/70 hover:bg-navy/5 hover:text-navy focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                         aria-label={`Rename ${c.title}`}
                       >
                         <Pencil className="h-3.5 w-3.5" />
                       </button>
                       <button
                         onClick={() => onDelete(c.id)}
-                        className="rounded-lg p-1.5 text-navy/50 hover:bg-wine/10 hover:text-wine focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                        className="rounded-lg p-1.5 text-navy/70 hover:bg-wine/10 hover:text-wine focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                         aria-label={`Delete ${c.title}`}
                       >
                         <Trash2 className="h-3.5 w-3.5" />
@@ -129,14 +129,14 @@ export default function ChatSidebar({
             </ul>
           </section>
         ))}
-        {!conversations.length ? <p className="px-3 py-2 text-xs text-navy/50">No conversations yet. Ask something to start one.</p> : null}
-        {conversations.length && !groups.length ? <p className="px-3 py-2 text-xs text-navy/50">No chats match “{query}”.</p> : null}
+        {!conversations.length ? <p className="px-3 py-2 text-xs text-navy/70">No conversations yet. Ask something to start one.</p> : null}
+        {conversations.length && !groups.length ? <p className="px-3 py-2 text-xs text-navy/70">No chats match “{query}”.</p> : null}
       </div>
 
       <div className="mt-3 border-t border-navy/10 pt-3">
         <p className="mb-1.5 flex items-center justify-between px-1 text-xs font-semibold text-navy">
           Documents
-          <span className="font-normal text-navy/60">
+          <span className="font-normal text-navy/70">
             {selectedDocs.length}/{documents.length} in use
           </span>
         </p>
@@ -156,14 +156,14 @@ export default function ChatSidebar({
               </span>
               <button
                 onClick={() => onRemoveDoc(d.id)}
-                className="rounded p-1 text-navy/50 hover:text-wine focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
+                className="rounded p-1 text-navy/70 hover:text-wine focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100"
                 aria-label={`Remove ${d.name}`}
               >
                 <X className="h-3 w-3" />
               </button>
             </li>
           ))}
-          {!documents.length ? <li className="px-1 text-xs text-navy/60">Attach a file with the paperclip to ask about it.</li> : null}
+          {!documents.length ? <li className="px-1 text-xs text-navy/70">Attach a file with the paperclip to ask about it.</li> : null}
         </ul>
       </div>
     </div>

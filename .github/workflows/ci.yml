@@ -125,9 +125,34 @@ jobs:
           BASE_URL: http://localhost:4173
         run: npm run e2e
 
+      - name: Start the API in hosted mode (offline mock model, emails to a file)
+        env:
+          E2E_DATA: /tmp/e2e-hosted
+          E2E_ORIGIN: http://127.0.0.1:4174
+        run: |
+          nohup python scripts/e2e_hosted_server.py > /tmp/hosted-api.log 2>&1 &
+          for i in $(seq 1 60); do curl -sf http://127.0.0.1:8001/health && break; sleep 1; done
+
+      - name: Build and serve the console for hosted mode
+        working-directory: frontend-react
+        env:
+          VITE_API_BASE_URL: http://127.0.0.1:8001
+        run: |
+          npx vite build --outDir dist-hosted
+          nohup npx vite preview --outDir dist-hosted --host 127.0.0.1 --port 4174 --strictPort > /tmp/hosted-web.log 2>&1 &
+          for i in $(seq 1 30); do curl -sf http://127.0.0.1:4174/ > /dev/null && break; sleep 1; done
+
+      - name: Hosted-mode browser test (accounts, isolation, admin pages, accessibility)
+        working-directory: frontend-react
+        env:
+          CHROME_PATH: /usr/bin/google-chrome
+          BASE_URL: http://127.0.0.1:4174
+          MAIL_LOG: /tmp/e2e-hosted/mail.log
+        run: npm run e2e:hosted
+
       - name: Logs on failure
         if: failure()
-        run: tail -n 60 /tmp/api.log /tmp/web.log
+        run: tail -n 60 /tmp/api.log /tmp/web.log /tmp/hosted-api.log /tmp/hosted-web.log
 
   docker:
     runs-on: ubuntu-latest

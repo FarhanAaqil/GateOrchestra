@@ -67,7 +67,7 @@ export default function KeyDialog({
             <span className="grid h-9 w-9 place-items-center rounded-lg border border-navy/15 bg-ice text-navy"><KeyRound className="h-4 w-4" /></span>
             <h2 id="key-dialog-title" className="text-xl font-semibold text-ink">Another API key is needed</h2>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-1 text-navy/60 hover:bg-navy/5" aria-label="Close">
+          <button type="button" onClick={onClose} className="rounded-lg p-1 text-navy/70 hover:bg-navy/5" aria-label="Close">
             <X className="h-5 w-5" />
           </button>
         </div>
@@ -110,7 +110,7 @@ export default function KeyDialog({
           placeholder={provider === 'groq' ? 'gsk_…' : 'AIza…'}
           className={`${FIELD} mt-1.5 font-mono text-sm`}
         />
-        <p className="mt-2 text-xs text-navy/60">
+        <p className="mt-2 text-xs text-navy/70">
           The key is checked with {provider === 'groq' ? 'Groq' : 'Google'}, then saved only to this server's <code>.env</code>. It is never shown again.
         </p>
         {error ? <p className="mt-3 rounded-xl bg-wine/10 px-3 py-2 text-sm text-wine" role="alert">{error}</p> : null}

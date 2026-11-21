@@ -55,7 +55,7 @@ function RouteBadges({ meta }: { meta: Partial<TurnMeta> }) {
         {meta.latency_ms != null ? <span className="rounded-md border border-navy/15 px-2 py-0.5">{formatSeconds(meta.latency_ms)}</span> : null}
       </div>
       <details className="group mt-1">
-        <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-navy/60 hover:text-navy">
+        <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-navy/70 hover:text-navy">
           How this was answered
           <ChevronDown className="h-3 w-3 transition-transform group-open:rotate-180" />
         </summary>
@@ -63,7 +63,7 @@ function RouteBadges({ meta }: { meta: Partial<TurnMeta> }) {
         <dl className="mt-1.5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5">
           {route.details.map((d) => (
             <div key={d.label} className="contents">
-              <dt className="text-navy/50">{d.label}</dt>
+              <dt className="text-navy/70">{d.label}</dt>
               <dd className="break-words text-navy">{d.value}</dd>
             </div>
           ))}
@@ -85,7 +85,7 @@ function ToolList({ tools }: { tools: ToolCall[] }) {
         {tools.map((t, i) => (
           <li key={i} className="rounded-xl bg-soft p-2">
             <p className="font-mono text-xs font-semibold text-ink">{t.name}({JSON.stringify(t.input)})</p>
-            <pre className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap font-mono text-xs text-navy/80">{t.output}</pre>
+            <pre tabIndex={0} className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap font-mono text-xs text-navy/80">{t.output}</pre>
           </li>
         ))}
       </ol>
@@ -114,7 +114,7 @@ function AssistantBubble({ message, onRate, onRegenerate }: { message: ChatMessa
             <>
               <button
                 onClick={() => onRate(message.id, rating === 1 ? 0 : 1)}
-                className={`rounded-lg p-2 hover:bg-navy/5 ${rating === 1 ? 'text-navy' : 'text-navy/55'}`}
+                className={`rounded-lg p-2 hover:bg-navy/5 ${rating === 1 ? 'text-navy' : 'text-navy/70'}`}
                 aria-label="Helpful"
                 aria-pressed={rating === 1}
               >
@@ -122,7 +122,7 @@ function AssistantBubble({ message, onRate, onRegenerate }: { message: ChatMessa
               </button>
               <button
                 onClick={() => onRate(message.id, rating === -1 ? 0 : -1)}
-                className={`rounded-lg p-2 hover:bg-navy/5 ${rating === -1 ? 'text-wine' : 'text-navy/55'}`}
+                className={`rounded-lg p-2 hover:bg-navy/5 ${rating === -1 ? 'text-wine' : 'text-navy/70'}`}
                 aria-label="Not helpful"
                 aria-pressed={rating === -1}
               >
@@ -131,11 +131,11 @@ function AssistantBubble({ message, onRate, onRegenerate }: { message: ChatMessa
             </>
           ) : null}
           {onRegenerate && rateable ? (
-            <button onClick={onRegenerate} className="rounded-lg p-2 text-navy/55 hover:bg-navy/5 hover:text-navy" aria-label="Regenerate answer" title="Try again">
+            <button onClick={onRegenerate} className="rounded-lg p-2 text-navy/70 hover:bg-navy/5 hover:text-navy" aria-label="Regenerate answer" title="Try again">
               <RefreshCw className="h-4 w-4" />
             </button>
           ) : null}
-          <button onClick={copy} className="rounded-lg p-2 text-navy/55 transition-opacity hover:bg-navy/5 hover:text-navy focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100" aria-label={copied ? 'Copied' : 'Copy answer'} title={copied ? 'Copied' : 'Copy answer'}>
+          <button onClick={copy} className="rounded-lg p-2 text-navy/70 transition-opacity hover:bg-navy/5 hover:text-navy focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100" aria-label={copied ? 'Copied' : 'Copy answer'} title={copied ? 'Copied' : 'Copy answer'}>
             {copied ? <Check className="h-4 w-4 text-navy" /> : <Copy className="h-4 w-4" />}
           </button>
         </div>
@@ -159,12 +159,12 @@ function RoutingPanel({ scores, margin }: { scores: GateScore[]; margin: number 
         The cheapest gate whose rated accuracy is within {Math.round(margin * 100)} points of the best. Ratings on answers teach it.
       </p>
       <table className="mt-2 w-full font-mono text-[11px]">
-        <thead className="text-navy/60">
+        <thead className="text-navy/70">
           <tr><th className="text-left font-normal">Gate</th><th className="text-right font-normal">≈ tokens</th><th className="text-right font-normal">escalates</th><th className="text-right font-normal">accuracy</th><th className="text-right font-normal">ratings</th></tr>
         </thead>
         <tbody>
           {scores.map((s) => (
-            <tr key={s.gate} className={s.chosen ? 'font-semibold text-ink' : s.eligible ? 'text-navy' : 'text-navy/40'}>
+            <tr key={s.gate} className={s.chosen ? 'font-semibold text-ink' : s.eligible ? 'text-navy' : 'text-navy/70'}>
               <td>{GATE_LABELS[s.gate] ?? s.gate}{s.chosen ? ' ←' : ''}</td>
               <td className="text-right">{Math.round(s.expected_tokens).toLocaleString()}</td>
               <td className="text-right">{Math.round(s.escalate_rate * 100)}%</td>
@@ -204,7 +204,7 @@ function LiveBubble({ live }: { live: Live }) {
           const done = order.indexOf(s.id) < order.indexOf(live.stage) || (s.id === 'writing' && live.text)
           const active = s.id === live.stage
           return (
-            <span key={s.id} className={`rounded-md px-2.5 py-0.5 font-mono text-[11px] ${active ? 'border border-navy bg-navy text-ice' : done ? 'border border-navy/20 bg-ice text-navy' : 'border border-navy/10 text-navy/45'}`}>
+            <span key={s.id} className={`rounded-md px-2.5 py-0.5 font-mono text-[11px] ${active ? 'border border-navy bg-navy text-ice' : done ? 'border border-navy/20 bg-ice text-navy' : 'border border-navy/10 text-navy/70'}`}>
               {s.label}
             </span>
           )
@@ -215,7 +215,7 @@ function LiveBubble({ live }: { live: Live }) {
       ) : (
         <div className="flex items-center gap-3">
           <div className="h-5 w-16 animate-pulse rounded bg-navy/10 motion-reduce:animate-none" />
-          <span className="text-xs text-navy/60" role="status">
+          <span className="text-xs text-navy/70" role="status">
             {elapsed < 8 ? `Working… ${elapsed} s` : `Still working… ${elapsed} s. Harder questions take longer.`}
           </span>
         </div>
@@ -496,7 +496,7 @@ export default function Chat() {
 
         {gateMode === 'auto' ? <RoutingPanel scores={routing.gates} margin={routing.margin} /> : null}
 
-        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-8">
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-8" tabIndex={0} role="log" aria-label="Messages">
           {!messages.length && !live ? (
             <div className="mx-auto mt-6 max-w-2xl text-center">
               <h2 className="text-xl font-semibold text-ink">Ask anything</h2>
@@ -561,7 +561,7 @@ export default function Chat() {
             <button
               onClick={() => fileRef.current?.click()}
               disabled={uploading || backend !== 'online'}
-              className="rounded-lg p-2 text-navy/60 hover:bg-navy/5 hover:text-navy disabled:opacity-40"
+              className="rounded-lg p-2 text-navy/70 hover:bg-navy/5 hover:text-navy disabled:opacity-40"
               aria-label="Attach a document"
               title="Attach a text, code or PDF file"
             >
@@ -587,7 +587,7 @@ export default function Chat() {
               </button>
             )}
           </div>
-          <p className="mx-auto mt-1.5 hidden max-w-3xl px-3 text-[11px] text-navy/55 sm:block">
+          <p className="mx-auto mt-1.5 hidden max-w-3xl px-3 text-[11px] text-navy/70 sm:block">
             Enter to send · Shift+Enter for a new line · Answers can be wrong, so check anything important.
           </p>
         </div>

@@ -53,7 +53,7 @@ function Select({ label, value, onChange, options }: { label: string; value: str
 
 /** Small filled dots showing a 1–5 level. */
 function Level({ value, max, tone }: { value: number | null; max: number; tone: string }) {
-  if (value == null) return <span className="text-navy/40">—</span>
+  if (value == null) return <span className="text-navy/70">—</span>
   return (
     <span className="inline-flex items-center gap-1" aria-label={`${value} of ${max}`}>
       {Array.from({ length: max }, (_, i) => (
@@ -96,7 +96,7 @@ export default function Benchmark() {
 
   return (
     <Page>
-      <PageHeader number="04" kicker="MASBench-mini" title={<>The benchmark</>}>
+      <PageHeader kicker="MASBench-mini" title="The benchmark">
         {rows.length || '…'} tasks with heuristic Depth (1–5) and Parallel (1–4) labels, split into train, validation and a held-out
         test set. The labels are for analysis only; the gate and the router never read them.
       </PageHeader>
@@ -119,7 +119,7 @@ export default function Benchmark() {
           <label className="text-xs font-medium text-navy sm:col-span-2 lg:col-span-1">
             Search
             <span className={`${FIELD} mt-1 flex items-center gap-2 py-2`}>
-              <Search className="h-4 w-4 text-navy/50" />
+              <Search className="h-4 w-4 text-navy/70" />
               <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="id or question" className="w-full bg-transparent text-sm outline-none" />
             </span>
           </label>
@@ -135,9 +135,9 @@ export default function Benchmark() {
 
       {data ? (
         <motion.div variants={rise} className="card overflow-hidden p-0">
-          <div className="max-h-[65vh] overflow-auto">
+          <div className="max-h-[65vh] overflow-auto" tabIndex={0} role="region" aria-label="Benchmark tasks">
             <table className="w-full min-w-[760px] text-left text-sm">
-              <thead className="sticky top-0 z-10 border-b border-navy/10 bg-ice text-left text-xs font-medium text-navy/60">
+              <thead className="sticky top-0 z-10 border-b border-navy/10 bg-ice text-left text-xs font-medium text-navy/70">
                 <tr>
                   <th className="px-5 py-3.5">Task</th>
                   <th className="px-5 py-3.5">Split</th>

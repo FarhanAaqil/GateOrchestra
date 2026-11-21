@@ -141,9 +141,9 @@ export default function Overview() {
       <motion.ol variants={rise} className="card grid overflow-hidden sm:grid-cols-2 lg:grid-cols-4">
         {STEPS.map(({ title, text }, i) => (
           <li key={title} className="border-navy/10 p-5 max-lg:border-b sm:max-lg:odd:border-r lg:border-r lg:last:border-r-0">
-            <p className={`num text-xs ${i === 2 ? 'text-ember' : 'text-navy/50'}`}>0{i + 1}</p>
+            <p className={`num text-xs ${i === 2 ? 'font-semibold text-ink' : 'text-navy/70'}`}>0{i + 1}</p>
             <h3 className="mt-2 text-[15px] font-semibold text-ink">{title}</h3>
-            <p className="mt-1.5 text-sm leading-relaxed text-navy/65">{text}</p>
+            <p className="mt-1.5 text-sm leading-relaxed text-navy/70">{text}</p>
           </li>
         ))}
       </motion.ol>

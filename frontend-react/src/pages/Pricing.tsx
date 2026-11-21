@@ -57,7 +57,7 @@ export default function Pricing() {
 
   return (
     <Page>
-      <PageHeader number="12" kicker="Plans" title={<>Simple pricing</>}>
+      <PageHeader kicker="Plans" title="Simple pricing">
         Start free. Pro raises every limit. Payment opens our payment provider's page; your plan is switched on once the
         payment arrives (usually within a working day), and it returns to Free if it is not renewed.
       </PageHeader>
@@ -65,7 +65,7 @@ export default function Pricing() {
       {plans.error ? <ErrorNote message={plans.error} /> : null}
       {plans.loading && !plans.data ? <SkeletonCards count={2} height="h-48" /> : null}
       {plans.data ? <PlanCards plans={plans.data.plans} action={action} /> : null}
-      <p className="mt-4 text-xs text-navy/60">Prices in US dollars. Limits reset at midnight UTC. Your own Groq or Gemini key, added in Settings, answers your chats without using the plan's tokens.</p>
+      <p className="mt-4 text-xs text-navy/70">Prices in US dollars. Limits reset at midnight UTC. Your own Groq or Gemini key, added in Settings, answers your chats without using the plan's tokens.</p>
     </Page>
   )
 }

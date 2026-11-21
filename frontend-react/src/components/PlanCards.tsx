@@ -27,13 +27,13 @@ export function PlanCards({ plans, action }: { plans: PlanInfo[]; action: (plan:
             </div>
             <p className="mt-4 flex items-baseline gap-1.5">
               <span className="num text-[40px] font-medium leading-none text-ink">${plan.price_usd_month}</span>
-              <span className="text-sm text-navy/60">/ month</span>
+              <span className="text-sm text-navy/70">/ month</span>
             </p>
-            {plan.blurb ? <p className="mt-2 text-sm text-navy/65">{plan.blurb}</p> : null}
+            {plan.blurb ? <p className="mt-2 text-sm text-navy/70">{plan.blurb}</p> : null}
             <ul className="mt-5 space-y-2 border-t border-navy/10 pt-5 text-sm">
               {planFeatures(plan).map((f) => (
                 <li key={f} className="flex items-start gap-2.5 text-navy/85">
-                  <Check className={`mt-0.5 h-4 w-4 shrink-0 ${paid ? 'text-ember' : 'text-navy/50'}`} aria-hidden /> {f}
+                  <Check className={`mt-0.5 h-4 w-4 shrink-0 ${paid ? 'text-ember' : 'text-navy/70'}`} aria-hidden /> {f}
                 </li>
               ))}
             </ul>

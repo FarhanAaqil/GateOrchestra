@@ -6,9 +6,9 @@ function Meter({ label, used, limit, unit }: { label: string; used: number; limi
   const share = limit ? Math.min(1, used / limit) : 0
   return (
     <Card tilt={false}>
-      <p className="text-sm text-navy/60">{label}</p>
+      <p className="text-sm text-navy/70">{label}</p>
       <p className="num mt-2 text-[28px] font-medium leading-none text-ink">{used.toLocaleString()}</p>
-      <p className="mt-1 font-mono text-xs text-navy/60">of {limit.toLocaleString()} {unit} today</p>
+      <p className="mt-1 font-mono text-xs text-navy/70">of {limit.toLocaleString()} {unit} today</p>
       <div className="mt-3 h-1.5 rounded-full bg-navy/10" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={limit} aria-valuenow={used}>
         <div className={`h-1.5 rounded-full ${share >= 0.9 ? 'bg-wine' : 'bg-navy'}`} style={{ width: `${share * 100}%` }} />
       </div>
@@ -32,7 +32,7 @@ function Routes({ month }: { month: UsageCounts }) {
           {rows.map((r) => (
             <li key={r.label} className="text-sm">
               <div className="flex justify-between text-navy">
-                <span>{r.label} <span className="text-xs text-navy/50">· {r.note}</span></span>
+                <span>{r.label} <span className="text-xs text-navy/70">· {r.note}</span></span>
                 <span className="font-mono text-xs">{r.value} · {Math.round((r.value / total) * 100)}%</span>
               </div>
               <div className="mt-1 h-1.5 rounded-full bg-navy/10">
@@ -42,7 +42,7 @@ function Routes({ month }: { month: UsageCounts }) {
           ))}
         </ul>
       ) : (
-        <p className="mt-2 text-sm text-navy/60">No answers yet this month.</p>
+        <p className="mt-2 text-sm text-navy/70">No answers yet this month.</p>
       )}
     </Card>
   )
@@ -53,7 +53,7 @@ export default function Usage() {
   const u = usage.data
   return (
     <Page>
-      <PageHeader number="11" kicker="Account" title={<>Your usage</>}>
+      <PageHeader kicker="Account" title="Your usage">
         What you have used today and this month. Days run on UTC, and limits reset at midnight UTC.
       </PageHeader>
       {usage.error ? <ErrorNote message={usage.error} /> : null}
@@ -62,19 +62,19 @@ export default function Usage() {
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Card tilt={false}>
-              <p className="text-sm text-navy/60">Plan</p>
+              <p className="text-sm text-navy/70">Plan</p>
               <p className="mt-2 text-xl font-semibold text-ink">{u.plan.label}</p>
-              <p className="mt-1 font-mono text-xs text-navy/60">
+              <p className="mt-1 font-mono text-xs text-navy/70">
                 {u.paid_until ? `paid until ${new Date(u.paid_until * 1000).toLocaleDateString()}` : u.plan.price_usd_month ? '' : 'free'}
               </p>
             </Card>
             <Meter label="Messages" used={u.today.messages} limit={u.plan.messages_per_day} unit="messages" />
             <Meter label="Tokens on our keys" used={u.today.tokens} limit={u.plan.daily_tokens} unit="tokens" />
             <Card tilt={false}>
-              <p className="text-sm text-navy/60">This month</p>
+              <p className="text-sm text-navy/70">This month</p>
               <p className="num mt-2 text-[28px] font-medium leading-none text-ink">{(u.month.tokens + u.month.own_key_tokens).toLocaleString()}</p>
-              <p className="mt-1 font-mono text-xs text-navy/60">tokens · {u.month.messages.toLocaleString()} answers</p>
-              {u.own_key ? <p className="mt-1 font-mono text-xs text-navy/60">{u.month.own_key_tokens.toLocaleString()} on your own key</p> : null}
+              <p className="mt-1 font-mono text-xs text-navy/70">tokens · {u.month.messages.toLocaleString()} answers</p>
+              {u.own_key ? <p className="mt-1 font-mono text-xs text-navy/70">{u.month.own_key_tokens.toLocaleString()} on your own key</p> : null}
             </Card>
           </div>
 
@@ -95,10 +95,10 @@ export default function Usage() {
                   Not enough researched answers on this server yet to estimate this ({u.estimate.sample_size} so far; at least 5 are needed).
                 </p>
               )}
-              <p className="mt-3 text-xs text-navy/60">{u.estimate.method}</p>
+              <p className="mt-3 text-xs text-navy/70">{u.estimate.method}</p>
             </Card>
           </div>
-          <p className="mt-4 text-xs text-navy/60">Documents stored: {u.documents} of {u.plan.documents}.</p>
+          <p className="mt-4 text-xs text-navy/70">Documents stored: {u.documents} of {u.plan.documents}.</p>
         </>
       ) : null}
     </Page>

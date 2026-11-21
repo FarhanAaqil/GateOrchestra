@@ -31,7 +31,7 @@ function AnswerPreview() {
         <span className="h-2 w-2 rounded-full bg-navy/15" />
         <span className="h-2 w-2 rounded-full bg-navy/15" />
         <span className="h-2 w-2 rounded-full bg-navy/15" />
-        <span className="ml-2 text-xs text-navy/50">Example conversation</span>
+        <span className="ml-2 text-xs text-navy/70">Example conversation</span>
       </div>
       <div className="space-y-4 p-5 text-sm">
         <p className="ml-auto w-fit max-w-[80%] rounded-lg bg-navy px-3.5 py-2 text-ice">What is the capital of Australia?</p>
@@ -79,7 +79,7 @@ export default function Landing() {
             </Link>
             <Link to="/results" className="btn btn-secondary px-5! py-2.5!">See the benchmark</Link>
           </div>
-          <p className="mt-4 text-xs text-navy/55">Free plan · no card needed</p>
+          <p className="mt-4 text-xs text-navy/70">Free plan · no card needed</p>
         </motion.div>
         <motion.div variants={rise} className="lg:col-span-6">
           <AnswerPreview />
@@ -89,9 +89,9 @@ export default function Landing() {
       <motion.ol variants={rise} className="mt-6 grid gap-px overflow-hidden rounded-xl border border-navy/10 bg-navy/10 md:grid-cols-3">
         {STEPS.map(({ title, text }, i) => (
           <li key={title} className="bg-ice p-6">
-            <p className="num text-xs text-navy/50">0{i + 1}</p>
+            <p className="num text-xs text-navy/70">0{i + 1}</p>
             <h2 className="mt-2 text-[15px] font-semibold text-ink">{title}</h2>
-            <p className="mt-1.5 text-sm leading-relaxed text-navy/65">{text}</p>
+            <p className="mt-1.5 text-sm leading-relaxed text-navy/70">{text}</p>
           </li>
         ))}
       </motion.ol>
@@ -115,7 +115,7 @@ export default function Landing() {
             </div>
           ))}
         </motion.div>
-        <motion.p variants={rise} className="mt-4 max-w-3xl text-sm leading-relaxed text-navy/65">
+        <motion.p variants={rise} className="mt-4 max-w-3xl text-sm leading-relaxed text-navy/70">
           These come from the project's benchmark (96 held-out test tasks), not from chats on this site. On the 3B model the
           multi-agent system was simply not better than the quick check, so the gate learned to escalate only 3% of tasks; the goal
           of 40% savings was not reached, and the gate is not measurably better than never escalating. Its job there was to avoid waste. Your own questions will differ, which is why the{' '}

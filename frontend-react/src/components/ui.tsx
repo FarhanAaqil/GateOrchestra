@@ -145,9 +145,9 @@ export function PillLink({ to, children, variant = 'ember' }: { to: string; chil
 export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
   return (
     <motion.div variants={rise} className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-navy/20 px-6 py-12 text-center">
-      <CircleDashed className="h-6 w-6 text-navy/35" aria-hidden />
+      <CircleDashed className="h-6 w-6 text-navy/70" aria-hidden />
       <h3 className="text-[15px] font-semibold text-ink">{title}</h3>
-      {children ? <div className="max-w-xl text-sm text-navy/65">{children}</div> : null}
+      {children ? <div className="max-w-xl text-sm text-navy/70">{children}</div> : null}
     </motion.div>
   )
 }
@@ -200,7 +200,7 @@ export function NoCitableResults({ status, what }: { status: ResultsStatus | und
 
 export function Spinner({ label = 'Loading' }: { label?: string }) {
   return (
-    <div className="flex items-center gap-2 text-sm text-navy/65" role="status">
+    <div className="flex items-center gap-2 text-sm text-navy/70" role="status">
       <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-navy/20 border-t-navy" />
       {label}
     </div>
@@ -240,12 +240,13 @@ export function SkeletonTable({ rows = 6 }: { rows?: number }) {
 
 /** One number with its label, for stat rows. */
 export function Stat({ label, value, note, tone = 'ink' }: { label: string; value: ReactNode; note?: ReactNode; tone?: 'ink' | 'ember' | 'wine' }) {
-  const colour = { ink: 'text-ink', ember: 'text-ember', wine: 'text-wine' }[tone]
+  // Ember text fails contrast on light panels, so the ember tone marks the stat with an accent line instead.
+  const colour = { ink: 'text-ink', ember: 'text-ink', wine: 'text-wine' }[tone]
   return (
-    <Card>
+    <Card className={tone === 'ember' ? 'border-t-2! border-t-ember!' : ''}>
       <p className="eyebrow">{label}</p>
       <p className={`num mt-2 text-[28px] font-medium leading-none ${colour}`}>{value}</p>
-      {note ? <p className="mt-2 text-xs text-navy/60">{note}</p> : null}
+      {note ? <p className="mt-2 text-xs text-navy/70">{note}</p> : null}
     </Card>
   )
 }

@@ -26,7 +26,7 @@ function AuthCard({ title, intro, children }: { title: string; intro?: ReactNode
         </div>
         <div className="card p-6 md:p-7">
           <h1 className="text-2xl font-semibold tracking-tight text-ink">{title}</h1>
-          {intro ? <div className="mt-1.5 text-sm text-navy/65">{intro}</div> : null}
+          {intro ? <div className="mt-1.5 text-sm text-navy/70">{intro}</div> : null}
           <div className="mt-6">{children}</div>
         </div>
       </motion.div>
@@ -56,7 +56,7 @@ function Field({ id, label, type = 'text', value, onChange, autoComplete, hint }
         aria-describedby={hint ? `${id}-hint` : undefined}
         required
       />
-      {hint ? <p id={`${id}-hint`} className="mt-1 text-xs text-navy/60">{hint}</p> : null}
+      {hint ? <p id={`${id}-hint`} className="mt-1 text-xs text-navy/70">{hint}</p> : null}
     </div>
   )
 }

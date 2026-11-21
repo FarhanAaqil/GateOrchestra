@@ -8,7 +8,7 @@ const sx = (x: number) => 320 + x * 52
 const sy = (y: number) => 150 - y * 52
 const pt = (v: Vec3) => `${sx(v[0]).toFixed(1)},${sy(v[1]).toFixed(1)}`
 
-/** Lightweight SVG version of the gate scene (mobile, performance mode, reduced motion). */
+/** Flat SVG view of the gate scene: the default, and always used on phones and with reduced motion. */
 export default function GateScene2D(props: GateRunInput & { animate?: boolean }) {
   const sample = useGateRun(props)
   const orb = useRef<SVGCircleElement>(null)
@@ -49,21 +49,12 @@ export default function GateScene2D(props: GateRunInput & { animate?: boolean })
 
   return (
     <svg viewBox="0 0 640 320" className="h-full w-full" role="img" aria-label="Gate routing diagram">
-      <defs>
-        <filter id="glow">
-          <feGaussianBlur stdDeviation="3" result="b" />
-          <feMerge>
-            <feMergeNode in="b" />
-            <feMergeNode in="SourceGraphic" />
-          </feMerge>
-        </filter>
-      </defs>
       <line x1={sx(LAYOUT.start[0])} y1={sy(LAYOUT.start[1])} x2={sx(gate[0])} y2={sy(gate[1])} stroke="#00E5FF" strokeOpacity="0.45" strokeDasharray="5 5" />
       <path d={`M${pt(gate)} Q${sx(gate[0] + 1.2)},${sy((gate[1] + cotPos[1]) / 2)} ${pt(cotPos)}`} stroke="#A8DBFF" strokeOpacity="0.8" fill="none" strokeWidth="2" />
       <path d={`M${pt(gate)} Q${sx((gate[0] + core[0]) / 2)},${sy(gate[1] + 1.1)} ${pt(core)}`} stroke="#FF6B35" strokeOpacity="0.8" fill="none" strokeWidth="2" />
 
-      <g filter="url(#glow)">
-        <circle cx={sx(gate[0])} cy={sy(gate[1])} r="46" fill="none" stroke="#00E5FF" strokeWidth="3" />
+      <g>
+        <circle cx={sx(gate[0])} cy={sy(gate[1])} r="46" fill="none" stroke="#00E5FF" strokeWidth="1.5" />
         <circle cx={sx(gate[0])} cy={sy(gate[1])} r="34" fill="#00E5FF" fillOpacity="0.08" stroke="#00E5FF" strokeOpacity="0.5" />
         <circle ref={cot} cx={sx(cotPos[0])} cy={sy(cotPos[1])} r="16" fill="#A8DBFF" style={{ transition: 'opacity .3s' }} />
         <polygon

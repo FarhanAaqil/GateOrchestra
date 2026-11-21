@@ -48,7 +48,7 @@ export default function About() {
       <motion.div variants={rise} className="card grid overflow-hidden md:grid-cols-2 lg:grid-cols-4">
         {[...QUESTIONS, { id: 'H1', text: 'The gate routes at least 75% of low-Depth, low-Parallel tasks to CoT-SC, cutting average tokens by at least 40% versus always orchestrating, at no more than a 2-point accuracy cost.' }].map((q) => (
           <div key={q.id} className="border-navy/10 p-5 max-lg:border-b md:max-lg:odd:border-r lg:border-r lg:last:border-r-0">
-            <p className={`num text-xs font-medium ${q.id === 'H1' ? 'text-ember' : 'text-navy/50'}`}>{q.id}</p>
+            <p className={`num text-xs font-medium ${q.id === 'H1' ? 'font-semibold text-ink' : 'text-navy/70'}`}>{q.id}</p>
             <p className="mt-2 text-sm leading-relaxed text-ink">{q.text}</p>
           </div>
         ))}
@@ -62,13 +62,13 @@ export default function About() {
               {initials(m.name)}
             </span>
             <span className="text-sm font-medium text-ink">{m.name}</span>
-            <span className="ml-auto text-sm text-navy/60">{m.role}</span>
+            <span className="ml-auto text-sm text-navy/70">{m.role}</span>
           </li>
         ))}
         <li className="flex items-center gap-3.5 px-5 py-3.5">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-navy text-xs font-semibold text-ice">KR</span>
           <span className="text-sm font-medium text-ink">K. Radhika</span>
-          <span className="ml-auto text-sm text-navy/60">Guide</span>
+          <span className="ml-auto text-sm text-navy/70">Guide</span>
         </li>
       </motion.ul>
     </Page>

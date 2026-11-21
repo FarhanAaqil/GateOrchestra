@@ -1,6 +1,7 @@
 import { AnimatePresence, motion } from 'framer-motion'
 import {
   BarChart3,
+  Box,
   ChartPie,
   Coins,
   CreditCard,
@@ -19,7 +20,6 @@ import {
   ServerCog,
   Settings as SettingsIcon,
   X,
-  Zap,
 } from 'lucide-react'
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation, useNavigate } from 'react-router-dom'
@@ -149,7 +149,7 @@ function Sidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onTo
                     {({ isActive }) => (
                       <>
                         {isActive ? <span className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-ember" aria-hidden /> : null}
-                        <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-ink' : 'text-navy/55 group-hover:text-navy'}`} />
+                        <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-ink' : 'text-navy/70 group-hover:text-navy'}`} />
                         {!collapsed ? <span>{label}</span> : null}
                       </>
                     )}
@@ -198,7 +198,7 @@ function TokenPrompt() {
       <button type="submit" disabled={!token.trim()} className="btn btn-primary py-1.5!">
         Sign in
       </button>
-      <span className="w-full text-xs text-navy/60">Kept only in this browser tab.</span>
+      <span className="w-full text-xs text-navy/70">Kept only in this browser tab.</span>
     </form>
   )
 }
@@ -241,12 +241,13 @@ function AccountControls() {
   }
   const signOut = async () => {
     await authApi.logout().catch(() => undefined)
+    // Home (the product page) from anywhere, so an admin-only page's guard cannot race the redirect.
+    navigate('/', { replace: true })
     setUser(null)
-    navigate('/login')
   }
   return (
     <div className="flex items-center gap-2">
-      <span className="hidden max-w-[14rem] truncate text-xs text-navy/65 lg:inline" title={user.email}>{user.email}</span>
+      <span className="hidden max-w-[14rem] truncate text-xs text-navy/70 lg:inline" title={user.email}>{user.email}</span>
       <button onClick={signOut} className="btn btn-secondary py-1.5!" aria-label="Log out">
         <LogOut className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Log out</span>
       </button>
@@ -284,7 +285,7 @@ function LegalFooter() {
   if (!hosted) return null
   return (
     <footer className="border-t border-navy/10 px-4 md:px-8">
-      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-5 gap-y-1 py-5 text-xs text-navy/55">
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-5 gap-y-1 py-5 text-xs text-navy/70">
         <span>© GateOrchestra</span>
         <Link to="/terms" className="hover:text-ink">Terms</Link>
         <Link to="/privacy" className="hover:text-ink">Privacy</Link>
@@ -301,7 +302,7 @@ function StatusDot() {
   const label = backend === 'online' ? 'Backend online' : backend === 'error' ? 'Backend unreachable' : backend === 'locked' ? 'Sign in needed' : 'Connecting'
   const dot = backend === 'online' ? 'bg-cyan ring-2 ring-cyan/25' : backend === 'error' ? 'bg-wine' : 'bg-tangerine'
   return (
-    <span className="hidden items-center gap-1.5 text-xs text-navy/65 md:inline-flex" role="status">
+    <span className="hidden items-center gap-1.5 text-xs text-navy/70 md:inline-flex" role="status">
       <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
       {label}
     </span>
@@ -323,7 +324,7 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
         </button>
         <span className="text-sm font-medium text-ink">{title}</span>
         <span className="hidden h-4 w-px bg-navy/15 sm:block" aria-hidden />
-        <span className="hidden min-w-0 items-center gap-2 text-xs text-navy/60 sm:flex">
+        <span className="hidden min-w-0 items-center gap-2 text-xs text-navy/70 sm:flex">
           <span>{onChat ? 'Chat models' : 'Benchmark model'}</span>
           <span className="chip truncate" title={onChat ? 'The smaller model answers directly; the larger one writes answers after research' : 'The model used in the recorded benchmark'}>
             {onChat ? (chatModel ?? '—') : models ? `${models.default_model} · ${models.current_provider}` : '—'}
@@ -334,11 +335,11 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
           {has3D ? (
             <button
               onClick={() => setPerformanceMode(!performanceMode)}
-              aria-pressed={performanceMode}
-              className={`btn py-1.5! ${performanceMode ? 'btn-primary' : 'btn-secondary'}`}
-              title="Performance mode turns off the 3D scene"
+              aria-pressed={!performanceMode}
+              className={`btn py-1.5! ${performanceMode ? 'btn-secondary' : 'btn-primary'}`}
+              title="Show the pipeline as a 3D scene instead of the flat diagram"
             >
-              <Zap className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Performance</span>
+              <Box className="h-3.5 w-3.5" /> <span className="hidden sm:inline">3D view</span>
             </button>
           ) : null}
           <AccountControls />

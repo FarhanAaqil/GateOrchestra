@@ -37,7 +37,7 @@ function OwnKeys() {
 
   return (
     <Card tilt={false}>
-      <h2 className="flex items-center gap-2 text-lg font-semibold text-ink"><KeyRound className="h-4 w-4 text-navy/50" /> Your own API key</h2>
+      <h2 className="flex items-center gap-2 text-lg font-semibold text-ink"><KeyRound className="h-4 w-4 text-navy/70" /> Your own API key</h2>
       <p className="mt-1 text-sm text-navy/70">
         Optional. With your own Groq or Gemini key your chats run on your account with that provider and do not use up your
         plan's daily tokens. The key is checked with the provider, stored encrypted, and never shown again, not even to you.
@@ -49,14 +49,14 @@ function OwnKeys() {
             <li key={k.provider} className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-cyan" />
               <span className="font-semibold text-ink">{PROVIDER_LABEL[k.provider]}</span>
-              <span className="text-navy/60">added {new Date(k.added_at * 1000).toLocaleDateString()}</span>
+              <span className="text-navy/70">added {new Date(k.added_at * 1000).toLocaleDateString()}</span>
               <button onClick={() => remove(k.provider)} className="ml-auto inline-flex items-center gap-1 rounded-md border border-wine/40 px-2.5 py-0.5 text-xs text-wine hover:bg-wine/10" aria-label={`Remove your ${PROVIDER_LABEL[k.provider]} key`}>
                 <Trash2 className="h-3 w-3" /> Remove
               </button>
             </li>
           ))
         ) : (
-          <li className="text-navy/60">{keys.loading ? 'Loading…' : 'No key of your own: the service’s keys answer your chats.'}</li>
+          <li className="text-navy/70">{keys.loading ? 'Loading…' : 'No key of your own: the service’s keys answer your chats.'}</li>
         )}
       </ul>
       <form onSubmit={save} className="mt-4 grid gap-2 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
@@ -96,13 +96,13 @@ function Profile() {
   const plan = usage.data?.plan
   return (
     <Card tilt={false}>
-      <h2 className="flex items-center gap-2 text-lg font-semibold text-ink"><UserRound className="h-4 w-4 text-navy/50" /> Profile and plan</h2>
+      <h2 className="flex items-center gap-2 text-lg font-semibold text-ink"><UserRound className="h-4 w-4 text-navy/70" /> Profile and plan</h2>
       <dl className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
-        <dt className="text-navy/60">Email</dt>
+        <dt className="text-navy/70">Email</dt>
         <dd className="break-all text-ink">{user.email}{user.verified ? '' : ' (not confirmed yet)'}</dd>
-        <dt className="text-navy/60">Member since</dt>
+        <dt className="text-navy/70">Member since</dt>
         <dd className="text-ink">{new Date(user.created_at * 1000).toLocaleDateString()}</dd>
-        <dt className="text-navy/60">Plan</dt>
+        <dt className="text-navy/70">Plan</dt>
         <dd className="text-ink">
           {plan ? plan.label : '…'}
           {usage.data?.paid_until ? ` until ${new Date(usage.data.paid_until * 1000).toLocaleDateString()}` : ''}
@@ -113,7 +113,7 @@ function Profile() {
       <button onClick={download} className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-navy/15 px-3.5 py-1.5 text-sm text-navy hover:bg-navy/5">
         <Download className="h-4 w-4" /> Export my conversations
       </button>
-      <p className="mt-1 text-xs text-navy/60">A JSON file with your conversations, the names of your documents and your account details.</p>
+      <p className="mt-1 text-xs text-navy/70">A JSON file with your conversations, the names of your documents and your account details.</p>
       {error ? <p className="mt-2 text-sm text-wine" role="alert">{error}</p> : null}
     </Card>
   )
@@ -147,13 +147,13 @@ function ChangePassword() {
   }
   return (
     <Card tilt={false}>
-      <h2 className="flex items-center gap-2 text-lg font-semibold text-ink"><Lock className="h-4 w-4 text-navy/50" /> Password</h2>
+      <h2 className="flex items-center gap-2 text-lg font-semibold text-ink"><Lock className="h-4 w-4 text-navy/70" /> Password</h2>
       <form onSubmit={submit} className="mt-3 grid gap-2">
         <input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="Current password" aria-label="Current password" className={`${FIELD} text-sm`} />
         <input type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} placeholder={`New password (${MIN_PASSWORD}+ characters)`} aria-label="New password" className={`${FIELD} text-sm`} />
         <button type="submit" disabled={!current || !next || busy} className="justify-self-start rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-soft disabled:opacity-40">Change password</button>
       </form>
-      <p className="mt-1 text-xs text-navy/60">Your other browsers and devices are signed out; this one stays signed in.</p>
+      <p className="mt-1 text-xs text-navy/70">Your other browsers and devices are signed out; this one stays signed in.</p>
       {error ? <p className="mt-2 text-sm text-wine" role="alert">{error}</p> : null}
       {done ? <p className="mt-2 text-sm text-navy" role="status">Password changed.</p> : null}
     </Card>
@@ -207,7 +207,7 @@ export default function Settings() {
   const { user } = useApp()
   return (
     <Page>
-      <PageHeader number="10" kicker="Account" title={<>Your settings</>}>
+      <PageHeader kicker="Account" title="Your settings">
         Signed in as {user?.email}.
       </PageHeader>
       <div className="grid gap-4 lg:grid-cols-2">

@@ -12,7 +12,7 @@ GateOrchestra places a lightweight, trainable **gate** in front of a Multi-Agent
 - **STOP** → return the inexpensive CoT-SC probe answer (single agent), or
 - **ESCALATE** → invoke the full MAS orchestrator, capped at `k × probe_tokens`.
 
-**Research Goal:** ≥40% token savings vs. Always-MAS at ≤2 points accuracy cost, measured under equal token budgets (see the [Blueprint](Blueprint) hypotheses H1/RQ1–RQ3).
+**Research Goal:** ≥40% token savings vs. Always-MAS at ≤2 points accuracy cost, measured under equal token budgets (the hypotheses H1 and RQ1–RQ3 are set out in the [research report](reports/research_report.md)).
 
 **Outcome:** a negative result for the hypothesis. The gate saved 33% of tokens against Always-MAS on Qwen2.5-3B with higher accuracy (97.9% vs 92.2%), short of the 40% target, and only because MAS was not better than the probe at this scale, so the gate learned to stop. It is not measurably better than a one-line threshold or than never escalating. See [Results](#results).
 

@@ -11,9 +11,9 @@ import { useApi } from '../lib/useApi'
 function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
     <Card tilt={false}>
-      <p className="text-sm text-navy/60">{label}</p>
+      <p className="text-sm text-navy/70">{label}</p>
       <p className="num mt-2 text-[28px] font-medium leading-none text-ink">{value}</p>
-      {note ? <p className="mt-1 font-mono text-xs text-navy/60">{note}</p> : null}
+      {note ? <p className="mt-1 font-mono text-xs text-navy/70">{note}</p> : null}
     </Card>
   )
 }
@@ -38,7 +38,7 @@ function Shares({ title, data }: { title: string; data: Record<string, number> }
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-navy/60">No turns yet.</p>
+        <p className="text-sm text-navy/70">No turns yet.</p>
       )}
     </Card>
   )
@@ -68,7 +68,7 @@ function PeoplePanel() {
   return (
     <Card tilt={false} className="mt-4">
       <h2 className="mb-1 text-lg font-semibold text-ink">People and plans</h2>
-      <p className="mb-3 text-xs text-navy/60">
+      <p className="mb-3 text-xs text-navy/70">
         When a payment arrives, find the person by the email on the payment and give them Pro. Paying again extends from the end
         of the current period; when it ends they are on Free again automatically.
       </p>
@@ -82,9 +82,9 @@ function PeoplePanel() {
       </form>
       {error ? <ErrorNote message={error} /> : null}
       {users ? (
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Recent turns">
           <table className="w-full min-w-[640px] font-mono text-xs">
-            <thead className="text-navy/60">
+            <thead className="text-navy/70">
               <tr><th className="text-left font-normal">Email</th><th className="text-left font-normal">Plan</th><th className="text-left font-normal">Paid until</th><th className="text-right font-normal">Today</th><th className="text-right font-normal" /></tr>
             </thead>
             <tbody>
@@ -102,7 +102,7 @@ function PeoplePanel() {
               ))}
             </tbody>
           </table>
-          {!users.length ? <p className="py-2 text-sm text-navy/60">Nobody matches.</p> : null}
+          {!users.length ? <p className="py-2 text-sm text-navy/70">Nobody matches.</p> : null}
         </div>
       ) : null}
     </Card>
@@ -134,7 +134,7 @@ export default function Admin() {
   const s = stats.data
   return (
     <Page>
-      <PageHeader number="09" kicker="Operations" title={<>The admin view</>}>
+      <PageHeader kicker="Operations" title="The admin view">
         Usage, cost and health of the chat assistant over the last 24 hours, with the state of every provider key. Keys are
         only ever shown by their last four characters.
       </PageHeader>
@@ -172,7 +172,7 @@ export default function Admin() {
           <h2 className="mb-3 text-lg font-semibold text-ink">Providers and keys</h2>
           {status.data ? (
             <>
-              <p className="mb-2 text-xs text-navy/60">Order tried: {status.data.providers.join(' → ')}</p>
+              <p className="mb-2 text-xs text-navy/70">Order tried: {status.data.providers.join(' → ')}</p>
               <ul className="space-y-1.5 font-mono text-xs">
                 {Object.entries(status.data.keys).flatMap(([provider, keys]) =>
                   keys.length
@@ -181,21 +181,21 @@ export default function Admin() {
                           <span className={`h-2 w-2 rounded-full ${k.usable ? 'bg-cyan' : k.invalid ? 'bg-wine' : 'bg-tangerine'}`} />
                           <span className="font-semibold text-ink">{provider}</span>
                           <span className="text-navy">{k.key}</span>
-                          <span className="text-navy/60">{k.usable ? 'ready' : k.invalid ? 'rejected' : `cooling ${k.cooldown_seconds}s`} · {k.uses} calls</span>
+                          <span className="text-navy/70">{k.usable ? 'ready' : k.invalid ? 'rejected' : `cooling ${k.cooldown_seconds}s`} · {k.uses} calls</span>
                         </li>
                       ))
-                    : [<li key={provider} className="text-navy/50">{provider}: no key</li>],
+                    : [<li key={provider} className="text-navy/70">{provider}: no key</li>],
                 )}
               </ul>
               <h3 className="mt-4 mb-1 text-sm font-semibold text-navy">Models by role</h3>
               <ul className="grid grid-cols-2 gap-x-3 font-mono text-[11px] text-navy/80">
                 {Object.entries(status.data.models).map(([role, model]) => (
-                  <li key={role} className="truncate" title={model}><span className="text-navy/50">{role}</span> {model}</li>
+                  <li key={role} className="truncate" title={model}><span className="text-navy/70">{role}</span> {model}</li>
                 ))}
               </ul>
             </>
           ) : (
-            <p className="text-sm text-navy/60">{status.error ?? 'Loading…'}</p>
+            <p className="text-sm text-navy/70">{status.error ?? 'Loading…'}</p>
           )}
         </Card>
 
@@ -203,7 +203,7 @@ export default function Admin() {
           <h2 className="mb-3 text-lg font-semibold text-ink">Gates</h2>
           {gates.data ? (
             <table className="w-full font-mono text-xs">
-              <thead className="text-navy/60">
+              <thead className="text-navy/70">
                 <tr><th className="text-left font-normal">Gate</th><th className="text-right font-normal">≈ tokens</th><th className="text-right font-normal">accuracy</th><th className="text-right font-normal">ratings</th></tr>
               </thead>
               <tbody>
@@ -218,7 +218,7 @@ export default function Admin() {
               </tbody>
             </table>
           ) : (
-            <p className="text-sm text-navy/60">{gates.error ?? 'Loading…'}</p>
+            <p className="text-sm text-navy/70">{gates.error ?? 'Loading…'}</p>
           )}
         </Card>
       </div>
@@ -226,9 +226,9 @@ export default function Admin() {
       {s?.recent.length ? (
         <Card tilt={false} className="mt-4">
           <h2 className="mb-3 text-lg font-semibold text-ink">Recent turns</h2>
-          <div className="overflow-x-auto">
+          <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="People and plans">
             <table className="w-full min-w-[560px] font-mono text-xs">
-              <thead className="text-navy/60">
+              <thead className="text-navy/70">
                 <tr><th className="text-left font-normal">When</th><th className="text-left font-normal">Type</th><th className="text-left font-normal">Gate</th><th className="text-left font-normal">Decision</th><th className="text-right font-normal">Tokens</th><th className="text-right font-normal">Time</th></tr>
               </thead>
               <tbody>

@@ -2,6 +2,7 @@
 // API running the offline mock provider (no model calls, no keys).
 //   CHROME_PATH=/usr/bin/google-chrome BASE_URL=http://localhost:4173 node e2e/smoke.mjs
 import puppeteer from 'puppeteer-core'
+import { axeProblems } from './a11y.mjs'
 
 const BASE = process.env.BASE_URL ?? 'http://localhost:4173'
 const browser = await puppeteer.launch({
@@ -74,6 +75,14 @@ try {
   await check('the admin page counts the turn', async () => {
     await page.goto(`${BASE}/admin`, { waitUntil: 'networkidle0' })
     await page.waitForFunction(() => /Chat turns\s*[1-9]/.test(document.body.innerText), { timeout: 15000 })
+  })
+
+  await check('operator pages are accessible', async () => {
+    for (const path of ['/chat', '/admin', '/run', '/tokens']) {
+      await page.goto(`${BASE}${path}`, { waitUntil: 'networkidle0' })
+      const problems = await axeProblems(page)
+      if (problems.length) throw new Error(`${path}: ${problems.join(' | ')}`)
+    }
   })
 
   if (errors.length) {

@@ -21,7 +21,7 @@ export default function Baselines() {
 
   return (
     <Page>
-      <PageHeader number="05" kicker="Baselines" title={<>Five methods, one paired benchmark</>}>
+      <PageHeader kicker="Baselines" title="Five methods, one paired benchmark">
         Every method answers the same test tasks with the same probe, under the same k × probe-token budget. Error bars are pooled
         95% Wilson intervals.
       </PageHeader>
@@ -31,7 +31,7 @@ export default function Baselines() {
           <Card key={method} navy={method === 'GateOrchestra'}>
             <span className="block h-2 w-10 rounded-full" style={{ background: METHOD_COLORS[method] }} />
             <p className={`mt-3 font-semibold ${method === 'GateOrchestra' ? 'text-ice' : 'text-ink'}`}>{METHOD_LABELS[method]}</p>
-            <p className={`mt-1 text-xs ${method === 'GateOrchestra' ? 'text-sky' : 'text-navy/65'}`}>{text}</p>
+            <p className={`mt-1 text-xs ${method === 'GateOrchestra' ? 'text-sky' : 'text-navy/70'}`}>{text}</p>
           </Card>
         ))}
       </div>
@@ -44,18 +44,19 @@ export default function Baselines() {
         <>
           <div className="grid gap-4 lg:grid-cols-2">
             <Card tilt={false}>
-              <h2 className="mb-2 text-xl font-semibold text-ink">Accuracy (95% Wilson CI)</h2>
+              <h2 className="mb-2 text-lg font-semibold text-ink">Accuracy (95% Wilson CI)</h2>
               <AccuracyChart rows={rows} />
             </Card>
             <Card tilt={false}>
-              <h2 className="mb-2 text-xl font-semibold text-ink">Average tokens per task</h2>
+              <h2 className="mb-2 text-lg font-semibold text-ink">Average tokens per task</h2>
               <TokensChart rows={rows} />
             </Card>
           </div>
 
-          <Card tilt={false} className="mt-4 overflow-x-auto">
+          <Card tilt={false} className="mt-4">
+            <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Methods compared">
             <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="text-left text-xs font-medium text-navy/60">
+              <thead className="text-left text-xs font-medium text-navy/70">
                 <tr>
                   <th className="py-2">Method</th>
                   <th>Accuracy</th>
@@ -69,28 +70,29 @@ export default function Baselines() {
                 {rows.map((r) => (
                   <tr key={r.method} className={`border-t border-navy/10 ${r.method === 'GateOrchestra' ? 'bg-ember/[0.06]' : ''}`}>
                     <td className="py-3 font-semibold text-ink">{METHOD_LABELS[r.method]}</td>
-                    <td className="font-mono">{pct(r.accuracy_mean)}</td>
-                    <td className="font-mono text-navy/60">
+                    <td className="num">{pct(r.accuracy_mean)}</td>
+                    <td className="num text-navy/70">
                       {r.accuracy_pooled_ci95 ? `${r.accuracy_pooled_ci95[0].toFixed(1)}–${r.accuracy_pooled_ci95[1].toFixed(1)}%` : '—'}
                     </td>
-                    <td className="font-mono text-tangerine">{num(r.avg_tokens_mean)}</td>
-                    <td className="font-mono">{pct(r.token_savings_pct_mean)}</td>
-                    <td className="font-mono">{r.escalate_rate_mean != null ? pct(r.escalate_rate_mean * 100) : '—'}</td>
+                    <td className="num text-ink">{num(r.avg_tokens_mean)}</td>
+                    <td className="num">{pct(r.token_savings_pct_mean)}</td>
+                    <td className="num">{r.escalate_rate_mean != null ? pct(r.escalate_rate_mean * 100) : '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
+            </div>
           </Card>
 
           {tests.length ? (
             <Card tilt={false} className="mt-4">
-              <h2 className="text-xl font-semibold text-ink">Paired McNemar tests</h2>
-              <p className="mb-3 text-xs text-navy/60">Seeds share test tasks, so pooled p-values are optimistic.</p>
+              <h2 className="text-lg font-semibold text-ink">Paired McNemar tests</h2>
+              <p className="mb-3 text-xs text-navy/70">Seeds share test tasks, so pooled p-values are optimistic.</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {tests.map((t) => (
                   <div key={`${t.method}-${t.reference}`} className="rounded-lg border border-navy/15 bg-ice px-3 py-2 font-mono text-xs text-ink">
                     {t.method} vs {t.reference}: {t.method_only_correct}–{t.reference_only_correct} discordant,{' '}
-                    <span className={`rounded-lg px-1.5 ${t.p_value < 0.05 ? 'bg-navy text-cyan' : 'text-navy/60'}`}>p = {t.p_value.toFixed(3)}</span>
+                    <span className={t.p_value < 0.05 ? 'font-semibold text-ink' : 'text-navy/70'}>p = {t.p_value.toFixed(3)}</span>
                   </div>
                 ))}
               </div>
