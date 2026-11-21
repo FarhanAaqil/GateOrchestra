@@ -88,6 +88,8 @@ class _SubAgentBase:
         self.llm_caller = llm_caller
         # Steps taken by the most recent run(): step name, output, tokens.
         self.last_trace: list[dict] = []
+        # Full text of the latest reasoning step (the trace keeps only a preview).
+        self.last_full_output: str = ""
 
     def _call(self, prompt: str, budget: int, step: str = "call") -> tuple[str, int]:
         try:
@@ -108,6 +110,8 @@ class _SubAgentBase:
         self.last_trace.append(
             {"step": step, "output": response[:TRACE_OUTPUT_CHARS], "tokens": tokens}
         )
+        if step != "concise" and response.strip():
+            self.last_full_output = response
         return response, tokens
 
     def _budgeted_call(

@@ -355,3 +355,35 @@ def test_large_responses_are_gzipped(client: TestClient) -> None:
     response = client.get("/tasks?split=train&limit=100", headers={"Accept-Encoding": "gzip"})
     assert response.status_code == 200
     assert response.headers.get("content-encoding") == "gzip"
+
+
+def test_gate_candidates_follow_the_run_tag(monkeypatch: pytest.MonkeyPatch, tmp_path) -> None:
+    tagged = tmp_path / "groq-model"
+    tagged.mkdir()
+    (tagged / "best_gate_seed_42.pkl").write_bytes(b"x")
+    (tmp_path / "best_gate_seed_42.pkl").write_bytes(b"x")
+    monkeypatch.setattr(api_main, "MODELS_DIR", tmp_path)
+    monkeypatch.setattr(api_main, "FINAL_MODELS_DIR", tagged)
+    monkeypatch.setattr(api_main, "RUN_TAG", "groq-model")
+    assert api_main._gate_model_candidates() == [tagged / "best_gate_seed_42.pkl"]
+    monkeypatch.setattr(api_main, "RUN_TAG", "")
+    assert tmp_path / "best_gate_seed_42.pkl" in api_main._gate_model_candidates()
+
+
+def test_full_response_prefers_the_agent_team_then_the_agreeing_probe_sample() -> None:
+    from shared.schemas import ProbeResult as _Probe
+
+    probe = _Probe(
+        task_id="t",
+        answer="4",
+        consistency_score=2 / 3,
+        tokens_used=30,
+        raw_outputs=["Error: timeout", "Working it out... Final Answer: 4", "No response"],
+    )
+    assert api_main._full_response(None, 0, probe) == "Working it out... Final Answer: 4"
+
+    class _Mas:
+        _last_full_output = "A long proof. Final Answer: 2^-100"
+
+    assert api_main._full_response(_Mas(), 500, probe) == _Mas._last_full_output
+    assert api_main._full_response(_Mas(), 0, None) is None

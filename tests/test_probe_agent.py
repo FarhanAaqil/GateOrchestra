@@ -11,6 +11,7 @@ from typing import Any, cast
 import pytest
 
 from agents.probe_agent import (
+    NO_PROBE_ANSWER,
     ProbeAgent,
     ProbeError,
     build_cot_prompt,
@@ -161,6 +162,14 @@ class TestProbeAgentExecution:
         agent = ProbeAgent(n_samples=3, llm_caller=failing_caller)
         with pytest.raises(ProbeError, match="Network timeout"):
             agent.run(task)
+
+    def test_all_empty_samples_mean_zero_agreement_not_an_error(self):
+        task = Task(task_id="t_empty", question="A very hard question")
+        agent = ProbeAgent(n_samples=3, llm_caller=lambda p, t, m: ("", 800))
+        result = agent.run(task)
+        assert result.consistency_score == 0.0
+        assert result.answer == NO_PROBE_ANSWER
+        assert result.tokens_used == 2400
 
     def test_failed_samples_lower_consistency_instead_of_voting(self):
         task = Task(task_id="t_partial", question="What is 2 + 2?")

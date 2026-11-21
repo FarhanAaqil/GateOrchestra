@@ -102,6 +102,7 @@ class MASOrchestrator:
         self._last_strategy: str | None = None
         # Sub-agent steps of the most recent run() call (see sub_agents.py).
         self._last_trace: list[dict] = []
+        self._last_full_output: str = ""
         # When False, update_bandit_reward() is ignored (e.g. on the test split).
         self.learning = True
         # Restate MAS answers concisely (GATE_MAS_CONCISE=1); off by default.
@@ -200,10 +201,12 @@ class MASOrchestrator:
         else:
             agent = self.reflexion_agent
         self._last_trace = []
+        agent.last_full_output = ""
         try:
             ans, tokens = agent.run(task, token_budget)
         finally:
             self._last_trace = list(agent.last_trace)
+            self._last_full_output = agent.last_full_output
 
         if tokens > token_budget:
             logger.warning(

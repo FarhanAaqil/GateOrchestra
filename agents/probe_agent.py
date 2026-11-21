@@ -136,6 +136,10 @@ def build_cot_prompt(task: Task) -> str:
     return "\n\n".join(parts)
 
 
+NO_PROBE_ANSWER = "[no answer within the probe budget]"
+"""Probe answer when every sample came back empty; its agreement is 0."""
+
+
 class ProbeError(RuntimeError):
     """Raised when no probe sample produced a usable response."""
 
@@ -235,7 +239,7 @@ class ProbeAgent:
             try:
                 response_text, tokens = self._call(prompt, sample_budget)
             except Exception as err:
-                logger.error(f"[ProbeAgent] Sample {i+1}/{self.n_samples} failed: {err}")
+                logger.error(f"[ProbeAgent] Sample {i + 1}/{self.n_samples} failed: {err}")
                 failures.append(f"{type(err).__name__}: {err}")
                 raw_outputs.append(f"Error: {type(err).__name__}: {err}")
                 continue
@@ -249,19 +253,24 @@ class ProbeAgent:
 
             if self.early_exit and self._majority_locked(extracted_answers):
                 logger.debug(
-                    f"[ProbeAgent] Early exit after {i+1}/{self.n_samples} samples: "
+                    f"[ProbeAgent] Early exit after {i + 1}/{self.n_samples} samples: "
                     "majority can no longer change"
                 )
                 break
 
-        if not extracted_answers:
+        if len(failures) == len(raw_outputs):
             raise ProbeError(
                 f"All {len(raw_outputs)} probe samples failed for task_id={task.task_id!r}: "
-                f"{failures[-1] if failures else 'empty responses'}"
+                f"{failures[-1]}"
             )
 
         # Failed or empty samples count against agreement (denominator = samples drawn).
-        majority_answer, agreeing = self._majority_cluster(extracted_answers)
+        # Samples that all came back empty (a reasoning model that used its whole budget
+        # thinking) are not an error: they mean zero agreement, which the gate can act on.
+        if extracted_answers:
+            majority_answer, agreeing = self._majority_cluster(extracted_answers)
+        else:
+            majority_answer, agreeing = NO_PROBE_ANSWER, 0
         consistency_score = agreeing / len(raw_outputs)
 
         latency_ms = (time.perf_counter() - start_time) * 1000.0
