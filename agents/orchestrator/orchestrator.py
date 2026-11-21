@@ -16,19 +16,41 @@ the returned token count is the true spend (see sub_agents.py).
 from __future__ import annotations
 
 import logging
+import os
 import re
 from collections.abc import Callable
 from pathlib import Path
+from typing import Any
 
 from agents.orchestrator.bandit_router import LinUCBRouter
 from agents.orchestrator.sub_agents import (
     DebateAgent,
     ReActAgent,
     ReflexionAgent,
+    SubAgentError,
 )
 from gate.feature_extractor import estimate_task_structure
 from shared.config import ACTIVE_MODEL_NAME, FINAL_MODELS_DIR, MAS_ROUTER, MODELS_DIR
 from shared.schemas import Task
+
+# Room for a reasoning model's hidden reasoning as well as the short answer itself.
+CONCISE_MAX_TOKENS = 400
+
+
+def _answer_line(reply: str) -> str:
+    """The answer in a short reply: of its first and last lines, the shorter one.
+
+    Models sometimes put the answer first and add a remark ("Paris" / "It is in France"),
+    and sometimes restate their reasoning first and end with the answer; answers are short
+    either way. An "Answer:" label and bold markers are removed.
+    """
+    lines = [line.strip() for line in (reply or "").splitlines() if line.strip()]
+    if not lines:
+        return ""
+    best = min({lines[0], lines[-1]}, key=len).strip("*_` ")
+    best = re.sub(r"^(?:final\s+)?answer\s*[:\-]\s*[*_`]*\s*", "", best, flags=re.IGNORECASE)
+    return best.strip().strip("*_` ").strip()
+
 
 logger = logging.getLogger(__name__)
 
@@ -82,6 +104,13 @@ class MASOrchestrator:
         self._last_trace: list[dict] = []
         # When False, update_bandit_reward() is ignored (e.g. on the test split).
         self.learning = True
+        # Restate MAS answers concisely (GATE_MAS_CONCISE=1); off by default.
+        self.concise = os.getenv("GATE_MAS_CONCISE", "0").strip().lower() in {
+            "1",
+            "true",
+            "yes",
+            "on",
+        }
 
         # Sub-agent pool
         self.react_agent = ReActAgent(
@@ -182,7 +211,29 @@ class MASOrchestrator:
                 f"over its budget of {token_budget}"
             )
         safe_ans = ans.strip() if ans and ans.strip() else "Unknown"
+        if self.concise and safe_ans != "Unknown":
+            safe_ans, extra = self._concise(agent, task, safe_ans)
+            tokens += extra
         return safe_ans, tokens
+
+    def _concise(self, agent: Any, task: Task, answer: str) -> tuple[str, int]:
+        """One short extra call: restate the answer as just the answer (counts towards MAS tokens).
+
+        The strict grader rejects a right answer wrapped in a sentence, which hurt MAS more
+        than CoT-SC in the benchmark (report section 9). Off unless GATE_MAS_CONCISE=1, so
+        the recorded benchmark reproduces unchanged.
+        """
+        prompt = (
+            f"Question: {task.question}\n"
+            f"Draft answer: {answer}\n\n"
+            "Reply with only the final answer to the question, as briefly as possible: a number "
+            "(with its unit if the question needs one), a name or a short phrase. No explanation."
+        )
+        try:
+            short, used = agent._call(prompt, CONCISE_MAX_TOKENS, step="concise")
+        except SubAgentError:
+            return answer, 0  # keep the full answer rather than fail the task
+        return (_answer_line(short) or answer), used
 
     def update_bandit_reward(
         self, task: Task, chosen_strategy: str, is_correct: bool, tokens_spent: int, budget: int

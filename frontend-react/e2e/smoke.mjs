@@ -82,10 +82,14 @@ try {
     await page.keyboard.up('Control')
     await page.type('textarea[aria-label="Edit your question"]', 'An edited question')
     await page.keyboard.press('Enter')
-    await page.waitForFunction(() => document.body.innerText.includes('An edited question'), { timeout: 20000 })
-    await page.waitForFunction(() => !document.querySelector('button[aria-label="Stop"]'), { timeout: 20000 })
-    const answers = await page.$$eval('button[aria-label="Copy answer"]', (els) => els.length)
-    if (answers !== 1) throw new Error(`expected 1 answer after editing, found ${answers}`)
+    // Wait for the new answer itself, not just the edited question (which shows at once).
+    await page.waitForFunction(
+      () =>
+        document.body.innerText.includes('An edited question') &&
+        !document.querySelector('button[aria-label="Stop"]') &&
+        document.querySelectorAll('button[aria-label="Copy answer"]').length === 1,
+      { timeout: 20000 },
+    )
     if ((await page.evaluate(() => document.body.innerText)).includes('What is the answer to everything?')) throw new Error('the old question is still shown')
   })
 

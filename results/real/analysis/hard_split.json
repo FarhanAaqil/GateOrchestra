@@ -1,0 +1,152 @@
+{
+  "model": "openai/gpt-oss-120b",
+  "n_tasks": 48,
+  "n_scored": 48,
+  "regraded_verdicts": 3,
+  "methods": {
+    "CoT-SC only": {
+      "n": 48,
+      "accuracy": 95.8,
+      "accuracy_ci95": [
+        86.0,
+        98.8
+      ],
+      "avg_tokens": 1332.3,
+      "escalation_rate": 0.0
+    },
+    "Always-MAS": {
+      "n": 48,
+      "accuracy": 91.7,
+      "accuracy_ci95": [
+        80.4,
+        96.7
+      ],
+      "avg_tokens": 2787.7,
+      "escalation_rate": 100.0
+    },
+    "Always-MAS + concise answer": {
+      "n": 48,
+      "accuracy": 97.9,
+      "accuracy_ci95": [
+        89.1,
+        99.6
+      ],
+      "avg_tokens": 3042.2,
+      "escalation_rate": 100.0
+    },
+    "GateOrchestra (learned gate)": {
+      "n": 48,
+      "accuracy": 95.8,
+      "accuracy_ci95": [
+        86.0,
+        98.8
+      ],
+      "avg_tokens": 1438.7,
+      "escalation_rate": 2.1
+    },
+    "GateOrchestra + concise answer": {
+      "n": 48,
+      "accuracy": 95.8,
+      "accuracy_ci95": [
+        86.0,
+        98.8
+      ],
+      "avg_tokens": 1445.2,
+      "escalation_rate": 2.1
+    },
+    "Threshold t=2/3": {
+      "n": 48,
+      "accuracy": 97.9,
+      "accuracy_ci95": [
+        89.1,
+        99.6
+      ],
+      "avg_tokens": 1698.3,
+      "escalation_rate": 8.3
+    },
+    "Threshold t=1": {
+      "n": 48,
+      "accuracy": 95.8,
+      "accuracy_ci95": [
+        86.0,
+        98.8
+      ],
+      "avg_tokens": 1824.5,
+      "escalation_rate": 12.5
+    },
+    "Oracle": {
+      "n": 48,
+      "accuracy": 97.9,
+      "accuracy_ci95": [
+        89.1,
+        99.6
+      ],
+      "avg_tokens": 1409.8,
+      "escalation_rate": 2.1
+    }
+  },
+  "paired_tests": [
+    {
+      "a": "Always-MAS",
+      "b": "CoT-SC only",
+      "a_only_correct": 1,
+      "b_only_correct": 3,
+      "p_value": 0.625
+    },
+    {
+      "a": "Always-MAS + concise answer",
+      "b": "Always-MAS",
+      "a_only_correct": 3,
+      "b_only_correct": 0,
+      "p_value": 0.25
+    },
+    {
+      "a": "GateOrchestra (learned gate)",
+      "b": "CoT-SC only",
+      "a_only_correct": 0,
+      "b_only_correct": 0,
+      "p_value": 1.0
+    },
+    {
+      "a": "GateOrchestra (learned gate)",
+      "b": "Threshold t=1",
+      "a_only_correct": 1,
+      "b_only_correct": 1,
+      "p_value": 1.0
+    }
+  ],
+  "by_source": {
+    "hard_arith": {
+      "n": 16,
+      "cot": 93.8,
+      "mas": 93.8,
+      "mas_concise": 93.8,
+      "mas_helps": 0,
+      "mas_hurts": 0
+    },
+    "hard_dates": {
+      "n": 8,
+      "cot": 87.5,
+      "mas": 100.0,
+      "mas_concise": 100.0,
+      "mas_helps": 1,
+      "mas_hurts": 0
+    },
+    "hard_logic": {
+      "n": 8,
+      "cot": 100.0,
+      "mas": 100.0,
+      "mas_concise": 100.0,
+      "mas_helps": 0,
+      "mas_hurts": 0
+    },
+    "hard_multihop": {
+      "n": 16,
+      "cot": 100.0,
+      "mas": 81.2,
+      "mas_concise": 100.0,
+      "mas_helps": 0,
+      "mas_hurts": 3
+    }
+  }
+}

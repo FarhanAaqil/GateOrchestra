@@ -268,7 +268,20 @@ def chat_gate_cv(pairs: list[dict[str, Any]]) -> dict[str, Any]:
     return result
 
 
+def regrade(rows: list[dict[str, Any]]) -> int:
+    """Grade every stored answer again with the current grader; returns how many changed."""
+    questions = {q["id"]: q for q in load_questions()}
+    changed = 0
+    for row in rows:
+        if "answer" in row and row["id"] in questions:
+            verdict = grade(row["answer"], questions[row["id"]])
+            changed += verdict != row.get("correct")
+            row["correct"] = verdict
+    return changed
+
+
 def analyze(rows: list[dict[str, Any]]) -> dict[str, Any]:
+    regraded = regrade(rows)
     pairs = paired_rows(rows)
     succeeded = {(r["id"], r["mode"]) for r in rows if "error" not in r}
     errors = [r for r in rows if "error" in r and (r["id"], r["mode"]) not in succeeded]
@@ -317,6 +330,7 @@ def analyze(rows: list[dict[str, Any]]) -> dict[str, Any]:
         m.pop("_correct", None)
     return {
         "questions": len(load_questions()),
+        "regraded_verdicts": regraded,
         "paired": len(pairs),
         "failed_turns": len(errors),
         "methods": methods,
@@ -421,6 +435,8 @@ def write_report(summary: dict[str, Any]) -> str:
 
 
 def main(argv: list[str] | None = None) -> int:
+    # Model output can hold any character; a Windows console must not crash on one.
+    sys.stdout.reconfigure(errors="backslashreplace")  # type: ignore[attr-defined]
     parser = argparse.ArgumentParser(description=__doc__.split("\n\n")[0])
     parser.add_argument("step", choices=["run", "analyze"])
     parser.add_argument("--limit", type=int, help="run at most this many turns (a trial)")

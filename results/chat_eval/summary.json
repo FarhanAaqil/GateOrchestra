@@ -1,5 +1,6 @@
 {
   "questions": 80,
+  "regraded_verdicts": 0,
   "paired": 80,
   "failed_turns": 0,
   "methods": {

@@ -173,6 +173,10 @@ def make_handler(docker: Any, token: str) -> type[BaseHTTPRequestHandler]:
             self._reply(200, {"ok": ok, "why": why})
 
         def do_POST(self) -> None:  # noqa: N802
+            # Read the (bounded) body before any reply, so the client always receives the
+            # answer instead of a connection reset part-way through its upload.
+            length = int(self.headers.get("Content-Length") or 0)
+            body = self.rfile.read(min(max(length, 0), 1_000_000))
             if self.path != "/run":
                 self._reply(404, {"error": "not found"})
                 return
@@ -180,15 +184,11 @@ def make_handler(docker: Any, token: str) -> type[BaseHTTPRequestHandler]:
             if not token or not supplied or not hmac.compare_digest(supplied, token):
                 self._reply(401, {"error": "unauthorised"})
                 return
-            length = int(self.headers.get("Content-Length") or 0)
             if length <= 0 or length > MAX_CODE + 1000:
-                # Read (and drop) what the client sends, up to 1 MB, so it receives the answer
-                # instead of a reset connection.
-                self.rfile.read(min(max(length, 0), 1_000_000))
                 self._reply(413, {"error": "the code is too long"})
                 return
             try:
-                code = str(json.loads(self.rfile.read(length)).get("code", ""))
+                code = str(json.loads(body).get("code", ""))
             except (ValueError, AttributeError):
                 self._reply(400, {"error": "expected JSON with a code field"})
                 return

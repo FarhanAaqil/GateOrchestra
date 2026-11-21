@@ -1,0 +1,96 @@
+{"task_id": "arith_004", "mas_answer": "$5.00", "mas_tokens": 2191, "recorded_correct": true, "concise_answer": "$5.00", "concise_extra_tokens": 202}
+{"task_id": "arith_008", "mas_answer": "30 cm²", "mas_tokens": 2483, "recorded_correct": true, "concise_answer": "30 cm²", "concise_extra_tokens": 274}
+{"task_id": "arith_013", "mas_answer": "–5 °C = **23 °F", "mas_tokens": 2825, "recorded_correct": true, "concise_answer": "23 °F", "concise_extra_tokens": 200}
+{"task_id": "arith_016", "mas_answer": "25%", "mas_tokens": 2852, "recorded_correct": true, "concise_answer": "25%", "concise_extra_tokens": 195}
+{"task_id": "arith_029", "mas_answer": "75 mL", "mas_tokens": 2430, "recorded_correct": true, "concise_answer": "75 mL", "concise_extra_tokens": 190}
+{"task_id": "arith_037", "mas_answer": "24 kWh", "mas_tokens": 2874, "recorded_correct": true, "concise_answer": "24 kWh", "concise_extra_tokens": 220}
+{"task_id": "arith_039", "mas_answer": "\\$14,450", "mas_tokens": 3718, "recorded_correct": true, "concise_answer": "\\$14,450", "concise_extra_tokens": 222}
+{"task_id": "arith_040", "mas_answer": "4.5 × 10⁻⁴", "mas_tokens": 952, "recorded_correct": false, "concise_answer": "4.5 × 10⁻⁴", "concise_extra_tokens": 200}
+{"task_id": "arith_041", "mas_answer": "$27.25", "mas_tokens": 2024, "recorded_correct": true, "concise_answer": "$27.25", "concise_extra_tokens": 241}
+{"task_id": "arith_042", "mas_answer": "198 cm²", "mas_tokens": 2563, "recorded_correct": true, "concise_answer": "198 cm²", "concise_extra_tokens": 188}
+{"task_id": "arith_043", "mas_answer": "63 cm²", "mas_tokens": 2407, "recorded_correct": true, "concise_answer": "63 cm²", "concise_extra_tokens": 211}
+{"task_id": "arith_044", "mas_answer": "\\$78", "mas_tokens": 1877, "recorded_correct": true, "concise_answer": "$78", "concise_extra_tokens": 188}
+{"task_id": "arith_045", "mas_answer": "8000", "mas_tokens": 2826, "recorded_correct": true, "concise_answer": "8000 bacteria", "concise_extra_tokens": 213}
+{"task_id": "arith_046", "mas_answer": "18 km/h", "mas_tokens": 2874, "recorded_correct": true, "concise_answer": "18 km/h", "concise_extra_tokens": 187}
+{"task_id": "arith_047", "mas_answer": "12600", "mas_tokens": 2009, "recorded_correct": true, "concise_answer": "12600 seconds", "concise_extra_tokens": 185}
+{"task_id": "arith_048", "mas_answer": "The simple interest on \\$2,500 at 6 % per year for 4 years is **\\$600**. (Total amount after 4 years = \\$2,500 + \\$600 = \\$3,100.)", "mas_tokens": 3045, "recorded_correct": false, "concise_answer": "$600​", "concise_extra_tokens": 243}
+{"task_id": "arith_049", "mas_answer": "78", "mas_tokens": 1926, "recorded_correct": true, "concise_answer": "78", "concise_extra_tokens": 217}
+{"task_id": "arith_050", "mas_answer": "450 g of flour", "mas_tokens": 2519, "recorded_correct": true, "concise_answer": "450 g", "concise_extra_tokens": 198}
+{"task_id": "arith_051", "mas_answer": "95 °F", "mas_tokens": 2921, "recorded_correct": true, "concise_answer": "95 °F", "concise_extra_tokens": 194}
+{"task_id": "arith_052", "mas_answer": "3600 pages", "mas_tokens": 2194, "recorded_correct": true, "concise_answer": "3600 pages", "concise_extra_tokens": 204}
+{"task_id": "arith_053", "mas_answer": "$37.00", "mas_tokens": 2066, "recorded_correct": true, "concise_answer": "$37.00", "concise_extra_tokens": 210}
+{"task_id": "arith_054", "mas_answer": "46,000", "mas_tokens": 2585, "recorded_correct": true, "concise_answer": "46,000 people", "concise_extra_tokens": 182}
+{"task_id": "arith_055", "mas_answer": "270 km", "mas_tokens": 2701, "recorded_correct": true, "concise_answer": "270 km", "concise_extra_tokens": 215}
+{"task_id": "arith_056", "mas_answer": "<480 cm³>", "mas_tokens": 2517, "recorded_correct": true, "concise_answer": "480 cm³", "concise_extra_tokens": 175}
+{"task_id": "arith_057", "mas_answer": "$5,832", "mas_tokens": 3156, "recorded_correct": true, "concise_answer": "$5,832", "concise_extra_tokens": 196}
+{"task_id": "arith_058", "mas_answer": "2 hours", "mas_tokens": 3129, "recorded_correct": true, "concise_answer": "2 hours", "concise_extra_tokens": 233}
+{"task_id": "arith_059", "mas_answer": "25", "mas_tokens": 2495, "recorded_correct": true, "concise_answer": "25", "concise_extra_tokens": 208}
+{"task_id": "arith_060", "mas_answer": "\\$16.00", "mas_tokens": 2571, "recorded_correct": true, "concise_answer": "$16.00", "concise_extra_tokens": 233}
+{"task_id": "bridge_002", "mas_answer": "South Korea", "mas_tokens": 874, "recorded_correct": true, "concise_answer": "South Korea", "concise_extra_tokens": 182}
+{"task_id": "bridge_009", "mas_answer": "Euro", "mas_tokens": 1320, "recorded_correct": true, "concise_answer": "Euro", "concise_extra_tokens": 181}
+{"task_id": "bridge_011", "mas_answer": "Spanish", "mas_tokens": 901, "recorded_correct": true, "concise_answer": "Spanish", "concise_extra_tokens": 186}
+{"task_id": "bridge_012", "mas_answer": "Europe", "mas_tokens": 860, "recorded_correct": true, "concise_answer": "Europe", "concise_extra_tokens": 177}
+{"task_id": "bridge_018", "mas_answer": "Red Sea", "mas_tokens": 829, "recorded_correct": true, "concise_answer": "Red Sea", "concise_extra_tokens": 205}
+{"task_id": "bridge_019", "mas_answer": "piano", "mas_tokens": 953, "recorded_correct": true, "concise_answer": "piano", "concise_extra_tokens": 183}
+{"task_id": "bridge_022", "mas_answer": "Germany", "mas_tokens": 783, "recorded_correct": true, "concise_answer": "Germany", "concise_extra_tokens": 194}
+{"task_id": "bridge_036", "mas_answer": "Himalayas", "mas_tokens": 1465, "recorded_correct": true, "concise_answer": "Himalayas", "concise_extra_tokens": 244}
+{"task_id": "bridge_051", "mas_answer": "English", "mas_tokens": 894, "recorded_correct": true, "concise_answer": "English", "concise_extra_tokens": 212}
+{"task_id": "bridge_052", "mas_answer": "Copenhagen", "mas_tokens": 817, "recorded_correct": true, "concise_answer": "Copenhagen", "concise_extra_tokens": 175}
+{"task_id": "bridge_053", "mas_answer": "Spanish", "mas_tokens": 912, "recorded_correct": true, "concise_answer": "Spanish", "concise_extra_tokens": 186}
+{"task_id": "bridge_054", "mas_answer": "1678", "mas_tokens": 771, "recorded_correct": true, "concise_answer": "1678", "concise_extra_tokens": 184}
+{"task_id": "bridge_055", "mas_answer": "swimming", "mas_tokens": 886, "recorded_correct": true, "concise_answer": "Swimming", "concise_extra_tokens": 178}
+{"task_id": "bridge_056", "mas_answer": "South America", "mas_tokens": 1452, "recorded_correct": true, "concise_answer": "South America", "concise_extra_tokens": 169}
+{"task_id": "bridge_057", "mas_answer": "Leonardo da Vinci", "mas_tokens": 957, "recorded_correct": true, "concise_answer": "Leonardo da Vinci", "concise_extra_tokens": 240}
+{"task_id": "bridge_058", "mas_answer": "Portuguese", "mas_tokens": 840, "recorded_correct": true, "concise_answer": "Portuguese", "concise_extra_tokens": 181}
+{"task_id": "bridge_059", "mas_answer": "Nile River", "mas_tokens": 817, "recorded_correct": true, "concise_answer": "Nile River", "concise_extra_tokens": 165}
+{"task_id": "bridge_060", "mas_answer": "Hg", "mas_tokens": 876, "recorded_correct": true, "concise_answer": "Hg", "concise_extra_tokens": 173}
+{"task_id": "bridge_061", "mas_answer": "yen", "mas_tokens": 853, "recorded_correct": true, "concise_answer": "yen", "concise_extra_tokens": 166}
+{"task_id": "bridge_062", "mas_answer": "Atlantic Ocean", "mas_tokens": 896, "recorded_correct": true, "concise_answer": "Atlantic Ocean", "concise_extra_tokens": 179}
+{"task_id": "bridge_063", "mas_answer": "1817", "mas_tokens": 1961, "recorded_correct": true, "concise_answer": "1817", "concise_extra_tokens": 184}
+{"task_id": "bridge_064", "mas_answer": "Greek", "mas_tokens": 1051, "recorded_correct": true, "concise_answer": "Greek", "concise_extra_tokens": 178}
+{"task_id": "bridge_065", "mas_answer": "Richard Nixon", "mas_tokens": 439, "recorded_correct": true, "concise_answer": "Richard Nixon", "concise_extra_tokens": 178}
+{"task_id": "bridge_066", "mas_answer": "1564", "mas_tokens": 1411, "recorded_correct": true, "concise_answer": "1564", "concise_extra_tokens": 228}
+{"task_id": "bridge_067", "mas_answer": "Black Sea", "mas_tokens": 800, "recorded_correct": true, "concise_answer": "Black Sea", "concise_extra_tokens": 185}
+{"task_id": "cmp_007", "mas_answer": "Mount Kilimanjaro is taller than Mont Blanc", "mas_tokens": 2920, "recorded_correct": true, "concise_answer": "Mount Kilimanjaro", "concise_extra_tokens": 215}
+{"task_id": "cmp_011", "mas_answer": "Microsoft was founded first (April 4, 1975), while Apple was founded later (April 1, 1976)", "mas_tokens": 1811, "recorded_correct": true, "concise_answer": "Microsoft", "concise_extra_tokens": 256}
+{"task_id": "cmp_014", "mas_answer": "The United States has far more Nobel laureates than the United Kingdom when the totals are counted in absolute numbers", "mas_tokens": 6255, "recorded_correct": true, "concise_answer": "The United States.", "concise_extra_tokens": 207}
+{"task_id": "cmp_025", "mas_answer": "Jupiter rotates faster on its axis than Earth", "mas_tokens": 4811, "recorded_correct": true, "concise_answer": "Jupiter", "concise_extra_tokens": 176}
+{"task_id": "cmp_026", "mas_answer": "X‑rays have a shorter wavelength than visible light", "mas_tokens": 2874, "recorded_correct": true, "concise_answer": "X‑rays", "concise_extra_tokens": 181}
+{"task_id": "cmp_032", "mas_answer": "Thought 5: The height difference shows Mount Everest is taller than K2, so the answer is Mount Everest", "mas_tokens": 2487, "recorded_correct": true, "concise_answer": "Mount Everest", "concise_extra_tokens": 193}
+{"task_id": "cmp_033", "mas_answer": "Uranus", "mas_tokens": 3043, "recorded_correct": true, "concise_answer": "Uranus", "concise_extra_tokens": 230}
+{"task_id": "cmp_034", "mas_answer": "Danube", "mas_tokens": 3692, "recorded_correct": true, "concise_answer": "Danube", "concise_extra_tokens": 180}
+{"task_id": "cmp_035", "mas_answer": "Atlantic Ocean", "mas_tokens": 3282, "recorded_correct": true, "concise_answer": "Atlantic Ocean", "concise_extra_tokens": 173}
+{"task_id": "cmp_036", "mas_answer": "- *Wikipedia*, “Gutenberg press”, https://en", "mas_tokens": 4549, "recorded_correct": false, "concise_answer": "Gutenberg's printing press.", "concise_extra_tokens": 231}
+{"task_id": "cmp_037", "mas_answer": "<Marie Curie>", "mas_tokens": 2039, "recorded_correct": true, "concise_answer": "Marie Curie", "concise_extra_tokens": 188}
+{"task_id": "cmp_038", "mas_answer": "Canada", "mas_tokens": 2108, "recorded_correct": true, "concise_answer": "Canada", "concise_extra_tokens": 200}
+{"task_id": "cmp_039", "mas_answer": "gold", "mas_tokens": 4501, "recorded_correct": true, "concise_answer": "Gold", "concise_extra_tokens": 172}
+{"task_id": "cmp_040", "mas_answer": "- NASA Planetary Fact Sheets: “Venus – Mean Surface Temperature ≈ 735 K (≈ 462 °C)” and “Mercury – Mean Surface Temperature ≈ 440 K (≈ 167", "mas_tokens": 4317, "recorded_correct": false, "concise_answer": "Venus", "concise_extra_tokens": 215}
+{"task_id": "cmp_041", "mas_answer": "the Great Pyramid of Giza", "mas_tokens": 2521, "recorded_correct": true, "concise_answer": "Great Pyramid of Giza", "concise_extra_tokens": 191}
+{"task_id": "cmp_042", "mas_answer": "water", "mas_tokens": 3626, "recorded_correct": true, "concise_answer": "Water", "concise_extra_tokens": 183}
+{"task_id": "cmp_043", "mas_answer": "London to Tokyo", "mas_tokens": 3648, "recorded_correct": true, "concise_answer": "London to Tokyo", "concise_extra_tokens": 192}
+{"task_id": "comp_003", "mas_answer": "George H. W. Bush, Republican Party", "mas_tokens": 2266, "recorded_correct": true, "concise_answer": "George H. W. Bush, Republican Party", "concise_extra_tokens": 255}
+{"task_id": "comp_009", "mas_answer": "England – Christianity", "mas_tokens": 3790, "recorded_correct": true, "concise_answer": "England – Christianity", "concise_extra_tokens": 211}
+{"task_id": "comp_012", "mas_answer": "Denver", "mas_tokens": 2227, "recorded_correct": true, "concise_answer": "Denver", "concise_extra_tokens": 320}
+{"task_id": "comp_015", "mas_answer": "Claude Monet", "mas_tokens": 937, "recorded_correct": true, "concise_answer": "Claude Monet", "concise_extra_tokens": 255}
+{"task_id": "comp_025", "mas_answer": "University of Cambridge", "mas_tokens": 2437, "recorded_correct": true, "concise_answer": "University of Cambridge", "concise_extra_tokens": 210}
+{"task_id": "comp_026", "mas_answer": "China", "mas_tokens": 988, "recorded_correct": true, "concise_answer": "China", "concise_extra_tokens": 196}
+{"task_id": "comp_031", "mas_answer": "South China Sea", "mas_tokens": 2705, "recorded_correct": true, "concise_answer": "South China Sea", "concise_extra_tokens": 238}
+{"task_id": "comp_035", "mas_answer": "football", "mas_tokens": 848, "recorded_correct": true, "concise_answer": "football", "concise_extra_tokens": 329}
+{"task_id": "comp_036", "mas_answer": "Lake Śniardwy", "mas_tokens": 1114, "recorded_correct": true, "concise_answer": "Lake Śniardwy", "concise_extra_tokens": 247}
+{"task_id": "comp_038", "mas_answer": "Nepal and China", "mas_tokens": 846, "recorded_correct": true, "concise_answer": "Nepal and China", "concise_extra_tokens": 232}
+{"task_id": "comp_040", "mas_answer": "Madrid", "mas_tokens": 1461, "recorded_correct": true, "concise_answer": "Madrid", "concise_extra_tokens": 190}
+{"task_id": "comp_041", "mas_answer": "London", "mas_tokens": 1398, "recorded_correct": true, "concise_answer": "London", "concise_extra_tokens": 208}
+{"task_id": "comp_042", "mas_answer": "euro", "mas_tokens": 804, "recorded_correct": true, "concise_answer": "Euro", "concise_extra_tokens": 229}
+{"task_id": "comp_043", "mas_answer": "Dutch", "mas_tokens": 2175, "recorded_correct": true, "concise_answer": "Dutch", "concise_extra_tokens": 199}
+{"task_id": "comp_044", "mas_answer": "Swedish krona", "mas_tokens": 904, "recorded_correct": true, "concise_answer": "Swedish krona", "concise_extra_tokens": 203}
+{"task_id": "comp_045", "mas_answer": "20", "mas_tokens": 1891, "recorded_correct": true, "concise_answer": "20 years", "concise_extra_tokens": 259}
+{"task_id": "comp_046", "mas_answer": "35", "mas_tokens": 1312, "recorded_correct": true, "concise_answer": "35 years", "concise_extra_tokens": 228}
+{"task_id": "comp_047", "mas_answer": "71", "mas_tokens": 1197, "recorded_correct": true, "concise_answer": "71 years", "concise_extra_tokens": 213}
+{"task_id": "comp_048", "mas_answer": "Tanzania", "mas_tokens": 791, "recorded_correct": true, "concise_answer": "Tanzania", "concise_extra_tokens": 171}
+{"task_id": "comp_049", "mas_answer": "Oslo", "mas_tokens": 806, "recorded_correct": true, "concise_answer": "Oslo", "concise_extra_tokens": 187}
+{"task_id": "comp_050", "mas_answer": "oxygen", "mas_tokens": 881, "recorded_correct": true, "concise_answer": "Oxygen", "concise_extra_tokens": 193}
+{"task_id": "comp_051", "mas_answer": "2", "mas_tokens": 848, "recorded_correct": true, "concise_answer": "2", "concise_extra_tokens": 192}
+{"task_id": "comp_052", "mas_answer": "carbon dioxide", "mas_tokens": 890, "recorded_correct": true, "concise_answer": "Carbon dioxide", "concise_extra_tokens": 179}
+{"task_id": "comp_053", "mas_answer": "Brasília", "mas_tokens": 2438, "recorded_correct": true, "concise_answer": "Brasília", "concise_extra_tokens": 179}
+{"task_id": "comp_054", "mas_answer": "Seine", "mas_tokens": 1413, "recorded_correct": true, "concise_answer": "Seine", "concise_extra_tokens": 175}
+{"task_id": "comp_055", "mas_answer": "1865", "mas_tokens": 916, "recorded_correct": true, "concise_answer": "1865", "concise_extra_tokens": 193}

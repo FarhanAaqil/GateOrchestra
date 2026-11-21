@@ -79,6 +79,8 @@ _NEGATION_RE = re.compile(
 
 ALL_OF_SEPARATOR = "&&"
 
+_GROUP_SPACE_RE = re.compile(r"(?<=\d)[\u00a0\u2009\u202f](?=\d{3}(?!\d))")
+
 
 # Answer extraction
 
@@ -144,6 +146,10 @@ def parse_numbers(text: str) -> list[tuple[float, int]]:
     """
     if not text:
         return []
+    # Thousands written with a no-break or thin space ("31\u202f622\u202f400") are one number.
+    # NFKC would turn those spaces into ordinary ones, so they become commas first. Ordinary
+    # spaces are left alone: "3 1" is two numbers.
+    text = _GROUP_SPACE_RE.sub(",", text)
     prepared = _replace_number_words(unicodedata.normalize("NFKC", text))
     numbers: list[tuple[float, int]] = []
     for match in _NUMBER_RE.finditer(prepared):
