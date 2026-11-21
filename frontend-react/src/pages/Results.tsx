@@ -2,6 +2,7 @@ import { useState } from 'react'
 import AxisHeatmap from '../charts/AxisHeatmap'
 import KSweepChart from '../charts/KSweepChart'
 import ParetoChart from '../charts/ParetoChart'
+import ThresholdComparison from '../components/ThresholdComparison'
 import { Card, NoCitableResults, Page, PageHeader, SkeletonCards, StatusBadge, Term } from '../components/ui'
 import { api } from '../lib/api'
 import { isCitable, METHOD_LABELS } from '../lib/format'
@@ -101,6 +102,8 @@ export default function Results() {
               ))}
             </div>
           </Card>
+
+          {run === 'final' ? <ThresholdComparison /> : null}
 
           <Card tilt={false} className="lg:col-span-2">
             <h2 className="text-xl font-semibold text-ink">k sweep (validation)</h2>

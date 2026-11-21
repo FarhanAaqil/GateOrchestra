@@ -14,7 +14,7 @@ GateOrchestra places a lightweight, trainable **gate** in front of a Multi-Agent
 
 **Research Goal:** ≥40% token savings vs. Always-MAS at ≤2 points accuracy cost, measured under equal token budgets (see the [Blueprint](Blueprint) hypotheses H1/RQ1–RQ3).
 
-**Outcome:** 33% token savings and higher accuracy than Always-MAS on Qwen2.5-3B (97.9% vs 92.2%), but only because MAS was not better than the probe at this scale, so the gate learned to stop. See [Results](#results).
+**Outcome:** a negative result for the hypothesis. The gate saved 33% of tokens against Always-MAS on Qwen2.5-3B with higher accuracy (97.9% vs 92.2%), short of the 40% target, and only because MAS was not better than the probe at this scale, so the gate learned to stop. It is not measurably better than a one-line threshold or than never escalating. See [Results](#results).
 
 ---
 
@@ -42,6 +42,7 @@ What it shows:
 - **The gate learned the right policy.** It escalated 3% of test tasks, beating Always-MAS by 5.7 points
   at 33% fewer tokens (pooled McNemar p = 0.007, optimistic because the seeds share tasks) and matching
   CoT-SC. The rule-based gate, which escalates 70% of tasks, is significantly worse than CoT-SC (p = 0.004).
+- **No better than a one-line rule here.** A threshold on probe agreement, or never escalating at all, does statistically as well (96.9% at 722 tokens for never escalating vs 97.9% at 784 for the gate, exact McNemar p = 0.5). The results show that gating is safe on this benchmark, not that a learned gate is needed; see [`reports/threshold_baseline.md`](reports/threshold_baseline.md).
 - **Little room for any gate.** An oracle would escalate only 2-5% of questions here. Probe consistency is
   the one feature the logistic gate depends on.
 - **Stronger models change little.** Reduced runs (1 seed, 1 calibration repeat) on Qwen3.8-27B and gpt-oss-120b
@@ -361,3 +362,7 @@ $env:GROQ_MODEL_NAME = "openai/gpt-oss-120b"
 python scripts/final_benchmark.py --resume
 python scripts/verify_final_results.py
 ```
+
+## License
+
+All rights reserved. The code is published so the research can be read and the benchmark reproduced for review; any other use needs written permission. See [LICENSE](LICENSE).

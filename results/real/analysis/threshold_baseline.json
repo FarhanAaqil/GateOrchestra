@@ -1,0 +1,152 @@
+{
+  "seeds": [
+    42,
+    123
+  ],
+  "n_test_runs": 192,
+  "n_val_runs": 192,
+  "epsilon": 0.03125,
+  "chosen_threshold": "never",
+  "chosen_method": "CoT-SC-only (never escalate)",
+  "validation": {
+    "never": {
+      "n": 192,
+      "accuracy": 92.7,
+      "accuracy_ci95": [
+        88.1,
+        95.6
+      ],
+      "avg_tokens": 749.0,
+      "escalation_rate": 0.0
+    },
+    "t=2/3": {
+      "n": 192,
+      "accuracy": 94.8,
+      "accuracy_ci95": [
+        90.7,
+        97.1
+      ],
+      "avg_tokens": 837.9,
+      "escalation_rate": 5.2
+    },
+    "t=1": {
+      "n": 192,
+      "accuracy": 94.8,
+      "accuracy_ci95": [
+        90.7,
+        97.1
+      ],
+      "avg_tokens": 957.0,
+      "escalation_rate": 14.6
+    }
+  },
+  "test": {
+    "CoT-SC-only (never escalate)": {
+      "n": 192,
+      "accuracy": 96.9,
+      "accuracy_ci95": [
+        93.4,
+        98.6
+      ],
+      "avg_tokens": 721.7,
+      "escalation_rate": 0.0,
+      "tokens_vs_always_mas_pct": -38.3
+    },
+    "Threshold t=2/3": {
+      "n": 192,
+      "accuracy": 97.4,
+      "accuracy_ci95": [
+        94.0,
+        98.9
+      ],
+      "avg_tokens": 736.3,
+      "escalation_rate": 1.0,
+      "tokens_vs_always_mas_pct": -37.1
+    },
+    "Threshold t=1": {
+      "n": 192,
+      "accuracy": 97.9,
+      "accuracy_ci95": [
+        94.8,
+        99.2
+      ],
+      "avg_tokens": 954.8,
+      "escalation_rate": 16.7,
+      "tokens_vs_always_mas_pct": -18.4
+    },
+    "Always-MAS (simulated: probe + MAS)": {
+      "n": 192,
+      "accuracy": 92.2,
+      "accuracy_ci95": [
+        87.5,
+        95.2
+      ],
+      "avg_tokens": 1892.2,
+      "escalation_rate": 100.0,
+      "tokens_vs_always_mas_pct": 61.7
+    },
+    "GateOrchestra (simulated)": {
+      "n": 192,
+      "accuracy": 97.9,
+      "accuracy_ci95": [
+        94.8,
+        99.2
+      ],
+      "avg_tokens": 780.1,
+      "escalation_rate": 3.1,
+      "tokens_vs_always_mas_pct": -33.4
+    },
+    "Oracle (escalate only when it helps)": {
+      "n": 192,
+      "accuracy": 99.0,
+      "accuracy_ci95": [
+        96.3,
+        99.7
+      ],
+      "avg_tokens": 749.7,
+      "escalation_rate": 2.1,
+      "tokens_vs_always_mas_pct": -36.0
+    },
+    "GateOrchestra (live, as recorded)": {
+      "n": 192,
+      "accuracy": 97.9,
+      "accuracy_ci95": [
+        94.8,
+        99.2
+      ],
+      "avg_tokens": 783.9,
+      "escalation_rate": 3.1,
+      "tokens_vs_always_mas_pct": -33.0
+    }
+  },
+  "recorded_always_mas_avg_tokens": 1170.5,
+  "paired_tests": [
+    {
+      "a": "GateOrchestra (live, as recorded)",
+      "b": "CoT-SC-only (never escalate)",
+      "a_only_correct": 2,
+      "b_only_correct": 0,
+      "p_value": 0.5
+    },
+    {
+      "a": "GateOrchestra (simulated)",
+      "b": "Threshold t=2/3",
+      "a_only_correct": 1,
+      "b_only_correct": 0,
+      "p_value": 1.0
+    },
+    {
+      "a": "GateOrchestra (simulated)",
+      "b": "Threshold t=1",
+      "a_only_correct": 2,
+      "b_only_correct": 2,
+      "p_value": 1.0
+    }
+  ],
+  "test_agreement_counts": {
+    "0.3333": 2,
+    "0.6667": 30,
+    "1.0": 160
+  },
+  "note": "Pooled over two seeds that share the same 96 test tasks, so p-values are optimistic. Simulated rows score an escalation with the recorded Always-MAS outcome plus the probe's tokens."
+}

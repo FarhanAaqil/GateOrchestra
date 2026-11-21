@@ -118,7 +118,7 @@ export default function Landing() {
         <motion.p variants={rise} className="mt-4 max-w-3xl text-sm leading-relaxed text-navy/65">
           These come from the project's benchmark (96 held-out test tasks), not from chats on this site. On the 3B model the
           multi-agent system was simply not better than the quick check, so the gate learned to escalate only 3% of tasks; the goal
-          of 40% savings was not reached. Your own questions will differ, which is why the{' '}
+          of 40% savings was not reached, and the gate is not measurably better than never escalating. Its job there was to avoid waste. Your own questions will differ, which is why the{' '}
           <Link to="/usage" className="text-ink underline decoration-navy/30 underline-offset-2">usage page</Link> shows how your
           answers were actually routed. Explore the <Link to="/results" className="text-ink underline decoration-navy/30 underline-offset-2">full results</Link>.
         </motion.p>

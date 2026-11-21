@@ -311,6 +311,20 @@ On calibration CoT-SC scored 95.3% (123 of 129) and MAS 89.9% (116); MAS was bet
 
 Caveats: one seed gives no between-run spread; the test split still contains the 64 easier added tasks, which makes the ceiling effect stronger; and a single hosted model says little about models in general.
 
+### 8.10 Against a one-line rule
+
+The learned gate depends almost entirely on probe agreement (Section 8.4), so the obvious question is whether a single threshold on that feature does as well. With three samples agreement is 1/3, 2/3 or 1, so only three threshold gates exist: never escalate (CoT-SC-only), escalate when all three samples disagree (t = 2/3), and escalate on any disagreement (t = 1). Each was scored on the same 192 recorded test runs, an escalated task taking the recorded Always-MAS answer and paying for the probe plus the MAS. The learned gate scored the same way (780 tokens) tracks its live result (784), which supports the comparison (`scripts/threshold_baseline.py`, `reports/threshold_baseline.md`).
+
+| Method (test, 2 seeds) | Accuracy | Avg tokens | Escalation |
+|:--|--:|--:|--:|
+| Never escalate (CoT-SC-only) | 96.9% | 722 | 0.0% |
+| Threshold t = 2/3 | 97.4% | 736 | 1.0% |
+| Threshold t = 1 | 97.9% | 955 | 16.7% |
+| **GateOrchestra (live)** | **97.9%** | **784** | **3.1%** |
+| Oracle | 99.0% | 750 | 2.1% |
+
+Chosen on validation with the learned gate's own rule (the cheapest option within 1/32 of the best validation accuracy), the threshold is "never escalate". Against it the learned gate is right on 2 more runs and wrong on none, which is not significant (exact McNemar p = 0.5, optimistic because the seeds share tasks); against t = 2/3 and t = 1 the differences are one or two runs. **On this benchmark the learned gate is not measurably better than a one-line rule, or than never escalating.** That is consistent with the oracle: the best any gate can do here is 99.0% by escalating 2.1% of runs. The gate's contribution on this benchmark is that it learned not to escalate; showing that a learned gate beats a threshold needs a benchmark where the multi-agent system wins more often.
+
 ---
 
 ## 9. Error Analysis
@@ -333,12 +347,13 @@ The strict grader also hurts CoT-SC occasionally (cmp_036: "Johannes Gutenberg's
 - **Strict grading penalises wordy and rephrased answers.** The lenient check (Section 8.1) bounds the effect on MAS but does not remove it, and it also affects CoT-SC occasionally.
 - **Few ESCALATE labels.** Only 12% of training tasks favoured MAS, which limits what any gate can learn and makes GBT unstable.
 - **Router exploration.** The router tried Debate once before abandoning it.
+- **No advantage over a simple rule.** The learned gate is not measurably better than a threshold on probe agreement or than never escalating (Section 8.10); with so little headroom (an oracle escalates 2% of runs) the benchmark cannot separate them.
 
 ---
 
 ## 11. Conclusion
 
-On Qwen2.5-3B, the multi-agent system is not worth its cost: it is less accurate than three-sample self-consistency and uses about a quarter more tokens. GateOrchestra's learned gate recognised this and almost always stopped, reaching 97.9% accuracy against Always-MAS's 92.2% at a third fewer tokens, matching CoT-SC, and clearly outperforming a hand-written gate. Reduced runs on two much larger models, Qwen3.8-27B and gpt-oss-120b, point the same way: CoT-SC reaches 99% on the test split, MAS is lower, and the gate correctly stops, so the next step is a harder benchmark rather than a bigger model. The gate learned the right policy for the systems it was given; what it could not do was create value that the MAS does not provide at this scale.
+On Qwen2.5-3B, the multi-agent system is not worth its cost: it is less accurate than three-sample self-consistency and uses about a quarter more tokens. GateOrchestra's learned gate recognised this and almost always stopped, reaching 97.9% accuracy against Always-MAS's 92.2% at a third fewer tokens, matching CoT-SC, and clearly outperforming a hand-written gate. Reduced runs on two much larger models, Qwen3.8-27B and gpt-oss-120b, point the same way: CoT-SC reaches 99% on the test split, MAS is lower, and the gate correctly stops, so the next step is a harder benchmark rather than a bigger model. The gate learned the right policy for the systems it was given; what it could not do was create value that the MAS does not provide at this scale. A one-line rule on probe agreement, or simply never escalating, does statistically as well on this benchmark (Section 8.10), so these results show that gating is safe here, not that a learned gate is needed. The hypothesis of at least 40% savings at no more than 2 points' cost was not met: savings were 33%, and the accuracy gain over Always-MAS comes from MAS being worse, not from the gate finding tasks where MAS helps.
 
 ---
 
