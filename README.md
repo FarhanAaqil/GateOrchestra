@@ -5,6 +5,14 @@
 
 ---
 
+## Intro video
+
+[![GateOrchestra intro video (1:37)](assets/intro/poster.jpg)](assets/intro/GateOrchestra_intro.mp4)
+
+A 1:37 tour with voice-over: the research gap, how the gate works, the results, the honest finding and the console. Click the image to play it, or [download the MP4](assets/intro/GateOrchestra_intro.mp4).
+
+---
+
 ## What It Does
 
 GateOrchestra places a lightweight, trainable **gate** in front of a Multi-Agent System (MAS) orchestrator. Before spending expensive multi-agent compute, the gate decides — using only pre-execution signals — whether to:
