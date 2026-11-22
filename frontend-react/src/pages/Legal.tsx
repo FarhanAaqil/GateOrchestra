@@ -19,7 +19,7 @@ function Draft({ number, title, children }: { number: string; title: string; chi
           legal advice and has not been checked by a lawyer. Parts in [brackets] must be filled in by the operator.
         </p>
       </div>
-      <Card tilt={false} className="prose-legal max-w-3xl space-y-4 text-sm leading-relaxed text-navy">
+      <Card tilt={false} className="prose-legal max-w-3xl space-y-4 text-sm leading-relaxed text-forest">
         {children}
       </Card>
     </Page>
@@ -48,7 +48,7 @@ export function Terms() {
       <p>You can delete your account at any time in Settings. We may end the service with [30] days' notice, giving you time to export your data.</p>
       <H>Liability</H>
       <p>[The service is provided as is. Limitation of liability, governing law and jurisdiction, to be written for the operator's country.]</p>
-      <p className="text-xs text-navy/70">Contact: [contact email]. Last updated: [date].</p>
+      <p className="text-xs text-forest/70">Contact: [contact email]. Last updated: [date].</p>
     </Draft>
   )
 }
@@ -78,7 +78,7 @@ export function Privacy() {
       <p>Until you delete it or your account. Backups of the database are kept for [14] days, so deleted data disappears from them within that time.</p>
       <H>Your choices</H>
       <p>In <Link to="/settings" className="underline">Settings</Link> you can export your conversations and delete your account, which removes your conversations, documents, cached answers, ratings, keys and usage history. [Describe the rights that apply in the operator's country (for example access, correction, objection, complaint to a regulator) and the legal basis for processing.]</p>
-      <p className="text-xs text-navy/70">Last updated: [date].</p>
+      <p className="text-xs text-forest/70">Last updated: [date].</p>
     </Draft>
   )
 }
@@ -97,7 +97,7 @@ export function AcceptableUse() {
         <li>scrape the service or resell access without our written permission.</li>
       </ul>
       <p>We may refuse a message, limit an account, or close it for breaking this policy. [Describe how people can report abuse and appeal: contact email.]</p>
-      <p className="text-xs text-navy/70">Last updated: [date].</p>
+      <p className="text-xs text-forest/70">Last updated: [date].</p>
     </Draft>
   )
 }

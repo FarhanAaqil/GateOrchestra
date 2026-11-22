@@ -65,7 +65,7 @@ export default function Pricing() {
       {plans.error ? <ErrorNote message={plans.error} /> : null}
       {plans.loading && !plans.data ? <SkeletonCards count={2} height="h-48" /> : null}
       {plans.data ? <PlanCards plans={plans.data.plans} action={action} /> : null}
-      <p className="mt-4 text-xs text-navy/70">Prices in US dollars. Limits reset at midnight UTC. Your own Groq or Gemini key, added in Settings, answers your chats without using the plan's tokens.</p>
+      <p className="mt-4 text-xs text-forest/70">Prices in US dollars. Limits reset at midnight UTC. Your own Groq or Gemini key, added in Settings, answers your chats without using the plan's tokens.</p>
     </Page>
   )
 }

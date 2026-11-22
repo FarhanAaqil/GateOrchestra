@@ -7,13 +7,13 @@ import { friendlyRunLabel } from '../lib/runs'
 import { rise } from '../lib/motion'
 import { useApi } from '../lib/useApi'
 
-/** Probe (sky) and MAS (ember) share of one run's spend; wine marks MAS over its cap. */
+/** Probe (sage) and MAS (clay) share of one run's spend; wine marks MAS over its cap. */
 function SpendBar({ probe, mas, over, max }: { probe: number; mas: number; over: boolean; max: number }) {
   const scale = (v: number) => `${(v / Math.max(max, 1)) * 100}%`
   return (
-    <div className="flex h-1.5 w-36 overflow-hidden rounded-full bg-navy/10">
-      <span className="h-full bg-sky" style={{ width: scale(probe) }} />
-      <span className={`h-full ${over ? 'bg-wine' : 'bg-ember'}`} style={{ width: scale(mas) }} />
+    <div className="flex h-1.5 w-36 overflow-hidden rounded-full bg-forest/10">
+      <span className="h-full bg-sage" style={{ width: scale(probe) }} />
+      <span className={`h-full ${over ? 'bg-wine' : 'bg-clay'}`} style={{ width: scale(mas) }} />
     </div>
   )
 }
@@ -34,8 +34,8 @@ export default function TokenAccountant() {
 
       <div className="grid gap-4 sm:grid-cols-3">
         <Stat label="Recent runs" value={runs.length} note="the API keeps the last 50, across restarts" />
-        <Stat label="Quick-check tokens" value={num(totals.probe)} note={<span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-sky" /> single-agent probe</span>} />
-        <Stat label="Agent-team tokens" value={num(totals.mas)} note={<span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-ember" /> multi-agent system</span>} />
+        <Stat label="Quick-check tokens" value={num(totals.probe)} note={<span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-sage" /> single-agent probe</span>} />
+        <Stat label="Agent-team tokens" value={num(totals.mas)} note={<span className="inline-flex items-center gap-1.5"><span className="h-2 w-2 rounded-full bg-clay" /> multi-agent system</span>} />
       </div>
 
       <SectionTitle aside={<button onClick={history.reload} className="btn btn-secondary ml-auto py-1!"><RefreshCw className="h-3.5 w-3.5" /> Refresh</button>}>Live runs</SectionTitle>
@@ -45,7 +45,7 @@ export default function TokenAccountant() {
       {runs.length ? (
         <motion.div variants={rise} className="card overflow-x-auto p-0" tabIndex={0} role="region" aria-label="Live runs">
           <table className="w-full min-w-[860px] text-left text-sm">
-            <thead className="border-b border-navy/10 bg-ice text-left text-xs font-medium text-navy/70">
+            <thead className="border-b border-forest/10 bg-paper text-left text-xs font-medium text-forest/70">
               <tr>
                 <th className="px-5 py-3.5">Run</th>
                 <th className="px-5 py-3.5">Method</th>
@@ -64,26 +64,26 @@ export default function TokenAccountant() {
                 const over = cap != null && (r.mas_tokens ?? 0) > cap
                 const path = r.mas_tokens ? `Agent team${r.mas_strategy ? ` · ${STRATEGY_LABELS[r.mas_strategy]}` : ''}` : 'Quick answer'
                 return (
-                  <tr key={`${r.task_id}-${i}`} className="border-t border-navy/10 hover:bg-navy/5">
+                  <tr key={`${r.task_id}-${i}`} className="border-t border-forest/10 hover:bg-forest/5">
                     <td className="px-5 py-3 text-xs text-ink" title={r.task_id}>{friendlyRunLabel(r.task_id)}</td>
                     <td className="px-5 py-3 text-ink">{METHOD_LABELS[r.method]}</td>
                     <td className="px-5 py-3">
-                      <span className={`chip whitespace-nowrap ${r.mas_tokens ? 'border-ember/50! bg-ember/10!' : 'border-sky! bg-sky/25!'}`}>{path}</span>
+                      <span className={`chip whitespace-nowrap ${r.mas_tokens ? 'border-clay/50! bg-clay/10!' : 'border-sage! bg-sage/25!'}`}>{path}</span>
                     </td>
                     <td className="px-5 py-3"><SpendBar probe={r.probe_tokens ?? 0} mas={r.mas_tokens ?? 0} over={over} max={maxSpend} /></td>
                     <td className="num px-5 py-3 text-right">{num(r.probe_tokens)}</td>
                     <td className={`num px-5 py-3 text-right ${over ? 'font-semibold text-wine' : ''}`}>{num(r.mas_tokens)}</td>
-                    <td className="num px-5 py-3 text-right text-navy/70">{num(cap)}</td>
+                    <td className="num px-5 py-3 text-right text-forest/70">{num(cap)}</td>
                     <td className="num px-5 py-3 text-right font-medium text-ink">{num(r.tokens_spent)}</td>
                     <td className="px-5 py-3 text-xs">
                       {r.simulated ? (
-                        <span className="chip text-navy/70!">simulated</span>
+                        <span className="chip text-forest/70!">simulated</span>
                       ) : r.is_correct === true ? (
                         <span className="chip">correct</span>
                       ) : r.is_correct === false ? (
                         <span className="chip border-wine/40! bg-wine/5! text-wine!">incorrect</span>
                       ) : (
-                        <span className="text-navy/70">ungraded</span>
+                        <span className="text-forest/70">ungraded</span>
                       )}
                     </td>
                   </tr>
@@ -100,7 +100,7 @@ export default function TokenAccountant() {
       ) : benchmarkRows.length ? (
         <motion.div variants={rise} className="card max-h-[50vh] overflow-auto p-0" tabIndex={0} role="region" aria-label="Per-task benchmark records">
           <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="sticky top-0 border-b border-navy/10 bg-ice text-left text-xs font-medium text-navy/70">
+            <thead className="sticky top-0 border-b border-forest/10 bg-paper text-left text-xs font-medium text-forest/70">
               <tr>
                 <th className="px-5 py-3">Seed</th>
                 <th className="px-5 py-3">Task</th>
@@ -112,13 +112,13 @@ export default function TokenAccountant() {
             </thead>
             <tbody>
               {benchmarkRows.map((r, i) => (
-                <tr key={i} className="border-t border-navy/10">
-                  <td className="px-5 py-2 font-mono text-xs text-navy/70">{r.seed}</td>
+                <tr key={i} className="border-t border-forest/10">
+                  <td className="px-5 py-2 font-mono text-xs text-forest/70">{r.seed}</td>
                   <td className="px-5 py-2 font-mono text-xs text-ink">{r.task_id}</td>
                   <td className="px-5 py-2 text-ink">{METHOD_LABELS[r.method]}</td>
                   <td className="px-5 py-2 font-mono text-xs">{r.decision ?? '—'}</td>
                   <td className="num px-5 py-2 text-right text-ink">{num(r.tokens_spent)}</td>
-                  <td className={`px-5 py-2 text-xs ${r.is_correct ? 'text-navy/70' : 'text-wine'}`}>{r.is_correct ? 'yes' : 'no'}</td>
+                  <td className={`px-5 py-2 text-xs ${r.is_correct ? 'text-forest/70' : 'text-wine'}`}>{r.is_correct ? 'yes' : 'no'}</td>
                 </tr>
               ))}
             </tbody>
@@ -127,7 +127,7 @@ export default function TokenAccountant() {
       ) : (
         <EmptyState title="No per-task benchmark records">
           The recorded results predate per-task logging. They appear here after{' '}
-          <code className="rounded bg-navy/5 px-1 font-mono text-ink">python scripts/final_benchmark.py</code>.
+          <code className="rounded bg-forest/5 px-1 font-mono text-ink">python scripts/final_benchmark.py</code>.
         </EmptyState>
       )}
     </Page>

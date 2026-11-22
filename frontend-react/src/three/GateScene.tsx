@@ -7,21 +7,21 @@ import { STRATEGY_LABELS } from '../lib/format'
 import { agentPosition, LAYOUT, orbPosition, STRATEGIES, type Vec3 } from './gateTimeline'
 import { useGateRun, type GateRunInput } from './useGateRun'
 
-// Palette: cyan = gate, sky = CoT-SC path, ember/wine = multi-agent path, lemon = chosen agent.
-const CYAN = new THREE.Color('#00E5FF')
-const SKY = new THREE.Color('#A8DBFF')
-const EMBER = new THREE.Color('#FF6B35')
-const WINE = new THREE.Color('#8B1538')
-const LEMON = new THREE.Color('#FFF56B')
-const NAVY = '#1B263B'
+// Palette: saffron = gate, sage = CoT-SC path, clay/wine = multi-agent path, butter = chosen agent.
+const CYAN = new THREE.Color('#F4B942')
+const SKY = new THREE.Color('#B7D9C4')
+const EMBER = new THREE.Color('#E0643A')
+const WINE = new THREE.Color('#9E2B3A')
+const LEMON = new THREE.Color('#F6E27A')
+const NAVY = '#13342A'
 
 // Labels are plain DOM nodes over the canvas, positioned each frame by
 // projecting a 3D point; this avoids one React root per label.
 const STATIC_LABELS: { text: string; tone: string; at: Vec3 }[] = [
-  { text: 'Gate', tone: '#00E5FF', at: [LAYOUT.gate[0], LAYOUT.gate[1] + 1.3, 0] },
-  { text: 'CoT-SC answer', tone: '#A8DBFF', at: [LAYOUT.cot[0], LAYOUT.cot[1] - 0.62, 0] },
+  { text: 'Gate', tone: '#F4B942', at: [LAYOUT.gate[0], LAYOUT.gate[1] + 1.3, 0] },
+  { text: 'CoT-SC answer', tone: '#B7D9C4', at: [LAYOUT.cot[0], LAYOUT.cot[1] - 0.62, 0] },
   // Below the agents' orbit so the labels never collide.
-  { text: 'Orchestrator', tone: '#FF6B35', at: [LAYOUT.core[0], LAYOUT.core[1] - 1.62, 0] },
+  { text: 'Orchestrator', tone: '#E0643A', at: [LAYOUT.core[0], LAYOUT.core[1] - 1.62, 0] },
 ]
 const AGENT_LABEL_OFFSET = 0.4
 // World-space extent the camera must keep in view (gate approach to the orbiting agents).
@@ -129,12 +129,12 @@ function Scene({ placeLabel: place, ...props }: GateRunInput & { placeLabel: Pla
     <>
       <color attach="background" args={[NAVY]} />
       <ambientLight intensity={0.25} />
-      <pointLight position={[0, 4, 6]} intensity={30} color="#A8DBFF" />
-      <pointLight ref={orbLight} intensity={8} distance={4} color="#F7F7F7" />
+      <pointLight position={[0, 4, 6]} intensity={30} color="#B7D9C4" />
+      <pointLight ref={orbLight} intensity={8} distance={4} color="#F5F0E8" />
 
-      <Line points={inPath} color="#00E5FF" lineWidth={1} transparent opacity={0.25} dashed dashSize={0.2} gapSize={0.15} />
-      <Line points={stopPath} color="#A8DBFF" lineWidth={1.8} transparent opacity={0.6} />
-      <Line points={masPath} color="#FF6B35" lineWidth={1.8} transparent opacity={0.6} />
+      <Line points={inPath} color="#F4B942" lineWidth={1} transparent opacity={0.25} dashed dashSize={0.2} gapSize={0.15} />
+      <Line points={stopPath} color="#B7D9C4" lineWidth={1.8} transparent opacity={0.6} />
+      <Line points={masPath} color="#E0643A" lineWidth={1.8} transparent opacity={0.6} />
 
       <group position={gate}>
         <mesh ref={gateOuter}>
@@ -147,7 +147,7 @@ function Scene({ placeLabel: place, ...props }: GateRunInput & { placeLabel: Pla
         </mesh>
         <mesh>
           <circleGeometry args={[0.7, 48]} />
-          <meshBasicMaterial color="#00E5FF" transparent opacity={0.06} side={THREE.DoubleSide} />
+          <meshBasicMaterial color="#F4B942" transparent opacity={0.06} side={THREE.DoubleSide} />
         </mesh>
       </group>
 
@@ -180,12 +180,12 @@ function Scene({ placeLabel: place, ...props }: GateRunInput & { placeLabel: Pla
       ))}
       <mesh ref={stream} visible={false}>
         <cylinderGeometry args={[0.02, 0.02, 1, 8]} />
-        <meshBasicMaterial color="#FFF56B" transparent opacity={0.85} />
+        <meshBasicMaterial color="#F6E27A" transparent opacity={0.85} />
       </mesh>
 
       <mesh ref={orb} visible={false}>
         <sphereGeometry args={[0.16, 24, 24]} />
-        <meshStandardMaterial color="#F7F7F7" emissive="#F1FAFF" emissiveIntensity={3} />
+        <meshStandardMaterial color="#F5F0E8" emissive="#FFFCF7" emissiveIntensity={3} />
       </mesh>
     </>
   )
@@ -201,7 +201,7 @@ export default function GateScene(props: GateRunInput) {
   }, [])
   const labelDefs = [
     ...STATIC_LABELS.map((l) => ({ text: l.text, tone: l.tone })),
-    ...STRATEGIES.map((s) => ({ text: STRATEGY_LABELS[s], tone: '#FFF56B' })),
+    ...STRATEGIES.map((s) => ({ text: STRATEGY_LABELS[s], tone: '#F6E27A' })),
   ]
   return (
     <div className="relative h-full w-full overflow-hidden">
@@ -218,7 +218,7 @@ export default function GateScene(props: GateRunInput) {
             ref={(el) => {
               labels.current[i] = el
             }}
-            className="absolute left-0 top-0 whitespace-nowrap rounded-full border bg-navy/80 px-2.5 py-0.5 font-mono text-[11px] backdrop-blur transition-opacity duration-300"
+            className="absolute left-0 top-0 whitespace-nowrap rounded-full border bg-forest/80 px-2.5 py-0.5 font-mono text-[11px] backdrop-blur transition-opacity duration-300"
             style={{ borderColor: `${label.tone}66`, color: label.tone, opacity: 0 }}
           >
             {label.text}

@@ -13,9 +13,9 @@ type Split = 'train' | 'val' | 'test'
 type Row = Task & { split: Split }
 
 const SPLIT_STYLE: Record<Split, string> = {
-  train: 'border border-sky bg-sky/30 text-ink',
-  val: 'border border-tangerine/40 bg-tangerine/10 text-ink',
-  test: 'border border-ember/40 bg-ember/10 text-ink',
+  train: 'border border-sage bg-sage/30 text-ink',
+  val: 'border border-amber/40 bg-amber/10 text-ink',
+  test: 'border border-clay/40 bg-clay/10 text-ink',
 }
 
 const PAGE_SIZE = 100 // the API's maximum page
@@ -37,7 +37,7 @@ async function loadAll(): Promise<Row[]> {
 
 function Select({ label, value, onChange, options }: { label: string; value: string; onChange: (v: string) => void; options: string[] }) {
   return (
-    <label className="text-xs font-medium text-navy">
+    <label className="text-xs font-medium text-forest">
       {label}
       <select value={value} onChange={(e) => onChange(e.target.value)} className={`${FIELD} mt-1 py-2 text-sm`}>
         <option value="">All</option>
@@ -53,13 +53,13 @@ function Select({ label, value, onChange, options }: { label: string; value: str
 
 /** Small filled dots showing a 1–5 level. */
 function Level({ value, max, tone }: { value: number | null; max: number; tone: string }) {
-  if (value == null) return <span className="text-navy/70">—</span>
+  if (value == null) return <span className="text-forest/70">—</span>
   return (
     <span className="inline-flex items-center gap-1" aria-label={`${value} of ${max}`}>
       {Array.from({ length: max }, (_, i) => (
-        <span key={i} className={`h-2 w-2 rounded-full ${i < value ? tone : 'bg-sky/50'}`} />
+        <span key={i} className={`h-2 w-2 rounded-full ${i < value ? tone : 'bg-sage/50'}`} />
       ))}
-      <span className="ml-1 font-mono text-xs text-navy">{value}</span>
+      <span className="ml-1 font-mono text-xs text-forest">{value}</span>
     </span>
   )
 }
@@ -106,7 +106,7 @@ export default function Benchmark() {
           <button
             key={s}
             onClick={() => setSplit(split === s ? '' : s)}
-            className={`card flex items-center justify-between px-5 py-4 text-left transition-transform hover:-translate-y-0.5 ${split === s ? 'ring-2 ring-navy' : ''}`}
+            className={`card flex items-center justify-between px-5 py-4 text-left transition-transform hover:-translate-y-0.5 ${split === s ? 'ring-2 ring-forest' : ''}`}
           >
             <span className={`rounded-md px-3 py-1 font-mono text-xs ${SPLIT_STYLE[s]}`}>{s}</span>
             <span className="font-mono text-xl font-semibold text-ink">{counts[s]}</span>
@@ -116,10 +116,10 @@ export default function Benchmark() {
 
       <Card tilt={false} className="mb-4">
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
-          <label className="text-xs font-medium text-navy sm:col-span-2 lg:col-span-1">
+          <label className="text-xs font-medium text-forest sm:col-span-2 lg:col-span-1">
             Search
             <span className={`${FIELD} mt-1 flex items-center gap-2 py-2`}>
-              <Search className="h-4 w-4 text-navy/70" />
+              <Search className="h-4 w-4 text-forest/70" />
               <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="id or question" className="w-full bg-transparent text-sm outline-none" />
             </span>
           </label>
@@ -137,7 +137,7 @@ export default function Benchmark() {
         <motion.div variants={rise} className="card overflow-hidden p-0">
           <div className="max-h-[65vh] overflow-auto" tabIndex={0} role="region" aria-label="Benchmark tasks">
             <table className="w-full min-w-[760px] text-left text-sm">
-              <thead className="sticky top-0 z-10 border-b border-navy/10 bg-ice text-left text-xs font-medium text-navy/70">
+              <thead className="sticky top-0 z-10 border-b border-forest/10 bg-paper text-left text-xs font-medium text-forest/70">
                 <tr>
                   <th className="px-5 py-3.5">Task</th>
                   <th className="px-5 py-3.5">Split</th>
@@ -149,7 +149,7 @@ export default function Benchmark() {
               </thead>
               <tbody>
                 {filtered.map((r) => (
-                  <tr key={r.task_id} className="border-t border-navy/10 transition-colors hover:bg-navy/5">
+                  <tr key={r.task_id} className="border-t border-forest/10 transition-colors hover:bg-forest/5">
                     <td className="px-5 py-3 font-mono text-xs text-ink">{r.task_id}</td>
                     <td className="px-5 py-3">
                       <span className={`rounded-md px-2.5 py-0.5 font-mono text-[11px] ${SPLIT_STYLE[r.split]}`}>{r.split}</span>
@@ -157,15 +157,15 @@ export default function Benchmark() {
                     <td className="max-w-md px-5 py-3 text-ink" title={r.question}>
                       <span className="line-clamp-2">{r.question}</span>
                     </td>
-                    <td className="px-5 py-3"><Level value={r.depth_score} max={5} tone="bg-navy" /></td>
-                    <td className="px-5 py-3"><Level value={r.parallel_score} max={4} tone="bg-ember" /></td>
-                    <td className="px-5 py-3 font-mono text-xs text-navy/70">{r.source_dataset ?? '—'}</td>
+                    <td className="px-5 py-3"><Level value={r.depth_score} max={5} tone="bg-forest" /></td>
+                    <td className="px-5 py-3"><Level value={r.parallel_score} max={4} tone="bg-clay" /></td>
+                    <td className="px-5 py-3 font-mono text-xs text-forest/70">{r.source_dataset ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <p className="border-t border-navy/10 bg-ice px-5 py-2.5 font-mono text-xs text-navy/70">
+          <p className="border-t border-forest/10 bg-paper px-5 py-2.5 font-mono text-xs text-forest/70">
             {filtered.length} of {rows.length} tasks
           </p>
         </motion.div>

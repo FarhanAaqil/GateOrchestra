@@ -27,6 +27,7 @@ import { authApi } from '../lib/account'
 import { setToken } from '../lib/auth'
 import { chatApi } from '../lib/chat'
 import { useApp } from '../lib/context'
+import { BrandMark, Wordmark } from './BrandMark'
 
 interface NavItem {
   to: string
@@ -102,24 +103,16 @@ function useNavGroups(): { label: string; items: NavItem[] }[] {
   return NAV_GROUPS.map((g) => ({ ...g, items: g.items.filter(allowed).map(place) })).filter((g) => g.items.length)
 }
 
-function BrandMark() {
-  return (
-    <span className="relative grid h-7 w-7 shrink-0 place-items-center rounded-md bg-navy" aria-hidden>
-      <span className="h-3 w-3 rounded-full border-2 border-ice" />
-      <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-ember" />
-    </span>
-  )
-}
 
 function Sidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onToggle?: () => void; onNavigate?: () => void }) {
   const groups = useNavGroups()
   const { hosted } = useApp()
   return (
     <nav aria-label="Main" className="flex h-full flex-col">
-      <div className={`flex h-14 items-center border-b border-navy/10 px-3 ${collapsed ? 'justify-center' : 'justify-between'}`}>
+      <div className={`flex h-14 items-center border-b border-forest/10 px-3 ${collapsed ? 'justify-center' : 'justify-between'}`}>
         <Link to="/" onClick={onNavigate} className="flex items-center gap-2.5 rounded-md" aria-label="GateOrchestra home">
           <BrandMark />
-          {!collapsed ? <span className="text-[15px] font-semibold tracking-tight text-ink">GateOrchestra</span> : null}
+          {!collapsed ? <Wordmark /> : null}
         </Link>
         {onToggle && !collapsed ? (
           <button onClick={onToggle} className="btn btn-ghost p-1.5!" aria-label="Collapse sidebar">
@@ -131,7 +124,7 @@ function Sidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onTo
       <div className="flex-1 overflow-y-auto px-2 py-3">
         {groups.map((group) => (
           <div key={group.label} className="mb-4" role="group" aria-label={group.label}>
-            {collapsed ? <div className="mx-2 mb-2 h-px bg-navy/10" aria-hidden /> : <p className="eyebrow px-2.5 pb-1.5">{group.label}</p>}
+            {collapsed ? <div className="mx-2 mb-2 h-px bg-forest/10" aria-hidden /> : <p className="eyebrow px-2.5 pb-1.5">{group.label}</p>}
             <ul className="space-y-0.5">
               {group.items.map(({ to, label, icon: Icon }) => (
                 <li key={to}>
@@ -142,14 +135,14 @@ function Sidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onTo
                     title={collapsed ? label : undefined}
                     className={({ isActive }) =>
                       `group relative flex items-center gap-2.5 rounded-md px-2.5 py-1.5 text-sm transition-colors ${collapsed ? 'justify-center' : ''} ${
-                        isActive ? 'bg-navy/[0.07] font-medium text-ink' : 'text-navy/70 hover:bg-navy/[0.04] hover:text-ink'
+                        isActive ? 'bg-forest font-medium text-paper shadow-sm' : 'text-forest/80 hover:bg-forest/[0.06] hover:text-ink'
                       }`
                     }
                   >
                     {({ isActive }) => (
                       <>
-                        {isActive ? <span className="absolute inset-y-1.5 left-0 w-0.5 rounded-full bg-ember" aria-hidden /> : null}
-                        <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-ink' : 'text-navy/70 group-hover:text-navy'}`} />
+                        {isActive ? <span className="absolute inset-y-2 left-1 w-0.5 rounded-full bg-saffron" aria-hidden /> : null}
+                        <Icon className={`h-4 w-4 shrink-0 ${isActive ? 'text-saffron' : 'text-forest/70 group-hover:text-forest'}`} />
                         {!collapsed ? <span>{label}</span> : null}
                       </>
                     )}
@@ -161,7 +154,7 @@ function Sidebar({ collapsed, onToggle, onNavigate }: { collapsed: boolean; onTo
         ))}
       </div>
 
-      <div className="border-t border-navy/10 px-3 py-3">
+      <div className="border-t border-forest/10 px-3 py-3">
         {onToggle && collapsed ? (
           <button onClick={onToggle} className="btn btn-ghost w-full p-1.5!" aria-label="Expand sidebar">
             <PanelLeftOpen className="h-4 w-4" />
@@ -178,7 +171,7 @@ function TokenPrompt() {
   const [token, setTokenValue] = useState('')
   return (
     <form
-      className="mx-auto mt-6 flex w-full max-w-6xl flex-wrap items-center gap-2 rounded-lg border border-navy/15 bg-ice px-4 py-3 text-sm"
+      className="mx-auto mt-6 flex w-full max-w-6xl flex-wrap items-center gap-2 rounded-lg border border-forest/15 bg-paper px-4 py-3 text-sm"
       onSubmit={(e) => {
         e.preventDefault()
         setToken(token.trim())
@@ -192,13 +185,13 @@ function TokenPrompt() {
         autoComplete="off"
         value={token}
         onChange={(e) => setTokenValue(e.target.value)}
-        className="min-w-0 flex-1 rounded-md border border-navy/15 bg-soft px-3 py-1.5 font-mono text-xs outline-none focus:border-navy/40"
+        className="min-w-0 flex-1 rounded-md border border-forest/15 bg-canvas px-3 py-1.5 font-mono text-xs outline-none focus:border-forest/40"
         placeholder="GATE_API_TOKEN"
       />
       <button type="submit" disabled={!token.trim()} className="btn btn-primary py-1.5!">
         Sign in
       </button>
-      <span className="w-full text-xs text-navy/70">Kept only in this browser tab.</span>
+      <span className="w-full text-xs text-forest/70">Kept only in this browser tab.</span>
     </form>
   )
 }
@@ -247,7 +240,7 @@ function AccountControls() {
   }
   return (
     <div className="flex items-center gap-2">
-      <span className="hidden max-w-[14rem] truncate text-xs text-navy/70 lg:inline" title={user.email}>{user.email}</span>
+      <span className="hidden max-w-[14rem] truncate text-xs text-forest/70 lg:inline" title={user.email}>{user.email}</span>
       <button onClick={signOut} className="btn btn-secondary py-1.5!" aria-label="Log out">
         <LogOut className="h-3.5 w-3.5" /> <span className="hidden sm:inline">Log out</span>
       </button>
@@ -256,7 +249,7 @@ function AccountControls() {
 }
 
 function Banner({ tone, children }: { tone: 'warn' | 'error'; children: ReactNode }) {
-  const style = tone === 'warn' ? 'border-tangerine/40 bg-tangerine/10 text-ink' : 'border-wine/30 bg-wine/5 text-wine'
+  const style = tone === 'warn' ? 'border-amber/40 bg-amber/10 text-ink' : 'border-wine/30 bg-wine/5 text-wine'
   return (
     <div className={`mx-auto mt-6 flex w-full max-w-6xl flex-wrap items-center gap-2 rounded-lg border px-4 py-2.5 text-sm ${style}`} role={tone === 'error' ? 'alert' : 'status'}>
       {children}
@@ -272,7 +265,7 @@ function VerifyBanner() {
   return (
     <Banner tone="warn">
       <span>Confirm <strong className="font-semibold">{user.email}</strong> with the link we emailed you before you start chatting.</span>
-      {state === 'sent' ? <span className="text-navy/70">A new link is on its way.</span> : (
+      {state === 'sent' ? <span className="text-forest/70">A new link is on its way.</span> : (
         <button onClick={resend} className="btn btn-secondary ml-auto py-1!">Send the link again</button>
       )}
       {state === 'failed' ? <span className="text-wine">Could not send it; try again shortly.</span> : null}
@@ -284,8 +277,8 @@ function LegalFooter() {
   const { hosted } = useApp()
   if (!hosted) return null
   return (
-    <footer className="border-t border-navy/10 px-4 md:px-8">
-      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-5 gap-y-1 py-5 text-xs text-navy/70">
+    <footer className="border-t border-forest/10 px-4 md:px-8">
+      <div className="mx-auto flex w-full max-w-6xl flex-wrap items-center gap-x-5 gap-y-1 py-5 text-xs text-forest/70">
         <span>© GateOrchestra</span>
         <Link to="/terms" className="hover:text-ink">Terms</Link>
         <Link to="/privacy" className="hover:text-ink">Privacy</Link>
@@ -300,9 +293,9 @@ function LegalFooter() {
 function StatusDot() {
   const { backend } = useApp()
   const label = backend === 'online' ? 'Backend online' : backend === 'error' ? 'Backend unreachable' : backend === 'locked' ? 'Sign in needed' : 'Connecting'
-  const dot = backend === 'online' ? 'bg-cyan ring-2 ring-cyan/25' : backend === 'error' ? 'bg-wine' : 'bg-tangerine'
+  const dot = backend === 'online' ? 'bg-moss ring-2 ring-moss/25' : backend === 'error' ? 'bg-wine' : 'bg-amber'
   return (
-    <span className="hidden items-center gap-1.5 text-xs text-navy/70 md:inline-flex" role="status">
+    <span className="hidden items-center gap-1.5 text-xs text-forest/70 md:inline-flex" role="status">
       <span className={`h-1.5 w-1.5 rounded-full ${dot}`} />
       {label}
     </span>
@@ -317,14 +310,14 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
   const title = TITLES[pathname] ?? (pathname === '/' ? 'Home' : '')
   const has3D = pathname === '/run'
   return (
-    <header className="sticky top-0 z-30 border-b border-navy/10 bg-soft/85 backdrop-blur-md">
+    <header className="sticky top-0 z-30 border-b border-forest/10 bg-canvas/85 backdrop-blur-md">
       <div className="flex h-14 items-center gap-3 px-4 md:px-8">
         <button onClick={onMenu} className="btn btn-ghost p-1.5! md:hidden" aria-label="Open menu">
           <Menu className="h-5 w-5" />
         </button>
         <span className="text-sm font-medium text-ink">{title}</span>
-        <span className="hidden h-4 w-px bg-navy/15 sm:block" aria-hidden />
-        <span className="hidden min-w-0 items-center gap-2 text-xs text-navy/70 sm:flex">
+        <span className="hidden h-4 w-px bg-forest/15 sm:block" aria-hidden />
+        <span className="hidden min-w-0 items-center gap-2 text-xs text-forest/70 sm:flex">
           <span>{onChat ? 'Chat models' : 'Benchmark model'}</span>
           <span className="chip truncate" title={onChat ? 'The smaller model answers directly; the larger one writes answers after research' : 'The model used in the recorded benchmark'}>
             {onChat ? (chatModel ?? '—') : models ? `${models.default_model} · ${models.current_provider}` : '—'}
@@ -355,8 +348,8 @@ export default function Layout({ children }: { children: ReactNode }) {
   const { backend, backendError } = useApp()
 
   return (
-    <div className="flex min-h-screen bg-soft">
-      <aside className={`sticky top-0 hidden h-screen shrink-0 border-r border-navy/10 bg-ice transition-[width] duration-200 md:block ${collapsed ? 'w-[60px]' : 'w-60'}`}>
+    <div className="flex min-h-screen bg-canvas">
+      <aside className={`sticky top-0 hidden h-screen shrink-0 border-r border-forest/10 bg-linen transition-[width] duration-200 md:block ${collapsed ? 'w-[60px]' : 'w-60'}`}>
         <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
       </aside>
 
@@ -365,7 +358,7 @@ export default function Layout({ children }: { children: ReactNode }) {
           <motion.div className="fixed inset-0 z-50 md:hidden" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="absolute inset-0 bg-ink/40" onClick={() => setMobileOpen(false)} />
             <motion.aside
-              className="relative h-full w-64 border-r border-navy/10 bg-ice"
+              className="relative h-full w-64 border-r border-forest/10 bg-linen"
               initial={{ x: -260 }}
               animate={{ x: 0 }}
               exit={{ x: -260 }}

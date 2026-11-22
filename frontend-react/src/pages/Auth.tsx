@@ -2,6 +2,7 @@ import { motion } from 'framer-motion'
 import { Loader2 } from 'lucide-react'
 import { useEffect, useRef, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, Navigate, useNavigate, useSearchParams } from 'react-router-dom'
+import { BrandMark, Wordmark } from '../components/BrandMark'
 import { Page } from '../components/ui'
 import { MIN_PASSWORD, authApi, type SessionUser } from '../lib/account'
 import { useApp } from '../lib/context'
@@ -18,15 +19,12 @@ function AuthCard({ title, intro, children }: { title: string; intro?: ReactNode
     <Page>
       <motion.div variants={rise} className="mx-auto mt-4 w-full max-w-[400px] md:mt-10">
         <div className="mb-6 flex items-center gap-2.5">
-          <span className="relative grid h-8 w-8 place-items-center rounded-md bg-navy" aria-hidden>
-            <span className="h-3.5 w-3.5 rounded-full border-2 border-ice" />
-            <span className="absolute right-1 top-1 h-1.5 w-1.5 rounded-full bg-ember" />
-          </span>
-          <span className="text-[15px] font-semibold tracking-tight text-ink">GateOrchestra</span>
+          <BrandMark size={32} />
+          <Wordmark />
         </div>
         <div className="card p-6 md:p-7">
           <h1 className="text-2xl font-semibold tracking-tight text-ink">{title}</h1>
-          {intro ? <div className="mt-1.5 text-sm text-navy/70">{intro}</div> : null}
+          {intro ? <div className="mt-1.5 text-sm text-forest/70">{intro}</div> : null}
           <div className="mt-6">{children}</div>
         </div>
       </motion.div>
@@ -56,7 +54,7 @@ function Field({ id, label, type = 'text', value, onChange, autoComplete, hint }
         aria-describedby={hint ? `${id}-hint` : undefined}
         required
       />
-      {hint ? <p id={`${id}-hint`} className="mt-1 text-xs text-navy/70">{hint}</p> : null}
+      {hint ? <p id={`${id}-hint`} className="mt-1 text-xs text-forest/70">{hint}</p> : null}
     </div>
   )
 }
@@ -79,7 +77,7 @@ function Problem({ message }: { message: string | null }) {
 }
 
 function Done({ children }: { children: ReactNode }) {
-  return <p className="rounded-lg border border-navy/15 bg-sky/20 px-3 py-3 text-sm text-ink" role="status">{children}</p>
+  return <p className="rounded-lg border border-forest/15 bg-sage/20 px-3 py-3 text-sm text-ink" role="status">{children}</p>
 }
 
 /** Pages for single-tenant servers, which have no accounts. */
@@ -145,20 +143,20 @@ export function Login() {
           <Field id="code" label="Code" autoComplete="one-time-code" value={code} onChange={setCode} />
           <Submit busy={busy} disabled={code.trim().length < 6}>Verify</Submit>
           <p className="mt-4 text-center text-sm">
-            <button type="button" onClick={() => { setChallenge(null); setCode('') }} className="text-navy/70 hover:text-ink">Use a different account</button>
+            <button type="button" onClick={() => { setChallenge(null); setCode('') }} className="text-forest/70 hover:text-ink">Use a different account</button>
           </p>
         </form>
       </AuthCard>
     )
   }
   return (
-    <AuthCard title="Log in" intro={<>New here? <Link to="/signup" className="font-medium text-ink underline decoration-navy/30 underline-offset-2">Create an account</Link>.</>}>
+    <AuthCard title="Log in" intro={<>New here? <Link to="/signup" className="font-medium text-ink underline decoration-forest/30 underline-offset-2">Create an account</Link>.</>}>
       <form onSubmit={submit} noValidate>
         <Problem message={error} />
         <Field id="email" label="Email" type="email" autoComplete="email" value={email} onChange={setEmail} />
         <Field id="password" label="Password" type="password" autoComplete="current-password" value={password} onChange={setPassword} />
         <Submit busy={busy} disabled={!email.trim() || !password}>Log in</Submit>
-        <p className="mt-4 text-center text-sm"><Link to="/forgot" className="text-navy/70 hover:text-ink">Forgot your password?</Link></p>
+        <p className="mt-4 text-center text-sm"><Link to="/forgot" className="text-forest/70 hover:text-ink">Forgot your password?</Link></p>
       </form>
     </AuthCard>
   )
@@ -193,7 +191,7 @@ export function Signup() {
     }
   }
   return (
-    <AuthCard title="Create an account" intro={<>Already have one? <Link to="/login" className="font-medium text-ink underline decoration-navy/30 underline-offset-2">Log in</Link>.</>}>
+    <AuthCard title="Create an account" intro={<>Already have one? <Link to="/login" className="font-medium text-ink underline decoration-forest/30 underline-offset-2">Log in</Link>.</>}>
       {sent ? (
         <Done>Check <strong>{email.trim()}</strong> for a link to confirm your address, then log in. The link expires in 24 hours.</Done>
       ) : (
@@ -201,9 +199,9 @@ export function Signup() {
           <Problem message={error} />
           <Field id="email" label="Email" type="email" autoComplete="email" value={email} onChange={setEmail} />
           <Field id="password" label="Password" type="password" autoComplete="new-password" value={password} onChange={setPassword} hint={`At least ${MIN_PASSWORD} characters.`} />
-          <label className="mb-5 flex items-start gap-2.5 text-[13px] leading-relaxed text-navy/75">
-            <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-4 w-4 accent-navy" />
-            <span>I accept the <Link to="/terms" className="text-ink underline decoration-navy/30 underline-offset-2">terms</Link> and the <Link to="/acceptable-use" className="text-ink underline decoration-navy/30 underline-offset-2">acceptable-use policy</Link>, and have read the <Link to="/privacy" className="text-ink underline decoration-navy/30 underline-offset-2">privacy notice</Link>.</span>
+          <label className="mb-5 flex items-start gap-2.5 text-[13px] leading-relaxed text-forest/75">
+            <input type="checkbox" checked={agreed} onChange={(e) => setAgreed(e.target.checked)} className="mt-0.5 h-4 w-4 accent-forest" />
+            <span>I accept the <Link to="/terms" className="text-ink underline decoration-forest/30 underline-offset-2">terms</Link> and the <Link to="/acceptable-use" className="text-ink underline decoration-forest/30 underline-offset-2">acceptable-use policy</Link>, and have read the <Link to="/privacy" className="text-ink underline decoration-forest/30 underline-offset-2">privacy notice</Link>.</span>
           </label>
           <Submit busy={busy} disabled={!email.trim() || !password || !agreed}>Create account</Submit>
         </form>
@@ -242,7 +240,7 @@ export function ForgotPassword() {
           <Problem message={error} />
           <Field id="email" label="Email" type="email" autoComplete="email" value={email} onChange={setEmail} />
           <Submit busy={busy} disabled={!email.trim()}>Send reset link</Submit>
-          <p className="mt-4 text-center text-sm"><Link to="/login" className="text-navy/70 hover:text-ink">Back to log in</Link></p>
+          <p className="mt-4 text-center text-sm"><Link to="/login" className="text-forest/70 hover:text-ink">Back to log in</Link></p>
         </form>
       )}
     </AuthCard>
@@ -279,7 +277,7 @@ export function ResetPassword() {
   return (
     <AuthCard title="Choose a new password">
       {done ? (
-        <Done>Your password was changed and every other session was signed out. <Link to="/login" className="font-medium underline decoration-navy/30 underline-offset-2">Log in</Link> with the new one.</Done>
+        <Done>Your password was changed and every other session was signed out. <Link to="/login" className="font-medium underline decoration-forest/30 underline-offset-2">Log in</Link> with the new one.</Done>
       ) : !token ? (
         <Problem message="This page needs the link from the reset email." />
       ) : (
@@ -321,9 +319,9 @@ export function VerifyEmail() {
   if (!hosted) return <NoAccounts />
   return (
     <AuthCard title="Confirm your email">
-      {state === 'working' ? <p className="text-sm text-navy/70" role="status">Confirming…</p> : null}
+      {state === 'working' ? <p className="text-sm text-forest/70" role="status">Confirming…</p> : null}
       {state === 'done' ? (
-        <Done>Your address is confirmed. {user ? <Link to="/chat" className="font-medium underline decoration-navy/30 underline-offset-2">Start chatting</Link> : <Link to="/login" className="font-medium underline decoration-navy/30 underline-offset-2">Log in</Link>}.</Done>
+        <Done>Your address is confirmed. {user ? <Link to="/chat" className="font-medium underline decoration-forest/30 underline-offset-2">Start chatting</Link> : <Link to="/login" className="font-medium underline decoration-forest/30 underline-offset-2">Log in</Link>}.</Done>
       ) : null}
       {state === 'failed' ? <Problem message={error} /> : null}
     </AuthCard>
@@ -358,9 +356,9 @@ export function ConfirmEmail() {
   if (!hosted) return <NoAccounts />
   return (
     <AuthCard title="Confirm your new email">
-      {state === 'working' ? <p className="text-sm text-navy/70" role="status">Confirming…</p> : null}
+      {state === 'working' ? <p className="text-sm text-forest/70" role="status">Confirming…</p> : null}
       {state === 'done' ? (
-        <Done>Your account now uses <strong>{message}</strong>. You were signed out everywhere; <Link to="/login" className="font-medium underline decoration-navy/30 underline-offset-2">log in</Link> with the new address.</Done>
+        <Done>Your account now uses <strong>{message}</strong>. You were signed out everywhere; <Link to="/login" className="font-medium underline decoration-forest/30 underline-offset-2">log in</Link> with the new address.</Done>
       ) : null}
       {state === 'failed' ? <Problem message={message} /> : null}
     </AuthCard>

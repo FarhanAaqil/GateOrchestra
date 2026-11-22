@@ -2,16 +2,18 @@ import type { ResultMethod, Strategy } from './types'
 
 // Palette (see index.css): only these ten colours appear in the UI.
 export const PALETTE = {
-  ice: '#F1FAFF',
-  sky: '#A8DBFF',
-  ember: '#FF6B35',
-  navy: '#1B263B',
-  soft: '#F7F7F7',
-  lemon: '#FFF56B',
-  wine: '#8B1538',
-  cyan: '#00E5FF',
-  tangerine: '#FF8C42',
-  ink: '#1B1B1F',
+  paper: '#FFFCF7',
+  sage: '#B7D9C4',
+  /** Sage dark enough to read as a mark on a light card. */
+  sageDeep: '#5F9E7F',
+  clay: '#E0643A',
+  forest: '#13342A',
+  canvas: '#F5F0E8',
+  butter: '#F6E27A',
+  wine: '#9E2B3A',
+  saffron: '#F4B942',
+  amber: '#E8963A',
+  ink: '#1D221F',
 } as const
 
 export const METHOD_LABELS: Record<ResultMethod, string> = {
@@ -23,11 +25,11 @@ export const METHOD_LABELS: Record<ResultMethod, string> = {
 }
 
 export const METHOD_COLORS: Record<ResultMethod, string> = {
-  'CoT-SC-only': PALETTE.sky,
+  'CoT-SC-only': PALETTE.sageDeep,
   'Always-MAS': PALETTE.wine,
-  RandomGate: PALETTE.navy,
-  RuleBasedGate: PALETTE.tangerine,
-  GateOrchestra: PALETTE.ember,
+  RandomGate: PALETTE.forest,
+  RuleBasedGate: PALETTE.amber,
+  GateOrchestra: PALETTE.clay,
 }
 
 export const STRATEGY_LABELS: Record<Strategy, string> = {

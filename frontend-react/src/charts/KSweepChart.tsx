@@ -25,8 +25,8 @@ export default function KSweepChart({ points }: { points: ResultsDetail['k_sweep
         <YAxis tick={AXIS} stroke={AXIS.stroke} unit="%" />
         <Tooltip {...TOOLTIP} formatter={(v) => `${Number(v).toFixed(1)}%`} />
         <Legend wrapperStyle={{ fontSize: 12, fontFamily: 'JetBrains Mono, monospace' }} />
-        <Line type="monotone" dataKey="accuracy" name="Val accuracy" stroke="#1B263B" strokeWidth={2.5} dot={{ r: 4 }} isAnimationActive={animate} />
-        <Line type="monotone" dataKey="savings" name="Token savings" stroke="#FF6B35" strokeWidth={2.5} dot={{ r: 4 }} isAnimationActive={animate} />
+        <Line type="monotone" dataKey="accuracy" name="Val accuracy" stroke="#13342A" strokeWidth={2.5} dot={{ r: 4 }} isAnimationActive={animate} />
+        <Line type="monotone" dataKey="savings" name="Token savings" stroke="#E0643A" strokeWidth={2.5} dot={{ r: 4 }} isAnimationActive={animate} />
       </LineChart>
     </ResponsiveContainer>
   )
