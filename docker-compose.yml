@@ -2,7 +2,7 @@
 #   cp .env.example .env    # add GROQ_API_KEY (and GATE_API_TOKEN for a public server)
 #   docker compose up --build
 # Console: http://localhost:3700 (set WEB_PORT=3701 if 3700 is taken). The API is only
-# reachable through it.
+# reachable through it, and by default only from this machine.
 #
 # All writable state (conversations, ratings, the answer cache, run history and any API
 # key added from the console) lives in the "gateorchestra-data" named volume. A named
@@ -41,7 +41,9 @@ services:
   web:
     build: ./frontend-react
     ports:
-      - "${WEB_PORT:-3700}:80"
+      # This machine only. Set WEB_BIND=0.0.0.0 to open it to your network, and only
+      # with hosted mode (sign-in) on: without it there is no login.
+      - "${WEB_BIND:-127.0.0.1}:${WEB_PORT:-3700}:80"
     depends_on:
       api:
         condition: service_healthy
