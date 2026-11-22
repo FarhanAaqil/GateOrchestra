@@ -1,39 +1,46 @@
 @import 'tailwindcss';
 
 /*
- * Design system.
+ * Design system: warm editorial.
  *
- * Palette: exactly ten colours. Every colour on screen is one of these, sometimes
- * at reduced opacity. Their jobs are fixed so the interface stays calm:
- *   soft       page canvas            ice        panels and inputs
- *   ink        text                   navy       primary actions, dark "instrument" panels,
- *                                                and (at low opacity) every border and muted text
- *   ember      the one brand accent   sky        the single-agent / STOP path in data
- *   cyan       highlights on navy     wine       errors and destructive actions
- *   tangerine  warnings, budgets      lemon      rare emphasis on navy only
+ * Parchment and warm white surfaces, deep forest green for structure and data,
+ * terracotta as the single brand accent. Every colour has one job:
+ *   canvas   page background            paper    cards and inputs
+ *   linen    sidebar and quiet bands     ink      text
+ *   forest   primary actions, data panels, and (at low opacity) borders and muted text
+ *   clay     the brand accent (graphics)  clay-deep  accent text and buttons on light (AA)
+ *   clay-light  accent text on forest (AA)
+ *   sage     the quick-answer / STOP path saffron  highlights on forest, the gate
+ *   moss     healthy / online status      amber    warnings and budgets
+ *   wine     errors and destructive       butter   rare emphasis on forest
  */
 @theme {
-  --color-ice: #f1faff;
-  --color-sky: #a8dbff;
-  --color-ember: #ff6b35;
-  --color-navy: #1b263b;
-  --color-soft: #f7f7f7;
-  --color-lemon: #fff56b;
-  --color-wine: #8b1538;
-  --color-cyan: #00e5ff;
-  --color-tangerine: #ff8c42;
-  --color-ink: #1b1b1f;
+  --color-canvas: #f5f0e8;
+  --color-paper: #fffcf7;
+  --color-linen: #ede5d8;
+  --color-ink: #1d221f;
+  --color-forest: #13342a;
+  --color-forest-soft: #1e4a3b;
+  --color-clay: #e0643a;
+  --color-clay-deep: #b4442a;
+  --color-clay-light: #f4a07e;
+  --color-sage: #b7d9c4;
+  --color-saffron: #f4b942;
+  --color-moss: #2f8a57;
+  --color-amber: #e8963a;
+  --color-wine: #9e2b3a;
+  --color-butter: #f6e27a;
 
   /* What each colour means in the pipeline (charts). */
-  --color-gate: #00e5ff;
-  --color-stop: #a8dbff;
-  --color-mas: #ff6b35;
-  --color-mas-deep: #8b1538;
-  --color-budget: #ff8c42;
-  --color-danger: #8b1538;
+  --color-gate: #f4b942;
+  --color-stop: #b7d9c4;
+  --color-mas: #e0643a;
+  --color-mas-deep: #9e2b3a;
+  --color-budget: #e8963a;
+  --color-danger: #9e2b3a;
 
-  --font-display: 'Inter', ui-sans-serif, system-ui, sans-serif;
-  --font-sans: 'Inter', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Fraunces', ui-serif, Georgia, serif;
+  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', ui-monospace, monospace;
 }
 
@@ -45,47 +52,55 @@ body,
 
 body {
   margin: 0;
-  background: var(--color-soft);
+  background: var(--color-canvas);
   color: var(--color-ink);
   font-family: var(--font-sans);
-  font-feature-settings: 'cv11', 'ss01';
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
 h1,
-h2,
+h2 {
+  font-family: var(--font-display);
+  font-optical-sizing: auto;
+  font-variation-settings: 'SOFT' 30;
+  letter-spacing: -0.02em;
+  font-weight: 560;
+}
 h3,
 h4 {
   font-family: var(--font-sans);
-  letter-spacing: -0.018em;
+  letter-spacing: -0.01em;
   font-weight: 600;
 }
 
 /* Panel: a quiet surface with a hairline edge. */
 @utility card {
-  background: var(--color-ice);
-  border: 1px solid color-mix(in srgb, var(--color-navy) 10%, transparent);
-  border-radius: 0.75rem;
-  box-shadow: 0 1px 2px color-mix(in srgb, var(--color-navy) 6%, transparent);
+  background: var(--color-paper);
+  border: 1px solid color-mix(in srgb, var(--color-forest) 11%, transparent);
+  border-radius: 0.875rem;
+  box-shadow:
+    0 1px 0 color-mix(in srgb, var(--color-forest) 4%, transparent),
+    0 10px 28px -18px color-mix(in srgb, var(--color-forest) 28%, transparent);
 }
 
-/* Instrument panel: navy, for the few places where data should stand out. */
+/* Instrument panel: forest, for the few places where data should stand out. */
 @utility panel {
-  background: var(--color-navy);
-  color: var(--color-ice);
-  border-radius: 0.75rem;
-  border: 1px solid var(--color-navy);
+  /* Solid, not a gradient: contrast checkers cannot measure text on a gradient. */
+  background: var(--color-forest);
+  color: var(--color-paper);
+  border-radius: 0.875rem;
+  border: 1px solid var(--color-forest);
 }
 
 /* Kept as names so older markup compiles; they no longer draw anything. */
-@utility glow-cyan {
+@utility glow-saffron {
   box-shadow: none;
 }
-@utility glow-ember {
+@utility glow-clay {
   box-shadow: none;
 }
-@utility mark-lemon {
+@utility mark-butter {
   background: none;
 }
 
@@ -95,7 +110,7 @@ h4 {
   font-size: 0.6875rem;
   letter-spacing: 0.08em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--color-navy) 72%, transparent);
+  color: color-mix(in srgb, var(--color-forest) 72%, transparent);
 }
 
 /* Buttons. */
@@ -116,42 +131,42 @@ h4 {
     cursor: not-allowed;
   }
   &:focus-visible {
-    outline: 2px solid var(--color-ember);
+    outline: 2px solid var(--color-clay-deep);
     outline-offset: 2px;
   }
 }
 @utility btn-primary {
-  background: var(--color-navy);
-  color: var(--color-ice);
+  background: var(--color-forest);
+  color: var(--color-paper);
   &:hover:not(:disabled) {
-    background: var(--color-ink);
+    background: var(--color-forest-soft);
   }
 }
 @utility btn-accent {
-  background: var(--color-ember);
-  color: var(--color-ink);
+  background: var(--color-clay-deep);
+  color: var(--color-paper);
   &:hover:not(:disabled) {
-    background: var(--color-tangerine);
+    background: color-mix(in srgb, var(--color-clay-deep) 86%, var(--color-ink));
   }
 }
 @utility btn-secondary {
-  background: var(--color-ice);
+  background: var(--color-paper);
   color: var(--color-ink);
-  border: 1px solid color-mix(in srgb, var(--color-navy) 16%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-forest) 16%, transparent);
   &:hover:not(:disabled) {
-    border-color: color-mix(in srgb, var(--color-navy) 32%, transparent);
+    border-color: color-mix(in srgb, var(--color-forest) 32%, transparent);
   }
 }
 @utility btn-ghost {
-  color: color-mix(in srgb, var(--color-navy) 80%, transparent);
+  color: color-mix(in srgb, var(--color-forest) 80%, transparent);
   &:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--color-navy) 6%, transparent);
+    background: color-mix(in srgb, var(--color-forest) 6%, transparent);
     color: var(--color-ink);
   }
 }
 @utility btn-danger {
   background: var(--color-wine);
-  color: var(--color-soft);
+  color: var(--color-canvas);
 }
 
 /* Compact label: status, counts, categories. */
@@ -160,39 +175,39 @@ h4 {
   align-items: center;
   gap: 0.3rem;
   border-radius: 0.375rem;
-  border: 1px solid color-mix(in srgb, var(--color-navy) 14%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-forest) 14%, transparent);
   padding: 0.0625rem 0.45rem;
   font-family: var(--font-mono);
   font-size: 0.6875rem;
   line-height: 1.1rem;
-  color: color-mix(in srgb, var(--color-navy) 85%, transparent);
-  background: var(--color-ice);
+  color: color-mix(in srgb, var(--color-forest) 85%, transparent);
+  background: var(--color-paper);
 }
 
 /* Tabular numbers line up in tables and stats. */
 @utility num {
   font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
-  font-feature-settings: 'tnum', 'cv11';
+  font-feature-settings: 'tnum';
   letter-spacing: -0.02em;
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--color-sky) 70%, transparent);
+  background: color-mix(in srgb, var(--color-saffron) 45%, transparent);
   color: var(--color-ink);
 }
 
 /* In the base layer so a component's own focus style (e.g. outline-none on a composer) wins. */
 @layer base {
   :focus-visible {
-    outline: 2px solid var(--color-ember);
+    outline: 2px solid var(--color-clay-deep);
     outline-offset: 2px;
   }
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-navy) 25%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--color-forest) 25%, transparent) transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -229,12 +244,12 @@ h4 {
 .prose-chat li + li { margin-top: 0.25em; }
 .prose-chat strong { font-weight: 700; }
 .prose-chat blockquote {
-  border-left: 2px solid color-mix(in srgb, var(--color-navy) 20%, transparent);
+  border-left: 2px solid color-mix(in srgb, var(--color-forest) 20%, transparent);
   padding-left: 0.9em;
-  color: color-mix(in srgb, var(--color-navy) 80%, transparent);
+  color: color-mix(in srgb, var(--color-forest) 80%, transparent);
 }
 .prose-chat :not(pre) > code {
-  background: color-mix(in srgb, var(--color-navy) 7%, transparent);
+  background: color-mix(in srgb, var(--color-forest) 7%, transparent);
   border-radius: 0.3rem;
   padding: 0.1em 0.35em;
   font-family: var(--font-mono);
@@ -246,11 +261,16 @@ h4 {
 }
 .prose-chat th,
 .prose-chat td {
-  border: 1px solid color-mix(in srgb, var(--color-navy) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--color-forest) 12%, transparent);
   padding: 0.4em 0.7em;
   text-align: left;
 }
 .prose-chat th {
-  background: color-mix(in srgb, var(--color-navy) 5%, transparent);
+  background: color-mix(in srgb, var(--color-forest) 5%, transparent);
   font-weight: 600;
+}
+
+/* Chart legends: labels in ink, since series colours such as sage and amber are too light for text. */
+.recharts-legend-item-text {
+  color: var(--color-ink) !important;
 }

@@ -35,9 +35,9 @@ function CodeBlock({ children }: { children?: ReactNode }) {
   }
   return (
     <div className="group relative my-3 overflow-hidden rounded-xl bg-[#0d1117]">
-      <div className="flex items-center justify-between border-b border-ice/10 px-3 py-1.5 font-mono text-[11px] text-sky">
+      <div className="flex items-center justify-between border-b border-paper/10 px-3 py-1.5 font-mono text-[11px] text-sage">
         <span>{lang ?? 'code'}</span>
-        <button onClick={copy} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-ice/10" aria-label="Copy code">
+        <button onClick={copy} className="inline-flex items-center gap-1 rounded px-1.5 py-0.5 hover:bg-paper/10" aria-label="Copy code">
           {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
           {copied ? 'Copied' : 'Copy'}
         </button>

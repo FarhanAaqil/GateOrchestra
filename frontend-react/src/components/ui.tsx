@@ -9,28 +9,28 @@ import type { ResultsStatus } from '../lib/types'
 /** A technical term with its plain-language meaning on hover or keyboard focus. */
 export function Term({ term, children }: { term: GlossaryTerm; children: ReactNode }) {
   return (
-    <abbr title={GLOSSARY[term]} tabIndex={0} className="cursor-help no-underline decoration-navy/30 decoration-dotted underline-offset-4 hover:underline">
+    <abbr title={GLOSSARY[term]} tabIndex={0} className="cursor-help no-underline decoration-forest/30 decoration-dotted underline-offset-4 hover:underline">
       {children}
     </abbr>
   )
 }
 
 /**
- * A panel. `navy` is the dark instrument panel used where numbers should stand out.
+ * A panel. `forest` is the dark instrument panel used where numbers should stand out.
  * `tilt` is accepted for older call sites and ignored: panels no longer move.
  */
 export function Card({
   children,
   className = '',
-  navy = false,
+  forest = false,
 }: {
   children: ReactNode
   className?: string
   tilt?: boolean
-  navy?: boolean
+  forest?: boolean
 }) {
   return (
-    <motion.div variants={rise} className={`${navy ? 'panel' : 'card'} p-5 ${className}`}>
+    <motion.div variants={rise} className={`${forest ? 'panel' : 'card'} p-5 ${className}`}>
       {children}
     </motion.div>
   )
@@ -86,11 +86,11 @@ export function PageHeader({
   actions?: ReactNode
 }) {
   return (
-    <motion.header variants={rise} className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-navy/10 pb-6">
+    <motion.header variants={rise} className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-forest/10 pb-6">
       <div className="min-w-0 max-w-3xl">
         <p className="eyebrow">{kicker}</p>
         <h1 className="mt-2 text-[28px] font-semibold leading-tight tracking-tight text-ink md:text-[32px]">{title}</h1>
-        {children ? <div className="mt-2 text-[15px] leading-relaxed text-navy/70">{children}</div> : null}
+        {children ? <div className="mt-2 text-[15px] leading-relaxed text-forest/70">{children}</div> : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
     </motion.header>
@@ -122,19 +122,19 @@ export function Page({ children }: { children: ReactNode }) {
   )
 }
 
-export function Tag({ children, tone = 'sky' }: { children: ReactNode; tone?: 'sky' | 'lemon' | 'ember' | 'navy' | 'wine' }) {
+export function Tag({ children, tone = 'sage' }: { children: ReactNode; tone?: 'sage' | 'butter' | 'clay' | 'forest' | 'wine' }) {
   const tones = {
-    sky: '',
-    lemon: 'border-tangerine/40! bg-tangerine/10!',
-    ember: 'border-ember/40! bg-ember/10! text-ink!',
-    navy: 'border-ice/15! bg-ice/5! text-sky!',
+    sage: '',
+    butter: 'border-amber/40! bg-amber/10!',
+    clay: 'border-clay/40! bg-clay/10! text-ink!',
+    forest: 'border-paper/15! bg-paper/5! text-sage!',
     wine: 'border-wine/30! bg-wine/5! text-wine!',
   }
   return <span className={`chip ${tones[tone]}`}>{children}</span>
 }
 
-export function PillLink({ to, children, variant = 'ember' }: { to: string; children: ReactNode; variant?: 'ember' | 'navy' | 'ghost' }) {
-  const styles = { ember: 'btn-accent', navy: 'btn-primary', ghost: 'btn-secondary' }
+export function PillLink({ to, children, variant = 'clay' }: { to: string; children: ReactNode; variant?: 'clay' | 'forest' | 'ghost' }) {
+  const styles = { clay: 'btn-accent', forest: 'btn-primary', ghost: 'btn-secondary' }
   return (
     <Link to={to} className={`btn ${styles[variant]}`}>
       {children}
@@ -144,10 +144,10 @@ export function PillLink({ to, children, variant = 'ember' }: { to: string; chil
 
 export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <motion.div variants={rise} className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-navy/20 px-6 py-12 text-center">
-      <CircleDashed className="h-6 w-6 text-navy/70" aria-hidden />
+    <motion.div variants={rise} className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-forest/20 px-6 py-12 text-center">
+      <CircleDashed className="h-6 w-6 text-forest/70" aria-hidden />
       <h3 className="text-[15px] font-semibold text-ink">{title}</h3>
-      {children ? <div className="max-w-xl text-sm text-navy/70">{children}</div> : null}
+      {children ? <div className="max-w-xl text-sm text-forest/70">{children}</div> : null}
     </motion.div>
   )
 }
@@ -162,10 +162,10 @@ export function ErrorNote({ message }: { message: string }) {
 }
 
 const STATUS_STYLE: Record<ResultsStatus, { label: string; cls: string; icon: ReactNode }> = {
-  verified: { label: 'Verified', cls: 'border-navy/15 text-navy', icon: <CheckCircle2 className="h-3 w-3 text-navy" /> },
-  partial: { label: 'Partial run', cls: 'border-tangerine/50 bg-tangerine/10 text-ink', icon: <Info className="h-3 w-3" /> },
+  verified: { label: 'Verified', cls: 'border-forest/15 text-forest', icon: <CheckCircle2 className="h-3 w-3 text-forest" /> },
+  partial: { label: 'Partial run', cls: 'border-amber/50 bg-amber/10 text-ink', icon: <Info className="h-3 w-3" /> },
   unverified: { label: 'Unverified', cls: 'border-wine/40 bg-wine/5 text-wine', icon: <AlertTriangle className="h-3 w-3" /> },
-  no_results: { label: 'No results', cls: 'border-navy/15 text-navy/70', icon: <CircleDashed className="h-3 w-3" /> },
+  no_results: { label: 'No results', cls: 'border-forest/15 text-forest/70', icon: <CircleDashed className="h-3 w-3" /> },
 }
 
 export function StatusBadge({ status }: { status: ResultsStatus }) {
@@ -184,14 +184,14 @@ export function NoCitableResults({ status, what }: { status: ResultsStatus | und
     <EmptyState title={`No verified ${what} yet`}>
       {status === 'unverified' ? (
         <p>
-          The recorded results fail <code className="rounded bg-navy/5 px-1 font-mono text-ink">verify_final_results.py</code>, so they are
+          The recorded results fail <code className="rounded bg-forest/5 px-1 font-mono text-ink">verify_final_results.py</code>, so they are
           not shown as findings.
         </p>
       ) : (
         <p>No benchmark results have been recorded.</p>
       )}
       <p className="mt-2">
-        Run <code className="rounded bg-navy/5 px-1 font-mono text-ink">python scripts/final_benchmark.py</code> to fill this page with
+        Run <code className="rounded bg-forest/5 px-1 font-mono text-ink">python scripts/final_benchmark.py</code> to fill this page with
         real numbers.
       </p>
     </EmptyState>
@@ -200,8 +200,8 @@ export function NoCitableResults({ status, what }: { status: ResultsStatus | und
 
 export function Spinner({ label = 'Loading' }: { label?: string }) {
   return (
-    <div className="flex items-center gap-2 text-sm text-navy/70" role="status">
-      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-navy/20 border-t-navy" />
+    <div className="flex items-center gap-2 text-sm text-forest/70" role="status">
+      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-forest/20 border-t-forest" />
       {label}
     </div>
   )
@@ -209,7 +209,7 @@ export function Spinner({ label = 'Loading' }: { label?: string }) {
 
 /** A placeholder block shaped like the content that is loading. */
 export function Skeleton({ className = '' }: { className?: string }) {
-  return <span aria-hidden className={`block animate-pulse rounded-md bg-navy/[0.07] motion-reduce:animate-none ${className}`} />
+  return <span aria-hidden className={`block animate-pulse rounded-md bg-forest/[0.07] motion-reduce:animate-none ${className}`} />
 }
 
 /** Loading placeholder for a grid of panels (stats, charts). */
@@ -239,14 +239,14 @@ export function SkeletonTable({ rows = 6 }: { rows?: number }) {
 }
 
 /** One number with its label, for stat rows. */
-export function Stat({ label, value, note, tone = 'ink' }: { label: string; value: ReactNode; note?: ReactNode; tone?: 'ink' | 'ember' | 'wine' }) {
-  // Ember text fails contrast on light panels, so the ember tone marks the stat with an accent line instead.
-  const colour = { ink: 'text-ink', ember: 'text-ink', wine: 'text-wine' }[tone]
+export function Stat({ label, value, note, tone = 'ink' }: { label: string; value: ReactNode; note?: ReactNode; tone?: 'ink' | 'clay' | 'wine' }) {
+  // Ember text fails contrast on light panels, so the clay tone marks the stat with an accent line instead.
+  const colour = { ink: 'text-ink', clay: 'text-ink', wine: 'text-wine' }[tone]
   return (
-    <Card className={tone === 'ember' ? 'border-t-2! border-t-ember!' : ''}>
+    <Card className={tone === 'clay' ? 'border-t-2! border-t-clay!' : ''}>
       <p className="eyebrow">{label}</p>
       <p className={`num mt-2 text-[28px] font-medium leading-none ${colour}`}>{value}</p>
-      {note ? <p className="mt-2 text-xs text-navy/70">{note}</p> : null}
+      {note ? <p className="mt-2 text-xs text-forest/70">{note}</p> : null}
     </Card>
   )
 }

@@ -58,19 +58,19 @@ function Mesh() {
         <bufferGeometry>
           <bufferAttribute attach="attributes-position" args={[nodes, 3]} />
         </bufferGeometry>
-        <pointsMaterial color="#1B263B" size={0.05} sizeAttenuation transparent opacity={0.35} />
+        <pointsMaterial color="#13342A" size={0.05} sizeAttenuation transparent opacity={0.35} />
       </points>
       <lineSegments>
         <bufferGeometry>
           <bufferAttribute attach="attributes-position" args={[links, 3]} />
         </bufferGeometry>
-        <lineBasicMaterial color="#1B263B" transparent opacity={0.07} />
+        <lineBasicMaterial color="#13342A" transparent opacity={0.07} />
       </lineSegments>
       <points>
         <bufferGeometry>
           <bufferAttribute attach="attributes-position" args={[dust, 3]} />
         </bufferGeometry>
-        <pointsMaterial color="#FF6B35" size={0.03} sizeAttenuation transparent opacity={0.35} />
+        <pointsMaterial color="#E0643A" size={0.03} sizeAttenuation transparent opacity={0.35} />
       </points>
     </group>
   )
@@ -87,7 +87,7 @@ export default function NeuralField() {
         eventSource={document.body}
         eventPrefix="client"
       >
-        {/* Drawn in navy and ember on the light Ice canvas; bloom would wash it out. */}
+        {/* Drawn in forest and clay on the light paper canvas; bloom would wash it out. */}
         <Mesh />
       </Canvas>
     </div>

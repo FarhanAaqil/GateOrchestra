@@ -87,3 +87,4 @@ backups/
 
 # Per-machine Docker settings
 docker-compose.override.yml
+frontend-react/tsconfig.tsbuildinfo

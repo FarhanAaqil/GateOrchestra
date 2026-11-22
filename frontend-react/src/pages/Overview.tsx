@@ -21,33 +21,33 @@ const loadSplitSizes = async () => {
 
 /** The pipeline as a diagram: question, probe, gate, then one of two paths. */
 function PipelineDiagram() {
-  const node = 'rounded-md border border-ice/15 bg-ice/[0.04] px-3 py-2'
+  const node = 'rounded-md border border-paper/15 bg-paper/[0.04] px-3 py-2'
   return (
     <div className="panel flex h-full flex-col justify-between p-6" aria-label="How GateOrchestra routes a question">
-      <p className="eyebrow text-sky/70!">Pipeline</p>
+      <p className="eyebrow text-sage/70!">Pipeline</p>
       <div className="mt-6 space-y-3 font-mono text-[12px]">
         <div className={node}>
-          <p className="text-sky/70">input</p>
-          <p className="text-ice">question</p>
+          <p className="text-sage/70">input</p>
+          <p className="text-paper">question</p>
         </div>
-        <div className="ml-4 h-4 w-px bg-ice/20" aria-hidden />
+        <div className="ml-4 h-4 w-px bg-paper/20" aria-hidden />
         <div className={node}>
-          <p className="text-sky/70">probe · CoT-SC × 3</p>
-          <p className="text-ice">answer + agreement</p>
+          <p className="text-sage/70">probe · CoT-SC × 3</p>
+          <p className="text-paper">answer + agreement</p>
         </div>
-        <div className="ml-4 h-4 w-px bg-ice/20" aria-hidden />
-        <div className="rounded-md border border-cyan/50 bg-cyan/[0.06] px-3 py-2">
-          <p className="text-cyan">gate · 8 features</p>
-          <p className="text-ice">is decomposition worth it?</p>
+        <div className="ml-4 h-4 w-px bg-paper/20" aria-hidden />
+        <div className="rounded-md border border-saffron/50 bg-saffron/[0.06] px-3 py-2">
+          <p className="text-saffron">gate · 8 features</p>
+          <p className="text-paper">is decomposition worth it?</p>
         </div>
         <div className="grid grid-cols-2 gap-3 pt-3">
           <div className={node}>
-            <p className="text-sky">STOP</p>
-            <p className="text-ice/80">return the probe answer</p>
+            <p className="text-sage">STOP</p>
+            <p className="text-paper/80">return the probe answer</p>
           </div>
-          <div className="rounded-md border border-ember/50 bg-ember/[0.07] px-3 py-2">
-            <p className="text-ember">ESCALATE</p>
-            <p className="text-ice/80">MAS within k × probe tokens</p>
+          <div className="rounded-md border border-clay/50 bg-clay/[0.07] px-3 py-2">
+            <p className="text-clay-light">ESCALATE</p>
+            <p className="text-paper/80">MAS within k × probe tokens</p>
           </div>
         </div>
       </div>
@@ -69,9 +69,9 @@ function SpecSheet() {
     ['Benchmark model', models ? `${models.default_model} (${models.current_provider})` : null],
   ]
   return (
-    <motion.dl variants={rise} className="card mt-6 grid grid-cols-2 divide-navy/10 overflow-hidden sm:grid-cols-4 lg:grid-cols-7 lg:divide-x">
+    <motion.dl variants={rise} className="card mt-6 grid grid-cols-2 divide-forest/10 overflow-hidden sm:grid-cols-4 lg:grid-cols-7 lg:divide-x">
       {rows.map(([label, value]) => (
-        <div key={label} className="border-b border-navy/10 px-4 py-3 lg:border-b-0">
+        <div key={label} className="border-b border-forest/10 px-4 py-3 lg:border-b-0">
           <dt className="eyebrow">{label}</dt>
           <dd className="num mt-1 truncate text-sm text-ink" title={value ?? undefined}>{value ?? '—'}</dd>
         </div>
@@ -97,17 +97,17 @@ export default function Overview() {
           <h1 className="mt-3 text-4xl font-semibold leading-[1.08] tracking-tight text-ink md:text-[52px]">
             Decide whether to orchestrate, before paying for it.
           </h1>
-          <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-navy/70">
+          <p className="mt-5 max-w-xl text-[17px] leading-relaxed text-forest/70">
             A cheap CoT-SC probe answers first. A small trained gate escalates to the multi-agent orchestrator only when
             decomposition is likely to beat that answer at an equal token budget.
           </p>
           <div className="mt-7 flex flex-wrap gap-2.5">
             {isAdmin ? (
-              <PillLink to="/run" variant="navy">
+              <PillLink to="/run" variant="forest">
                 Run a task <ArrowRight className="h-4 w-4" />
               </PillLink>
             ) : null}
-            <PillLink to="/results" variant={isAdmin ? 'ghost' : 'navy'}>
+            <PillLink to="/results" variant={isAdmin ? 'ghost' : 'forest'}>
               See the results {isAdmin ? null : <ArrowRight className="h-4 w-4" />}
             </PillLink>
           </div>
@@ -125,7 +125,7 @@ export default function Overview() {
       ) : isCitable(status) && gate && mas ? (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
           <Stat label="Task runs evaluated" value={<CountUp value={tasksEvaluated ?? 0} />} note={`${gate.n_seeds} seed(s)`} />
-          <Stat label="Tokens vs Always-MAS" tone="ember" value={<CountUp value={gate.token_savings_pct_mean} decimals={1} suffix="%" />} note="saved per task, on average" />
+          <Stat label="Tokens vs Always-MAS" tone="clay" value={<CountUp value={gate.token_savings_pct_mean} decimals={1} suffix="%" />} note="saved per task, on average" />
           <Stat
             label="Accuracy vs Always-MAS"
             value={<CountUp value={gate.accuracy_mean - mas.accuracy_mean} decimals={1} suffix=" pts" />}
@@ -140,10 +140,10 @@ export default function Overview() {
       <SectionTitle>How a task flows</SectionTitle>
       <motion.ol variants={rise} className="card grid overflow-hidden sm:grid-cols-2 lg:grid-cols-4">
         {STEPS.map(({ title, text }, i) => (
-          <li key={title} className="border-navy/10 p-5 max-lg:border-b sm:max-lg:odd:border-r lg:border-r lg:last:border-r-0">
-            <p className={`num text-xs ${i === 2 ? 'font-semibold text-ink' : 'text-navy/70'}`}>0{i + 1}</p>
+          <li key={title} className="border-forest/10 p-5 max-lg:border-b sm:max-lg:odd:border-r lg:border-r lg:last:border-r-0">
+            <p className={`num text-xs ${i === 2 ? 'font-semibold text-ink' : 'text-forest/70'}`}>0{i + 1}</p>
             <h3 className="mt-2 text-[15px] font-semibold text-ink">{title}</h3>
-            <p className="mt-1.5 text-sm leading-relaxed text-navy/70">{text}</p>
+            <p className="mt-1.5 text-sm leading-relaxed text-forest/70">{text}</p>
           </li>
         ))}
       </motion.ol>
