@@ -42,13 +42,27 @@ export default function Pricing() {
       return <span className="btn btn-secondary w-full cursor-default">Your plan{paid && paidUntil ? ` until ${paidUntil.toLocaleDateString()}` : ''}</span>
     }
     if (!paid) return null
+    if (!plans.data?.payments) {
+      // No payment page configured: say so on the page instead of showing a dead button.
+      return user.is_admin ? (
+        <div className="space-y-2">
+          <Link to="/admin" className="btn btn-primary w-full">
+            Give an account Pro in Admin <ArrowRight className="h-4 w-4" />
+          </Link>
+          <p className="text-xs text-forest/70">
+            Payments are not set up yet. Add your payment page as <code className="font-mono">GATE_PAYMENT_LINK</code> in
+            .env to turn on the Upgrade button for everyone.
+          </p>
+        </div>
+      ) : (
+        <div className="space-y-2">
+          <span className="btn btn-secondary w-full cursor-default">Upgrades open soon</span>
+          <p className="text-xs text-forest/70">Paid plans are not on sale yet. The free plan has everything you need to try it.</p>
+        </div>
+      )
+    }
     return (
-      <button
-        onClick={upgrade}
-        disabled={opening || !plans.data?.payments}
-        className="btn btn-accent w-full"
-        title={plans.data?.payments ? undefined : 'Payments are not set up on this server yet'}
-      >
+      <button onClick={upgrade} disabled={opening} className="btn btn-accent w-full">
         {opening ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
         {paidUntil ? 'Extend' : 'Upgrade'} <ArrowRight className="h-4 w-4" />
       </button>
