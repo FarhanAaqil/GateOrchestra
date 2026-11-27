@@ -15,10 +15,10 @@ import GateView from '../three/GateView'
 
 const RUN_TIMEOUT_MS = 5 * 60 * 1000
 
-// Step badge colours: sage = probe, forest/saffron = gate side, clay = MAS, amber = tokens.
+// Step badge colours: pale teal = probe, teal/gold = gate side, burgundy = MAS, amber = tokens.
 const BADGE = {
   sage: 'bg-sage text-ink',
-  forest: 'border border-forest/15 bg-paper text-ink',
+  forest: 'border border-line bg-paper text-ink',
   clay: 'border border-clay/50 bg-clay/10 text-ink',
   amber: 'border border-amber/50 bg-amber/10 text-ink',
 }
@@ -35,7 +35,7 @@ function Stage({ index, title, hint, badge, children }: { index: number; title: 
         {index + 1}
       </span>
       <h3 className="text-lg font-semibold text-ink">{title}</h3>
-      {hint ? <p className="mb-3 mt-0.5 text-xs text-forest/70">{hint}</p> : <div className="mb-3" />}
+      {hint ? <p className="mb-3 mt-0.5 text-xs text-muted">{hint}</p> : <div className="mb-3" />}
       {children}
     </motion.section>
   )
@@ -55,8 +55,8 @@ function FeatureGrid({ features }: { features: NonNullable<RunResult['features']
       {Object.entries(features)
         .filter(([key]) => key !== 'task_id')
         .map(([key, value]) => (
-          <div key={key} className="rounded-lg border border-forest/15 bg-paper px-3 py-2">
-            <dt className="text-xs text-forest/70">{FEATURE_LABELS[key] ?? key}</dt>
+          <div key={key} className="rounded-lg border border-line bg-paper px-3 py-2">
+            <dt className="text-xs text-muted">{FEATURE_LABELS[key] ?? key}</dt>
             <dd className="num text-base text-ink">
               {typeof value === 'boolean' ? (value ? 'yes' : 'no') : typeof value === 'number' ? Number(value.toFixed(2)) : '—'}
             </dd>
@@ -76,17 +76,17 @@ function Pipeline({ result, k, probeBudget }: { result: RunResult; k: number; pr
     <div className="space-y-4">
       {result.probe ? (
         <Stage index={index++} title="Quick check" hint="The model answers three times; agreement between the answers is a sign it is sure (CoT-SC)." badge="sage">
-          <p className="text-sm text-forest/70">Majority answer</p>
+          <p className="text-sm text-muted">Majority answer</p>
           <p className="text-lg font-medium text-ink">{result.probe.answer}</p>
           <div className="mt-3 flex items-center gap-3">
-            <span className="w-36 shrink-0 text-sm text-forest/70">Self-consistency</span>
-            <Bar value={result.probe.consistency_score} color="#13342A" />
+            <span className="w-36 shrink-0 text-sm text-muted">Self-consistency</span>
+            <Bar value={result.probe.consistency_score} color="#0B4A6B" />
             <span className="font-mono text-sm text-ink">{(result.probe.consistency_score * 100).toFixed(0)}%</span>
           </div>
           <ul className="mt-3 grid gap-2 sm:grid-cols-3">
             {result.probe.samples.map((s, i) => (
-              <li key={i} className="truncate rounded-md border border-forest/15 bg-paper px-3 py-1.5 font-mono text-xs" title={s}>
-                <span className="text-forest/70">#{i + 1} </span>
+              <li key={i} className="truncate rounded-md border border-line bg-paper px-3 py-1.5 font-mono text-xs" title={s}>
+                <span className="text-muted">#{i + 1} </span>
                 <span className={s.startsWith('Error:') ? 'text-wine' : 'text-ink'}>{s}</span>
               </li>
             ))}
@@ -106,14 +106,14 @@ function Pipeline({ result, k, probeBudget }: { result: RunResult; k: number; pr
             <span className={`chip text-xs! ${decision.decision === 'STOP' ? 'border-sage! bg-sage/25!' : 'border-clay/50! bg-clay/10!'}`}>
               {decision.decision}
             </span>
-            <span className="rounded-md border border-forest/15 px-3 py-1 font-mono text-xs text-forest">{decision.gate_type} gate</span>
-            <span className="rounded-md border border-forest/15 px-3 py-1 font-mono text-xs text-forest">confidence {(decision.confidence * 100).toFixed(0)}%</span>
+            <span className="rounded-md border border-line px-3 py-1 font-mono text-xs text-forest">{decision.gate_type} gate</span>
+            <span className="rounded-md border border-line px-3 py-1 font-mono text-xs text-forest">confidence {(decision.confidence * 100).toFixed(0)}%</span>
             {decision.token_budget_cap ? (
               <span className="chip border-amber/50! bg-amber/10!">MAS cap {decision.token_budget_cap} tok</span>
             ) : null}
           </div>
           {decision.gate_type !== 'learned' ? (
-            <p className="mt-2 text-xs text-forest/70">
+            <p className="mt-2 text-xs text-muted">
               {decision.gate_type === 'random' ? 'A random gate has no real confidence; it always reports 50%.' : 'Rule-based decisions are deterministic and always report 100%.'}
             </p>
           ) : null}
@@ -126,13 +126,13 @@ function Pipeline({ result, k, probeBudget }: { result: RunResult; k: number; pr
         badge={result.mas_tokens ? 'clay' : 'sage'}
       >
         {longForm ? (
-          <div tabIndex={0} role="region" aria-label="Full response" className="mb-3 max-h-[32rem] overflow-auto rounded-lg border border-forest/15 bg-white/60 px-4 py-3 text-sm leading-relaxed text-ink">
+          <div tabIndex={0} role="region" aria-label="Full response" className="mb-3 max-h-[32rem] overflow-auto rounded-lg border border-line bg-white/60 px-4 py-3 text-sm leading-relaxed text-ink">
             <Markdown text={result.full_response ?? ''} />
           </div>
         ) : null}
         <div className="flex flex-wrap items-center gap-3">
           {longForm ? (
-            <p className="text-sm text-forest/70">
+            <p className="text-sm text-muted">
               Extracted answer (the part that gets graded): <span className="font-mono text-ink">{result.predicted_answer}</span>
             </p>
           ) : (
@@ -143,7 +143,7 @@ function Pipeline({ result, k, probeBudget }: { result: RunResult; k: number; pr
           ) : result.is_correct === false ? (
             <span className="chip border-wine/40! bg-wine/5! text-wine!"><XCircle className="h-3.5 w-3.5" /> incorrect</span>
           ) : (
-            <span className="rounded-lg border border-forest/15 px-3 py-1 text-sm text-forest/70">{result.simulated ? 'simulated · ungraded' : 'ungraded (no ground truth)'}</span>
+            <span className="rounded-lg border border-line px-3 py-1 text-sm text-muted">{result.simulated ? 'simulated · ungraded' : 'ungraded (no ground truth)'}</span>
           )}
         </div>
         {result.trace && result.trace.length ? (
@@ -156,13 +156,13 @@ function Pipeline({ result, k, probeBudget }: { result: RunResult; k: number; pr
                     <span className="font-semibold text-ink">{step.step}</span>
                     <span className="chip ml-auto">{step.tokens} tok</span>
                   </summary>
-                  <pre tabIndex={0} className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap font-mono text-xs text-forest/80">{step.output}</pre>
+                  <pre tabIndex={0} className="mt-2 max-h-64 overflow-auto whitespace-pre-wrap font-mono text-xs text-muted">{step.output}</pre>
                 </details>
               </li>
             ))}
           </ol>
         ) : result.mas_tokens && result.simulated ? (
-          <p className="mt-2 text-xs text-forest/70">The offline simulator has no sub-agent steps to show.</p>
+          <p className="mt-2 text-xs text-muted">The offline simulator has no sub-agent steps to show.</p>
         ) : null}
       </Stage>
 
@@ -170,13 +170,13 @@ function Pipeline({ result, k, probeBudget }: { result: RunResult; k: number; pr
         <div className="flex flex-col items-center gap-4 sm:flex-row sm:items-start">
           <TokenGauge probeTokens={result.probe_tokens} masTokens={result.mas_tokens} cap={masCap} size={180} />
           <dl className="grid flex-1 grid-cols-2 gap-x-3 gap-y-2 font-mono text-sm">
-            <dt className="text-forest/70">Total spent</dt>
+            <dt className="text-muted">Total spent</dt>
             <dd className="text-ink">{result.tokens_spent}</dd>
-            <dt className="text-forest/70">Path</dt>
+            <dt className="text-muted">Path</dt>
             <dd className="text-ink">{result.mas_tokens ? 'escalated to the agent team' : 'answered by the quick check'}</dd>
-            <dt className="text-forest/70">Latency</dt>
+            <dt className="text-muted">Latency</dt>
             <dd className="text-ink">{result.latency_ms != null ? `${(result.latency_ms / 1000).toFixed(1)} s` : '—'}</dd>
-            <dt className="text-forest/70">Quick-check budget</dt>
+            <dt className="text-muted">Quick-check budget</dt>
             <dd className="text-ink">{probeBudget ? `${probeBudget} completion tok` : '—'}</dd>
           </dl>
         </div>
@@ -296,7 +296,7 @@ export default function RunTask() {
               className={`${FIELD} mt-1.5 resize-y text-base`}
             />
             <details className="mt-3">
-              <summary className="cursor-pointer text-sm text-forest/70">Context and ground truth (optional)</summary>
+              <summary className="cursor-pointer text-sm text-muted">Context and ground truth (optional)</summary>
               <textarea value={context} onChange={(e) => setContext(e.target.value)} rows={2} placeholder="Supporting passage" className={`${FIELD} mt-2 text-sm`} />
               <input value={groundTruth} onChange={(e) => setGroundTruth(e.target.value)} placeholder="Ground truth (enables grading)" className={`${FIELD} mt-2 text-sm`} />
             </details>
@@ -313,7 +313,7 @@ export default function RunTask() {
                   ))}
                 </select>
               </label>
-              <p id="method-summary" className="-mt-1 text-xs text-forest/70">{methodInfo(method).summary}</p>
+              <p id="method-summary" className="-mt-1 text-xs text-muted">{methodInfo(method).summary}</p>
               <label className="block text-sm font-medium text-forest">
                 Budget for the agent team
                 <select value={k} onChange={(e) => setK(Number(e.target.value))} className={`${FIELD} mt-1.5`}>
@@ -325,14 +325,14 @@ export default function RunTask() {
             </div>
 
             <div className="mt-5 flex flex-wrap items-center gap-2.5">
-              <label className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3.5 py-2 text-sm ${simulate ? 'border-forest bg-forest text-paper' : 'border-forest/15 text-forest'}`}>
-                <input type="checkbox" checked={simulate} onChange={(e) => setSimulate(e.target.checked)} className="accent-[#13342A]" />
+              <label className={`inline-flex cursor-pointer items-center gap-2 rounded-lg border px-3.5 py-2 text-sm ${simulate ? 'border-forest bg-forest text-paper' : 'border-line text-forest'}`}>
+                <input type="checkbox" checked={simulate} onChange={(e) => setSimulate(e.target.checked)} className="accent-[#0B4A6B]" />
                 Offline simulation
               </label>
               {method === 'GateOrchestra' && threshold != null ? (
                 <span className="chip">threshold {threshold.toFixed(2)}</span>
               ) : null}
-              <button onClick={pickTask} title="Fill in a random question from the validation set, with its answer so the run can be graded" className="inline-flex items-center gap-1.5 rounded-lg border border-forest/15 px-3.5 py-2 text-sm text-forest hover:bg-forest/5">
+              <button onClick={pickTask} title="Fill in a random question from the validation set, with its answer so the run can be graded" className="inline-flex items-center gap-1.5 rounded-lg border border-line px-3.5 py-2 text-sm text-forest hover:bg-forest/5">
                 <Dice5 className="h-4 w-4" /> Try a benchmark question
               </button>
               <div className="ml-auto flex gap-2">
@@ -352,7 +352,7 @@ export default function RunTask() {
                 </button>
               </div>
             </div>
-            {blockReason ? <p id="run-hint" className="mt-2 text-right text-xs text-forest/70">{blockReason}</p> : null}
+            {blockReason ? <p id="run-hint" className="mt-2 text-right text-xs text-muted">{blockReason}</p> : null}
           </Card>
 
           {error ? <ErrorNote message={error} /> : null}

@@ -2,18 +2,18 @@ import type { ResultMethod, Strategy } from './types'
 
 // Palette (see index.css): only these ten colours appear in the UI.
 export const PALETTE = {
-  paper: '#FFFCF7',
-  sage: '#B7D9C4',
+  paper: '#FFFFFF',
+  sage: '#CFE3EC',
   /** Sage dark enough to read as a mark on a light card. */
   sageDeep: '#5F9E7F',
-  clay: '#E0643A',
-  forest: '#13342A',
-  canvas: '#F5F0E8',
-  butter: '#F6E27A',
-  wine: '#9E2B3A',
-  saffron: '#F4B942',
-  amber: '#E8963A',
-  ink: '#1D221F',
+  clay: '#8B1B1B',
+  forest: '#0B4A6B',
+  canvas: '#FAF7F0',
+  butter: '#F5E6C8',
+  wine: '#8B1B1B',
+  saffron: '#B07D2B',
+  amber: '#9A6414',
+  ink: '#1A1D1C',
 } as const
 
 export const METHOD_LABELS: Record<ResultMethod, string> = {

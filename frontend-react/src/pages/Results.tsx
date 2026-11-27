@@ -32,9 +32,9 @@ export default function Results() {
       </PageHeader>
       <div className="mb-4 flex flex-wrap items-center gap-3">
         {runList.length > 1 ? (
-          <label className="flex items-center gap-2 text-sm text-forest/70">
+          <label className="flex items-center gap-2 text-sm text-muted">
             Benchmark run
-            <select value={run} onChange={(e) => setRun(e.target.value)} className="rounded-lg border border-forest/15 bg-paper px-3 py-1.5 text-sm text-ink outline-none focus:border-forest/40">
+            <select value={run} onChange={(e) => setRun(e.target.value)} className="rounded-lg border border-line bg-paper px-3 py-1.5 text-sm text-ink outline-none focus:border-forest/40">
               {runList.map((r) => (
                 <option key={r.id} value={r.id}>{r.label}</option>
               ))}
@@ -43,7 +43,7 @@ export default function Results() {
         ) : null}
         {status ? <StatusBadge status={status} /> : null}
         {current && !current.main ? (
-          <span className="text-xs text-forest/70">One seed only, so there is no run-to-run spread. Shown for comparison, not as the headline result.</span>
+          <span className="text-xs text-muted">One seed only, so there is no run-to-run spread. Shown for comparison, not as the headline result.</span>
         ) : null}
       </div>
       {(summary.loading && !summary.data) || (detail.loading && !detail.data) ? <SkeletonCards count={3} height="h-48" /> : null}
@@ -54,7 +54,7 @@ export default function Results() {
         <div className="grid gap-4 lg:grid-cols-2">
           <Card tilt={false} className="lg:col-span-2">
             <h2 className="text-lg font-semibold text-ink">Accuracy vs average tokens</h2>
-            <p className="mb-2 text-xs text-forest/70">Up and to the left is better. GateOrchestra is the clay star.</p>
+            <p className="mb-2 text-xs text-muted">Up and to the left is better. GateOrchestra is the burgundy star.</p>
             <ParetoChart rows={summary.data.aggregated} />
           </Card>
 
@@ -78,16 +78,16 @@ export default function Results() {
 
           <Card tilt={false}>
             <h2 className="text-lg font-semibold text-ink">Escalation precision / recall</h2>
-            <p className="mb-1 text-xs text-forest/70">Against the oracle: a task needs the agent team (MAS) when MAS is right and the quick check (CoT-SC) is wrong.</p>
-            <p className="mb-3 text-xs text-forest/70">
+            <p className="mb-1 text-xs text-muted">Against the oracle: a task needs the agent team (MAS) when MAS is right and the quick check (CoT-SC) is wrong.</p>
+            <p className="mb-3 text-xs text-muted">
               <Term term="precision">Precision</Term>: of the tasks sent to the agent team, how many needed it.{' '}
               <Term term="recall">Recall</Term>: of the tasks that needed it, how many were sent.
             </p>
             <div className="space-y-3">
               {detail.data.escalation_quality.map((q) => (
-                <div key={q.method} className={`rounded-lg border p-4 text-ink ${q.method === 'GateOrchestra' ? 'border-clay/40 bg-clay/[0.05]' : 'border-forest/10 bg-canvas/60'}`}>
+                <div key={q.method} className={`rounded-lg border p-4 text-ink ${q.method === 'GateOrchestra' ? 'border-clay/40 bg-clay/[0.05]' : 'border-line bg-canvas/60'}`}>
                   <p className="font-semibold">{METHOD_LABELS[q.method]}</p>
-                  <div className="mt-1 grid grid-cols-2 gap-2 text-sm text-forest/70">
+                  <div className="mt-1 grid grid-cols-2 gap-2 text-sm text-muted">
                     <span>
                       <Term term="precision">precision</Term> <span className="num font-semibold text-ink">{q.precision == null ? '—' : `${(q.precision * 100).toFixed(0)}%`}</span>
                     </span>
@@ -95,7 +95,7 @@ export default function Results() {
                       <Term term="recall">recall</Term> <span className="num font-semibold text-ink">{q.recall == null ? '—' : `${(q.recall * 100).toFixed(0)}%`}</span>
                     </span>
                   </div>
-                  <p className="mt-1 font-mono text-[11px] text-forest/70">
+                  <p className="mt-1 font-mono text-[11px] text-muted">
                     <Term term="tp">TP</Term> {q.true_positive} · <Term term="fp">FP</Term> {q.false_positive} · <Term term="fn">FN</Term> {q.false_negative}
                   </p>
                 </div>
@@ -107,11 +107,11 @@ export default function Results() {
 
           <Card tilt={false} className="lg:col-span-2">
             <h2 className="text-lg font-semibold text-ink">k sweep (validation)</h2>
-            <p className="mb-2 text-xs text-forest/70">The selected classifier and <Term term="tauAcc">τ_acc</Term> per seed, averaged across seeds. <Term term="k">k</Term> is the agent team's token budget.</p>
+            <p className="mb-2 text-xs text-muted">The selected classifier and <Term term="tauAcc">τ_acc</Term> per seed, averaged across seeds. <Term term="k">k</Term> is the agent team's token budget.</p>
             {detail.data.k_sweep.length ? (
               <KSweepChart points={detail.data.k_sweep} />
             ) : (
-              <p className="text-sm text-forest/70">These results predate calibration logging; re-run the benchmark to record the sweep.</p>
+              <p className="text-sm text-muted">These results predate calibration logging; re-run the benchmark to record the sweep.</p>
             )}
           </Card>
         </div>

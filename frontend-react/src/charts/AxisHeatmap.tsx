@@ -18,24 +18,24 @@ export default function AxisHeatmap({
   const parallels = [...new Set(own.map((c) => c.parallel ?? 0))].sort((a, b) => a - b)
   const find = (d: number, p: number) => own.find((c) => (c.depth ?? 0) === d && (c.parallel ?? 0) === p)
   // Navy for accuracy, clay for escalation rate.
-  const color = metric === 'accuracy' ? '19,52,42' : '224,100,58'
+  const color = metric === 'accuracy' ? '11,74,107' : '139,27,27'
 
-  if (!own.length) return <p className="text-sm text-forest/70">No per-task results for this method.</p>
+  if (!own.length) return <p className="text-sm text-muted">No per-task results for this method.</p>
   return (
     <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Depth by Parallel heatmap">
       <table className="w-full border-separate border-spacing-1.5 font-mono text-xs">
         <thead>
           <tr>
-            <th className="text-left text-forest/70">Depth ↓ / Parallel →</th>
+            <th className="text-left text-muted">Depth ↓ / Parallel →</th>
             {parallels.map((p) => (
-              <th key={p} className="text-forest/70">P{p}</th>
+              <th key={p} className="text-muted">P{p}</th>
             ))}
           </tr>
         </thead>
         <tbody>
           {depths.map((d) => (
             <tr key={d}>
-              <th className="text-left text-forest/70">D{d}</th>
+              <th className="text-left text-muted">D{d}</th>
               {parallels.map((p) => {
                 const cell = find(d, p)
                 const value = cell ? cell[metric] : null
@@ -44,12 +44,14 @@ export default function AxisHeatmap({
                     <motion.div
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className={`rounded-xl px-2 py-3 text-center ${value != null && value > 0.45 ? 'text-paper' : 'text-ink'}`}
-                      style={{ background: value == null ? 'rgba(183,217,196,0.25)' : `rgba(${color},${0.1 + value * 0.85})` }}
+                      className="rounded-xl px-2 py-3 text-center font-medium text-ink"
+                      // The ramp stops at 45% tint. Past that no text colour clears AA on
+                      // every cell, and the scale still reads from the lightest to the deepest.
+                      style={{ background: value == null ? 'rgba(207,227,236,0.25)' : `rgba(${color},${0.06 + value * 0.39})` }}
                       title={cell ? `${cell.n} task-runs` : 'no tasks'}
                     >
                       {value == null ? '—' : `${(value * 100).toFixed(0)}%`}
-                      {cell ? <span className="block text-[10px] opacity-70">n={cell.n}</span> : null}
+                      {cell ? <span className="block text-[10px] font-normal text-ink">n={cell.n}</span> : null}
                     </motion.div>
                   </td>
                 )

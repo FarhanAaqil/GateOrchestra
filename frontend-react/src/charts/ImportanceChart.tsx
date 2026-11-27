@@ -12,8 +12,8 @@ export default function ImportanceChart({ rows }: { rows: { feature: string; imp
         <CartesianGrid {...GRID} horizontal={false} />
         <XAxis type="number" tick={AXIS} stroke={AXIS.stroke} unit="%" />
         <YAxis type="category" dataKey="name" tick={AXIS} stroke={AXIS.stroke} width={110} />
-        <Tooltip {...TOOLTIP} formatter={(v) => [`${Number(v).toFixed(1)}%`, 'Importance']} cursor={{ fill: 'rgba(183,217,196,0.25)' }} />
-        <Bar dataKey="value" fill="#E0643A" radius={[0, 8, 8, 0]} isAnimationActive={animate} />
+        <Tooltip {...TOOLTIP} formatter={(v) => [`${Number(v).toFixed(1)}%`, 'Importance']} cursor={{ fill: 'rgba(207,227,236,0.25)' }} />
+        <Bar dataKey="value" fill="#8B1B1B" radius={[0, 8, 8, 0]} isAnimationActive={animate} />
       </BarChart>
     </ResponsiveContainer>
   )

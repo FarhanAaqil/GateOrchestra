@@ -43,27 +43,27 @@ function RouteBadges({ meta }: { meta: Partial<TurnMeta> }) {
   const route = describeRoute(meta)
   if (!route) return null
   return (
-    <div className="mt-2 min-w-0 text-xs text-forest/70">
+    <div className="mt-2 min-w-0 text-xs text-muted">
       <div className="flex flex-wrap items-center gap-1.5">
         <span
-          className={`rounded-md px-2.5 py-0.5 font-medium ${route.escalated ? 'border border-clay/50 bg-clay/10 text-ink' : meta.cached ? 'border border-forest/15 bg-paper text-forest' : 'border border-forest/15 bg-sage/25 text-ink'}`}
+          className={`rounded-md px-2.5 py-0.5 font-medium ${route.escalated ? 'border border-clay/50 bg-clay/10 text-ink' : meta.cached ? 'border border-line bg-paper text-forest' : 'border border-line bg-sage/25 text-ink'}`}
           title={route.explanation}
         >
           {route.headline}
         </span>
-        {meta.total_tokens != null ? <span className="rounded-md border border-forest/15 px-2 py-0.5">{meta.total_tokens.toLocaleString()} tokens</span> : null}
-        {meta.latency_ms != null ? <span className="rounded-md border border-forest/15 px-2 py-0.5">{formatSeconds(meta.latency_ms)}</span> : null}
+        {meta.total_tokens != null ? <span className="rounded-md border border-line px-2 py-0.5">{meta.total_tokens.toLocaleString()} tokens</span> : null}
+        {meta.latency_ms != null ? <span className="rounded-md border border-line px-2 py-0.5">{formatSeconds(meta.latency_ms)}</span> : null}
       </div>
       <details className="group mt-1">
-        <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-forest/70 hover:text-forest">
+        <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-muted hover:text-forest">
           How this was answered
           <ChevronDown className="h-3 w-3 transition-transform group-open:rotate-180" />
         </summary>
-        <p className="mt-1 text-forest/70">{route.explanation}</p>
+        <p className="mt-1 text-muted">{route.explanation}</p>
         <dl className="mt-1.5 grid grid-cols-[auto_minmax(0,1fr)] gap-x-3 gap-y-0.5">
           {route.details.map((d) => (
             <div key={d.label} className="contents">
-              <dt className="text-forest/70">{d.label}</dt>
+              <dt className="text-muted">{d.label}</dt>
               <dd className="break-words text-forest">{d.value}</dd>
             </div>
           ))}
@@ -76,7 +76,7 @@ function RouteBadges({ meta }: { meta: Partial<TurnMeta> }) {
 function ToolList({ tools }: { tools: ToolCall[] }) {
   if (!tools.length) return null
   return (
-    <details className="group mt-2 rounded-lg border border-forest/10 bg-paper/60 px-3 py-2 text-sm">
+    <details className="group mt-2 rounded-lg border border-line bg-paper/60 px-3 py-2 text-sm">
       <summary className="flex cursor-pointer list-none items-center gap-2 text-forest">
         <Wrench className="h-4 w-4 text-wine" /> {tools.length} tool call{tools.length === 1 ? '' : 's'}
         <ChevronDown className="ml-auto h-4 w-4 transition-transform group-open:rotate-180" />
@@ -85,7 +85,7 @@ function ToolList({ tools }: { tools: ToolCall[] }) {
         {tools.map((t, i) => (
           <li key={i} className="rounded-xl bg-canvas p-2">
             <p className="font-mono text-xs font-semibold text-ink">{t.name}({JSON.stringify(t.input)})</p>
-            <pre tabIndex={0} className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap font-mono text-xs text-forest/80">{t.output}</pre>
+            <pre tabIndex={0} className="mt-1 max-h-40 overflow-auto whitespace-pre-wrap font-mono text-xs text-muted">{t.output}</pre>
           </li>
         ))}
       </ol>
@@ -108,14 +108,14 @@ function UserBubble({ message, busy, onEdit }: { message: ChatMessage; busy: boo
       {message.meta?.documents?.length ? (
         <ul className="flex max-w-[85%] flex-wrap justify-end gap-1.5" aria-label="Attached documents">
           {message.meta.documents.map((name) => (
-            <li key={name} className="inline-flex items-center gap-1 rounded-md border border-forest/15 bg-canvas px-2.5 py-1 text-xs text-forest">
-              <Paperclip className="h-3 w-3 text-forest/70" /> {name}
+            <li key={name} className="inline-flex items-center gap-1 rounded-md border border-line bg-canvas px-2.5 py-1 text-xs text-forest">
+              <Paperclip className="h-3 w-3 text-muted" /> {name}
             </li>
           ))}
         </ul>
       ) : null}
       {editing ? (
-        <div className="w-full max-w-[85%] rounded-xl border border-forest/20 bg-paper p-2">
+        <div className="w-full max-w-[85%] rounded-xl border border-line bg-paper p-2">
           <textarea
             value={draft}
             onChange={(e) => setDraft(e.target.value)}
@@ -135,7 +135,7 @@ function UserBubble({ message, busy, onEdit }: { message: ChatMessage; busy: boo
             <button onClick={() => setEditing(false)} className="btn btn-ghost py-1!">Cancel</button>
             <button onClick={save} disabled={!draft.trim() || busy} className="btn btn-primary py-1!">Send</button>
           </div>
-          <p className="px-2 pt-1 text-[11px] text-forest/70">Sending replaces this question and everything after it.</p>
+          <p className="px-2 pt-1 text-[11px] text-muted">Sending replaces this question and everything after it.</p>
         </div>
       ) : (
         <div className="flex max-w-[85%] items-start gap-1">
@@ -146,7 +146,7 @@ function UserBubble({ message, busy, onEdit }: { message: ChatMessage; busy: boo
                 setEditing(true)
               }}
               disabled={busy}
-              className="mt-1.5 rounded-lg p-1.5 text-forest/70 transition-opacity hover:bg-forest/5 hover:text-ink focus-visible:opacity-100 disabled:opacity-30 sm:opacity-0 sm:group-hover:opacity-100"
+              className="mt-1.5 rounded-lg p-1.5 text-muted transition-opacity hover:bg-forest/5 hover:text-ink focus-visible:opacity-100 disabled:opacity-30 sm:opacity-0 sm:group-hover:opacity-100"
               aria-label="Edit this question"
               title="Edit and send again"
             >
@@ -181,7 +181,7 @@ function AssistantBubble({ message, onRate, onRegenerate }: { message: ChatMessa
             <>
               <button
                 onClick={() => onRate(message.id, rating === 1 ? 0 : 1)}
-                className={`rounded-lg p-2 hover:bg-forest/5 ${rating === 1 ? 'text-forest' : 'text-forest/70'}`}
+                className={`rounded-lg p-2 hover:bg-forest/5 ${rating === 1 ? 'text-forest' : 'text-muted'}`}
                 aria-label="Helpful"
                 aria-pressed={rating === 1}
               >
@@ -189,7 +189,7 @@ function AssistantBubble({ message, onRate, onRegenerate }: { message: ChatMessa
               </button>
               <button
                 onClick={() => onRate(message.id, rating === -1 ? 0 : -1)}
-                className={`rounded-lg p-2 hover:bg-forest/5 ${rating === -1 ? 'text-wine' : 'text-forest/70'}`}
+                className={`rounded-lg p-2 hover:bg-forest/5 ${rating === -1 ? 'text-wine' : 'text-muted'}`}
                 aria-label="Not helpful"
                 aria-pressed={rating === -1}
               >
@@ -198,11 +198,11 @@ function AssistantBubble({ message, onRate, onRegenerate }: { message: ChatMessa
             </>
           ) : null}
           {onRegenerate && rateable ? (
-            <button onClick={onRegenerate} className="rounded-lg p-2 text-forest/70 hover:bg-forest/5 hover:text-forest" aria-label="Regenerate answer" title="Try again">
+            <button onClick={onRegenerate} className="rounded-lg p-2 text-muted hover:bg-forest/5 hover:text-forest" aria-label="Regenerate answer" title="Try again">
               <RefreshCw className="h-4 w-4" />
             </button>
           ) : null}
-          <button onClick={copy} className="rounded-lg p-2 text-forest/70 transition-opacity hover:bg-forest/5 hover:text-forest focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100" aria-label={copied ? 'Copied' : 'Copy answer'} title={copied ? 'Copied' : 'Copy answer'}>
+          <button onClick={copy} className="rounded-lg p-2 text-muted transition-opacity hover:bg-forest/5 hover:text-forest focus-visible:opacity-100 sm:opacity-0 sm:group-hover:opacity-100" aria-label={copied ? 'Copied' : 'Copy answer'} title={copied ? 'Copied' : 'Copy answer'}>
             {copied ? <Check className="h-4 w-4 text-forest" /> : <Copy className="h-4 w-4" />}
           </button>
         </div>
@@ -214,7 +214,7 @@ function AssistantBubble({ message, onRate, onRegenerate }: { message: ChatMessa
 function RoutingPanel({ scores, margin }: { scores: GateScore[]; margin: number }) {
   if (!scores.length) return null
   return (
-    <details className="group border-b border-forest/10 bg-paper/50 px-4 py-2 text-xs">
+    <details className="group border-b border-line bg-paper/50 px-4 py-2 text-xs">
       <summary className="flex cursor-pointer list-none items-center gap-2 text-forest">
         How auto routing chooses
         <span className="rounded-md bg-forest px-2 py-0.5 font-mono text-[10px] text-sage">
@@ -222,16 +222,16 @@ function RoutingPanel({ scores, margin }: { scores: GateScore[]; margin: number 
         </span>
         <ChevronDown className="ml-auto h-3.5 w-3.5 transition-transform group-open:rotate-180" />
       </summary>
-      <p className="mt-2 text-forest/70">
+      <p className="mt-2 text-muted">
         The cheapest gate whose rated accuracy is within {Math.round(margin * 100)} points of the best. Ratings on answers teach it.
       </p>
       <table className="mt-2 w-full font-mono text-[11px]">
-        <thead className="text-forest/70">
+        <thead className="text-muted">
           <tr><th className="text-left font-normal">Gate</th><th className="text-right font-normal">≈ tokens</th><th className="text-right font-normal">escalates</th><th className="text-right font-normal">accuracy</th><th className="text-right font-normal">ratings</th></tr>
         </thead>
         <tbody>
           {scores.map((s) => (
-            <tr key={s.gate} className={s.chosen ? 'font-semibold text-ink' : s.eligible ? 'text-forest' : 'text-forest/70'}>
+            <tr key={s.gate} className={s.chosen ? 'font-semibold text-ink' : s.eligible ? 'text-forest' : 'text-muted'}>
               <td>{GATE_LABELS[s.gate] ?? s.gate}{s.chosen ? ' ←' : ''}</td>
               <td className="text-right">{Math.round(s.expected_tokens).toLocaleString()}</td>
               <td className="text-right">{Math.round(s.escalate_rate * 100)}%</td>
@@ -271,7 +271,7 @@ function LiveBubble({ live }: { live: Live }) {
           const done = order.indexOf(s.id) < order.indexOf(live.stage) || (s.id === 'writing' && live.text)
           const active = s.id === live.stage
           return (
-            <span key={s.id} className={`rounded-md px-2.5 py-0.5 font-mono text-[11px] ${active ? 'border border-forest bg-forest text-paper' : done ? 'border border-forest/20 bg-paper text-forest' : 'border border-forest/10 text-forest/70'}`}>
+            <span key={s.id} className={`rounded-md px-2.5 py-0.5 font-mono text-[11px] ${active ? 'border border-forest bg-forest text-paper' : done ? 'border border-line bg-paper text-forest' : 'border border-line text-muted'}`}>
               {s.label}
             </span>
           )
@@ -282,7 +282,7 @@ function LiveBubble({ live }: { live: Live }) {
       ) : (
         <div className="flex items-center gap-3">
           <div className="h-5 w-16 animate-pulse rounded bg-forest/10 motion-reduce:animate-none" />
-          <span className="text-xs text-forest/70" role="status">
+          <span className="text-xs text-muted" role="status">
             {elapsed < 8 ? `Working… ${elapsed} s` : `Still working… ${elapsed} s. Harder questions take longer.`}
           </span>
         </div>
@@ -552,15 +552,15 @@ export default function Chat() {
       ) : null}
 
       <section className="card flex min-h-0 flex-col p-0" aria-label="Chat">
-        <div className="flex flex-wrap items-center gap-2 border-b border-forest/10 px-4 py-2.5">
-          <h1 className="text-lg font-semibold text-ink">Chat</h1>
-          <button onClick={() => setHistoryOpen(true)} className="inline-flex items-center gap-1.5 rounded-md border border-forest/15 px-3 py-1 text-xs text-forest hover:bg-forest/5 lg:hidden">
+        <div className="flex flex-wrap items-center gap-2 border-b border-line px-4 py-2.5">
+          <h1 className="font-display text-[19px] font-semibold text-ink">Chat</h1>
+          <button onClick={() => setHistoryOpen(true)} className="inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-1 text-xs text-forest hover:bg-forest/5 lg:hidden">
             <History className="h-3.5 w-3.5" /> History
           </button>
-          <button onClick={newChat} disabled={!!live} className="rounded-md border border-forest/15 px-3 py-1 text-xs text-forest hover:bg-forest/5 disabled:opacity-50 lg:hidden">New chat</button>
-          <label className="ml-auto flex items-center gap-2 text-xs text-forest/70">
+          <button onClick={newChat} disabled={!!live} className="rounded-md border border-line px-3 py-1 text-xs text-forest hover:bg-forest/5 disabled:opacity-50 lg:hidden">New chat</button>
+          <label className="ml-auto flex items-center gap-2 text-xs text-muted">
             Mode
-            <select value={gateMode} onChange={(e) => setGateMode(e.target.value)} disabled={!!live} className="max-w-[11rem] rounded-md border border-forest/15 bg-canvas px-2.5 py-1 text-xs text-ink disabled:opacity-60 sm:max-w-none" title="How the assistant decides how much effort a question needs">
+            <select value={gateMode} onChange={(e) => setGateMode(e.target.value)} disabled={!!live} className="max-w-[11rem] rounded-md border border-line bg-canvas px-2.5 py-1 text-xs text-ink disabled:opacity-60 sm:max-w-none" title="How the assistant decides how much effort a question needs">
               {GATE_MODES.map((m) => <option key={m.id} value={m.id}>{m.label}</option>)}
             </select>
           </label>
@@ -572,17 +572,17 @@ export default function Chat() {
           {!messages.length && !live ? (
             <div className="mx-auto mt-6 max-w-2xl text-center">
               <h2 className="text-xl font-semibold text-ink">Ask anything</h2>
-              <p className="mt-2 text-sm text-forest/70">
+              <p className="mt-2 text-sm text-muted">
                 Easy questions get a direct answer. Harder ones are researched with tools first, so you get accuracy without paying for effort you do not need.
               </p>
-              <ul className="mt-3 flex flex-wrap justify-center gap-1.5 text-xs text-forest/70" aria-label="What it can do">
+              <ul className="mt-3 flex flex-wrap justify-center gap-1.5 text-xs text-muted" aria-label="What it can do">
                 {['Attach files and ask about them', 'Looks facts up on Wikipedia', 'Runs Python safely', 'Learns from your ratings'].map((t) => (
-                  <li key={t} className="rounded-md border border-forest/15 px-2.5 py-0.5">{t}</li>
+                  <li key={t} className="rounded-md border border-line px-2.5 py-0.5">{t}</li>
                 ))}
               </ul>
               <div className="mt-6 grid gap-2 sm:grid-cols-2">
                 {SUGGESTIONS.map((s) => (
-                  <button key={s} onClick={() => send(s)} disabled={backend !== 'online'} className="rounded-lg border border-forest/15 bg-canvas px-4 py-3 text-left text-sm text-forest hover:bg-forest/5 disabled:opacity-50">
+                  <button key={s} onClick={() => send(s)} disabled={backend !== 'online'} className="rounded-lg border border-line bg-canvas px-4 py-3 text-left text-sm text-forest hover:bg-forest/5 disabled:opacity-50">
                     {s}
                   </button>
                 ))}
@@ -608,14 +608,14 @@ export default function Chat() {
           </div>
         </div>
 
-        <div className="border-t border-forest/10 p-3 sm:px-8">
+        <div className="border-t border-line p-3 sm:px-8">
           {selectedDocs.length ? (
-            <p className="mx-auto mb-1.5 max-w-3xl px-2 text-xs text-forest/70">
+            <p className="mx-auto mb-1.5 max-w-3xl px-2 text-xs text-muted">
               Answering from {selectedDocs.length} document{selectedDocs.length === 1 ? '' : 's'}:{' '}
               {documents.filter((d) => selectedDocs.includes(d.id)).map((d) => d.name).join(', ')}
             </p>
           ) : null}
-          <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-xl border border-forest/15 bg-canvas px-3 py-2 focus-within:ring-2 focus-within:ring-forest/30">
+          <div className="mx-auto flex max-w-3xl items-end gap-2 rounded-xl border border-line bg-canvas px-3 py-2 focus-within:ring-2 focus-within:ring-forest/30">
             <input
               ref={fileRef}
               type="file"
@@ -627,7 +627,7 @@ export default function Chat() {
             <button
               onClick={() => fileRef.current?.click()}
               disabled={uploading || backend !== 'online'}
-              className="rounded-lg p-2 text-forest/70 hover:bg-forest/5 hover:text-forest disabled:opacity-40"
+              className="rounded-lg p-2 text-muted hover:bg-forest/5 hover:text-forest disabled:opacity-40"
               aria-label="Attach a document"
               title="Attach a text, code or PDF file"
             >
@@ -653,7 +653,7 @@ export default function Chat() {
               </button>
             )}
           </div>
-          <p className="mx-auto mt-1.5 hidden max-w-3xl px-3 text-[11px] text-forest/70 sm:block">
+          <p className="mx-auto mt-1.5 hidden max-w-3xl px-3 text-[11px] text-muted sm:block">
             Enter to send · Shift+Enter for a new line · Answers can be wrong, so check anything important.
           </p>
         </div>

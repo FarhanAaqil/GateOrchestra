@@ -31,7 +31,7 @@ export default function About() {
       </PageHeader>
 
       <Card forest className="p-8! md:p-10!">
-        <p className="eyebrow text-sage/70!">The research gap</p>
+        <p className="eyebrow text-sage!">The research gap</p>
         <p className="mt-4 max-w-4xl text-xl leading-relaxed text-paper md:text-[22px]">
           Multi-agent systems such as MAS-Orchestra often lose to a well-tuned single-agent CoT-SC baseline once thinking-token
           budgets are held equal, at up to 10× the cost. No published orchestrator decides, before spending multi-agent compute,
@@ -47,28 +47,28 @@ export default function About() {
       <SectionTitle>Research questions and hypothesis</SectionTitle>
       <motion.div variants={rise} className="card grid overflow-hidden md:grid-cols-2 lg:grid-cols-4">
         {[...QUESTIONS, { id: 'H1', text: 'The gate routes at least 75% of low-Depth, low-Parallel tasks to CoT-SC, cutting average tokens by at least 40% versus always orchestrating, at no more than a 2-point accuracy cost.' }].map((q) => (
-          <div key={q.id} className="border-forest/10 p-5 max-lg:border-b md:max-lg:odd:border-r lg:border-r lg:last:border-r-0">
-            <p className={`num text-xs font-medium ${q.id === 'H1' ? 'font-semibold text-ink' : 'text-forest/70'}`}>{q.id}</p>
+          <div key={q.id} className="border-line p-5 max-lg:border-b md:max-lg:odd:border-r lg:border-r lg:last:border-r-0">
+            <p className={`num text-xs font-medium ${q.id === 'H1' ? 'font-semibold text-ink' : 'text-muted'}`}>{q.id}</p>
             <p className="mt-2 text-sm leading-relaxed text-ink">{q.text}</p>
           </div>
         ))}
       </motion.div>
 
       <SectionTitle>The people behind it</SectionTitle>
-      <motion.ul variants={rise} className="card divide-y divide-forest/10">
+      <motion.ul variants={rise} className="card divide-y divide-line">
         {TEAM.map((m) => (
           <li key={m.name} className="flex items-center gap-3.5 px-5 py-3.5">
-            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-forest/15 bg-canvas text-xs font-semibold text-forest">
+            <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-line bg-canvas text-xs font-semibold text-forest">
               {initials(m.name)}
             </span>
             <span className="text-sm font-medium text-ink">{m.name}</span>
-            <span className="ml-auto text-sm text-forest/70">{m.role}</span>
+            <span className="ml-auto text-sm text-muted">{m.role}</span>
           </li>
         ))}
         <li className="flex items-center gap-3.5 px-5 py-3.5">
           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-forest text-xs font-semibold text-paper">KR</span>
           <span className="text-sm font-medium text-ink">K. Radhika</span>
-          <span className="ml-auto text-sm text-forest/70">Guide</span>
+          <span className="ml-auto text-sm text-muted">Guide</span>
         </li>
       </motion.ul>
     </Page>

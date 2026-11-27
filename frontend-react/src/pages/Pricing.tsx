@@ -49,7 +49,7 @@ export default function Pricing() {
           <Link to="/admin" className="btn btn-primary w-full">
             Give an account Pro in Admin <ArrowRight className="h-4 w-4" />
           </Link>
-          <p className="text-xs text-forest/70">
+          <p className="text-xs text-muted">
             Payments are not set up yet. Add your payment page as <code className="font-mono">GATE_PAYMENT_LINK</code> in
             .env to turn on the Upgrade button for everyone.
           </p>
@@ -57,7 +57,7 @@ export default function Pricing() {
       ) : (
         <div className="space-y-2">
           <span className="btn btn-secondary w-full cursor-default">Upgrades open soon</span>
-          <p className="text-xs text-forest/70">Paid plans are not on sale yet. The free plan has everything you need to try it.</p>
+          <p className="text-xs text-muted">Paid plans are not on sale yet. The free plan has everything you need to try it.</p>
         </div>
       )
     }
@@ -79,7 +79,7 @@ export default function Pricing() {
       {plans.error ? <ErrorNote message={plans.error} /> : null}
       {plans.loading && !plans.data ? <SkeletonCards count={2} height="h-48" /> : null}
       {plans.data ? <PlanCards plans={plans.data.plans} action={action} /> : null}
-      <p className="mt-4 text-xs text-forest/70">Prices in US dollars. Limits reset at midnight UTC. Your own Groq or Gemini key, added in Settings, answers your chats without using the plan's tokens.</p>
+      <p className="mt-4 text-xs text-muted">Prices in US dollars. Limits reset at midnight UTC. Your own Groq or Gemini key, added in Settings, answers your chats without using the plan's tokens.</p>
     </Page>
   )
 }

@@ -9,14 +9,14 @@ import type { ResultsStatus } from '../lib/types'
 /** A technical term with its plain-language meaning on hover or keyboard focus. */
 export function Term({ term, children }: { term: GlossaryTerm; children: ReactNode }) {
   return (
-    <abbr title={GLOSSARY[term]} tabIndex={0} className="cursor-help no-underline decoration-forest/30 decoration-dotted underline-offset-4 hover:underline">
+    <abbr title={GLOSSARY[term]} tabIndex={0} className="cursor-help no-underline decoration-clay/40 decoration-dotted underline-offset-4 hover:underline">
       {children}
     </abbr>
   )
 }
 
 /**
- * A panel. `forest` is the dark instrument panel used where numbers should stand out.
+ * A panel. `forest` is the teal instrument panel used where numbers should lead.
  * `tilt` is accepted for older call sites and ignored: panels no longer move.
  */
 export function Card({
@@ -33,6 +33,37 @@ export function Card({
     <motion.div variants={rise} className={`${forest ? 'panel' : 'card'} p-5 ${className}`}>
       {children}
     </motion.div>
+  )
+}
+
+/**
+ * A card with a filled burgundy header strip, for the panels that lead a page.
+ * `aside` sits at the right of the strip (a live dot, a count, a link).
+ */
+export function HeadedCard({
+  title,
+  icon,
+  aside,
+  children,
+  className = '',
+  bodyClassName = 'p-5',
+}: {
+  title: ReactNode
+  icon?: ReactNode
+  aside?: ReactNode
+  children: ReactNode
+  className?: string
+  bodyClassName?: string
+}) {
+  return (
+    <motion.section variants={rise} className={`card overflow-hidden p-0! ${className}`}>
+      <header className="card-head">
+        {icon ? <span className="shrink-0 text-clay-light" aria-hidden>{icon}</span> : null}
+        <h2 className="min-w-0 truncate text-[17px] font-semibold text-white">{title}</h2>
+        {aside ? <div className="ml-auto flex items-center gap-2 text-xs text-clay-light">{aside}</div> : null}
+      </header>
+      <div className={bodyClassName}>{children}</div>
+    </motion.section>
   )
 }
 
@@ -70,7 +101,7 @@ export function CountUp({
   )
 }
 
-/** Page title block: a small section label, the title, and one or two lines of context. */
+/** Page title block: a small section label, the serif title, and a line of context. */
 export function PageHeader({
   kicker,
   title,
@@ -86,11 +117,12 @@ export function PageHeader({
   actions?: ReactNode
 }) {
   return (
-    <motion.header variants={rise} className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-forest/10 pb-6">
+    <motion.header variants={rise} className="mb-8 flex flex-wrap items-end justify-between gap-4 border-b border-line pb-6">
       <div className="min-w-0 max-w-3xl">
         <p className="eyebrow">{kicker}</p>
-        <h1 className="mt-2 text-[28px] font-semibold leading-tight tracking-tight text-ink md:text-[32px]">{title}</h1>
-        {children ? <div className="mt-2 text-[15px] leading-relaxed text-forest/70">{children}</div> : null}
+        <h1 className="mt-2.5 font-display text-[30px] font-semibold leading-[1.15] tracking-tight text-forest md:text-[36px]">{title}</h1>
+        <span className="mt-3 block h-px w-14 bg-clay" aria-hidden />
+        {children ? <div className="mt-3 text-[15px] leading-relaxed text-muted">{children}</div> : null}
       </div>
       {actions ? <div className="flex flex-wrap gap-2">{actions}</div> : null}
     </motion.header>
@@ -101,7 +133,7 @@ export function PageHeader({
 export function SectionTitle({ children, aside }: { children: ReactNode; aside?: ReactNode }) {
   return (
     <motion.div variants={rise} className="mb-3 mt-10 flex flex-wrap items-center gap-3">
-      <h2 className="text-lg font-semibold text-ink">{children}</h2>
+      <h2 className="font-display text-[20px] font-semibold tracking-tight text-ink">{children}</h2>
       {aside}
     </motion.div>
   )
@@ -125,10 +157,10 @@ export function Page({ children }: { children: ReactNode }) {
 export function Tag({ children, tone = 'sage' }: { children: ReactNode; tone?: 'sage' | 'butter' | 'clay' | 'forest' | 'wine' }) {
   const tones = {
     sage: '',
-    butter: 'border-amber/40! bg-amber/10!',
-    clay: 'border-clay/40! bg-clay/10! text-ink!',
-    forest: 'border-paper/15! bg-paper/5! text-sage!',
-    wine: 'border-wine/30! bg-wine/5! text-wine!',
+    butter: 'border-amber/35! bg-amber/10! text-ink!',
+    clay: 'border-clay/35! bg-clay/8! text-clay!',
+    forest: 'border-white/20! bg-white/10! text-sage!',
+    wine: 'border-wine/30! bg-wine/6! text-wine!',
   }
   return <span className={`chip ${tones[tone]}`}>{children}</span>
 }
@@ -144,17 +176,17 @@ export function PillLink({ to, children, variant = 'clay' }: { to: string; child
 
 export function EmptyState({ title, children }: { title: string; children?: ReactNode }) {
   return (
-    <motion.div variants={rise} className="flex flex-col items-center gap-2 rounded-xl border border-dashed border-forest/20 px-6 py-12 text-center">
-      <CircleDashed className="h-6 w-6 text-forest/70" aria-hidden />
-      <h3 className="text-[15px] font-semibold text-ink">{title}</h3>
-      {children ? <div className="max-w-xl text-sm text-forest/70">{children}</div> : null}
+    <motion.div variants={rise} className="flex flex-col items-center gap-2 rounded-2xl border border-dashed border-line bg-tile/60 px-6 py-12 text-center">
+      <CircleDashed className="h-6 w-6 text-forest" aria-hidden />
+      <h3 className="font-display text-[17px] font-semibold text-ink">{title}</h3>
+      {children ? <div className="max-w-xl text-sm text-muted">{children}</div> : null}
     </motion.div>
   )
 }
 
 export function ErrorNote({ message }: { message: string }) {
   return (
-    <div className="flex items-start gap-2 rounded-lg border border-wine/25 bg-wine/5 px-3.5 py-2.5 text-sm text-wine" role="alert">
+    <div className="flex items-start gap-2 rounded-xl border border-wine/25 bg-wine/5 px-3.5 py-2.5 text-sm text-wine" role="alert">
       <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" aria-hidden />
       <span>{message}</span>
     </div>
@@ -162,14 +194,22 @@ export function ErrorNote({ message }: { message: string }) {
 }
 
 const STATUS_STYLE: Record<ResultsStatus, { label: string; cls: string; icon: ReactNode }> = {
-  verified: { label: 'Verified', cls: 'border-forest/15 text-forest', icon: <CheckCircle2 className="h-3 w-3 text-forest" /> },
-  partial: { label: 'Partial run', cls: 'border-amber/50 bg-amber/10 text-ink', icon: <Info className="h-3 w-3" /> },
-  unverified: { label: 'Unverified', cls: 'border-wine/40 bg-wine/5 text-wine', icon: <AlertTriangle className="h-3 w-3" /> },
-  no_results: { label: 'No results', cls: 'border-forest/15 text-forest/70', icon: <CircleDashed className="h-3 w-3" /> },
+  verified: { label: 'Verified', cls: 'border-moss/35 bg-moss/8 text-moss', icon: <CheckCircle2 className="h-3 w-3 text-moss" /> },
+  partial: { label: 'Partial run', cls: 'border-amber/40 bg-amber/10 text-ink', icon: <Info className="h-3 w-3" /> },
+  unverified: { label: 'Unverified', cls: 'border-wine/35 bg-wine/5 text-wine', icon: <AlertTriangle className="h-3 w-3" /> },
+  no_results: { label: 'No results', cls: 'border-line text-muted', icon: <CircleDashed className="h-3 w-3" /> },
 }
 
-export function StatusBadge({ status }: { status: ResultsStatus }) {
+/** `onDark` is the variant that sits on a burgundy or teal strip, where the tinted one would not read. */
+export function StatusBadge({ status, onDark = false }: { status: ResultsStatus; onDark?: boolean }) {
   const s = STATUS_STYLE[status]
+  if (onDark) {
+    return (
+      <span className="chip border-white/35! bg-white/15! text-white!">
+        {s.label}
+      </span>
+    )
+  }
   return (
     <span className={`chip ${s.cls}`}>
       {s.icon}
@@ -184,14 +224,14 @@ export function NoCitableResults({ status, what }: { status: ResultsStatus | und
     <EmptyState title={`No verified ${what} yet`}>
       {status === 'unverified' ? (
         <p>
-          The recorded results fail <code className="rounded bg-forest/5 px-1 font-mono text-ink">verify_final_results.py</code>, so they are
+          The recorded results fail <code className="rounded bg-tile px-1 font-mono text-ink">verify_final_results.py</code>, so they are
           not shown as findings.
         </p>
       ) : (
         <p>No benchmark results have been recorded.</p>
       )}
       <p className="mt-2">
-        Run <code className="rounded bg-forest/5 px-1 font-mono text-ink">python scripts/final_benchmark.py</code> to fill this page with
+        Run <code className="rounded bg-tile px-1 font-mono text-ink">python scripts/final_benchmark.py</code> to fill this page with
         real numbers.
       </p>
     </EmptyState>
@@ -200,8 +240,8 @@ export function NoCitableResults({ status, what }: { status: ResultsStatus | und
 
 export function Spinner({ label = 'Loading' }: { label?: string }) {
   return (
-    <div className="flex items-center gap-2 text-sm text-forest/70" role="status">
-      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-forest/20 border-t-forest" />
+    <div className="flex items-center gap-2 text-sm text-muted" role="status">
+      <span className="h-3.5 w-3.5 animate-spin rounded-full border-2 border-line border-t-forest" />
       {label}
     </div>
   )
@@ -209,7 +249,7 @@ export function Spinner({ label = 'Loading' }: { label?: string }) {
 
 /** A placeholder block shaped like the content that is loading. */
 export function Skeleton({ className = '' }: { className?: string }) {
-  return <span aria-hidden className={`block animate-pulse rounded-md bg-forest/[0.07] motion-reduce:animate-none ${className}`} />
+  return <span aria-hidden className={`block animate-pulse rounded-md bg-tile motion-reduce:animate-none ${className}`} />
 }
 
 /** Loading placeholder for a grid of panels (stats, charts). */
@@ -238,15 +278,34 @@ export function SkeletonTable({ rows = 6 }: { rows?: number }) {
   )
 }
 
-/** One number with its label, for stat rows. */
+/**
+ * One number with its label. `clay` marks the stat that matters with a burgundy
+ * rule down its left edge, rather than tinting the number itself.
+ */
 export function Stat({ label, value, note, tone = 'ink' }: { label: string; value: ReactNode; note?: ReactNode; tone?: 'ink' | 'clay' | 'wine' }) {
-  // Ember text fails contrast on light panels, so the clay tone marks the stat with an accent line instead.
   const colour = { ink: 'text-ink', clay: 'text-ink', wine: 'text-wine' }[tone]
   return (
-    <Card className={tone === 'clay' ? 'border-t-2! border-t-clay!' : ''}>
+    <Card className={tone === 'clay' ? 'border-l-[3px]! border-l-clay!' : ''}>
       <p className="eyebrow">{label}</p>
-      <p className={`num mt-2 text-[28px] font-medium leading-none ${colour}`}>{value}</p>
-      {note ? <p className="mt-2 text-xs text-forest/70">{note}</p> : null}
+      <p className={`num mt-2.5 text-[30px] font-semibold leading-none ${colour}`}>{value}</p>
+      {note ? <p className="mt-2.5 text-xs leading-relaxed text-muted">{note}</p> : null}
     </Card>
+  )
+}
+
+/**
+ * A compact stat inside a card: icon, label, number. Used in rows of two or
+ * three where a full Stat panel would be too heavy.
+ */
+export function StatTile({ label, value, icon, note }: { label: string; value: ReactNode; icon?: ReactNode; note?: ReactNode }) {
+  return (
+    <div className="tile flex items-center gap-3 px-4 py-3.5">
+      {icon ? <span className="shrink-0 text-forest" aria-hidden>{icon}</span> : null}
+      <div className="min-w-0">
+        <p className="truncate text-xs font-medium text-muted">{label}</p>
+        <p className="num mt-0.5 text-[22px] font-semibold leading-none text-ink">{value}</p>
+        {note ? <p className="mt-1 truncate text-[11px] text-muted">{note}</p> : null}
+      </div>
+    </div>
   )
 }

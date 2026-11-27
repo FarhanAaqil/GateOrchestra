@@ -1,47 +1,69 @@
 @import 'tailwindcss';
 
 /*
- * Design system: warm editorial.
+ * GateOrchestra design system — "clinical archive".
  *
- * Parchment and warm white surfaces, deep forest green for structure and data,
- * terracotta as the single brand accent. Every colour has one job:
- *   canvas   page background            paper    cards and inputs
- *   linen    sidebar and quiet bands     ink      text
- *   forest   primary actions, data panels, and (at low opacity) borders and muted text
- *   clay     the brand accent (graphics)  clay-deep  accent text and buttons on light (AA)
- *   clay-light  accent text on forest (AA)
- *   sage     the quick-answer / STOP path saffron  highlights on forest, the gate
- *   moss     healthy / online status      amber    warnings and budgets
- *   wine     errors and destructive       butter   rare emphasis on forest
+ * A printed research archive crossed with a clinical dashboard: cream paper,
+ * white cards with hairline rules, teal for structure and navigation, and a
+ * single burgundy ink for accents and the actions that matter. Light only.
+ *
+ *   cream    the page                 paper    cards, inputs, popovers
+ *   tile     quiet inset blocks       line     hairline borders
+ *   ink      body text                muted    secondary text (AA on cream)
+ *   forest   TEAL. nav, buttons, data panels, links. The legacy name is kept
+ *            so the whole app keeps compiling against one structural colour.
+ *   clay     BURGUNDY. the accent: rules, emphasis, important actions
+ *   sage/saffron/butter   light inks that sit on teal panels (AA checked)
+ *   moss / amber / wine   healthy / warning / error
+ *
+ * Every pairing below is checked against WCAG 2.1 AA (axe runs in CI):
+ *   ink on cream 14.0:1   muted on cream 4.98:1   forest on cream 8.9:1
+ *   clay on cream 8.65:1  white on forest 9.5:1   sage on forest 7.2:1
  */
 @theme {
-  --color-canvas: #f5f0e8;
-  --color-paper: #fffcf7;
-  --color-linen: #ede5d8;
-  --color-ink: #1d221f;
-  --color-forest: #13342a;
-  --color-forest-soft: #1e4a3b;
-  --color-clay: #e0643a;
-  --color-clay-deep: #b4442a;
-  --color-clay-light: #f4a07e;
-  --color-sage: #b7d9c4;
-  --color-saffron: #f4b942;
-  --color-moss: #2f8a57;
-  --color-amber: #e8963a;
-  --color-wine: #9e2b3a;
-  --color-butter: #f6e27a;
+  /* Surfaces */
+  --color-cream: #faf7f0;
+  --color-canvas: #faf7f0;
+  --color-paper: #ffffff;
+  --color-tile: #f6f3ec;
+  --color-linen: #f2eee5;
+  --color-line: #e6e8e6;
 
-  /* What each colour means in the pipeline (charts). */
-  --color-gate: #f4b942;
-  --color-stop: #b7d9c4;
-  --color-mas: #e0643a;
-  --color-mas-deep: #9e2b3a;
-  --color-budget: #e8963a;
-  --color-danger: #9e2b3a;
+  /* Text */
+  --color-ink: #1a1d1c;
+  --color-muted: #6b6b6b;
 
-  --font-display: 'Fraunces', ui-serif, Georgia, serif;
-  --font-sans: 'Instrument Sans', ui-sans-serif, system-ui, sans-serif;
-  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  /* Teal — navigation, buttons, structure */
+  --color-forest: #0b4a6b;
+  --color-forest-soft: #0e5e88;
+  --color-forest-deep: #083850;
+
+  /* Burgundy — accents and important actions */
+  --color-clay: #8b1b1b;
+  --color-clay-deep: #731515;
+  --color-clay-light: #ebb3b3;
+
+  /* Light inks that sit on teal panels */
+  --color-sage: #cfe3ec;
+  --color-saffron: #e8c98a;
+  --color-butter: #f5e6c8;
+
+  /* Status */
+  --color-moss: #2f6b4f;
+  --color-amber: #9a6414;
+  --color-wine: #8b1b1b;
+
+  /* Chart series: what each colour means in the pipeline. */
+  --color-gate: #b07d2b;
+  --color-stop: #4a90ab;
+  --color-mas: #8b1b1b;
+  --color-mas-deep: #5e1111;
+  --color-budget: #9a6414;
+  --color-danger: #8b1b1b;
+
+  --font-display: 'Playfair Display', ui-serif, Georgia, 'Times New Roman', serif;
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SFMono-Regular', monospace;
 }
 
 html,
@@ -52,20 +74,19 @@ body,
 
 body {
   margin: 0;
-  background: var(--color-canvas);
+  background: var(--color-cream);
   color: var(--color-ink);
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
 }
 
+/* Serif for display headings; the sans keeps body copy plain and readable. */
 h1,
 h2 {
   font-family: var(--font-display);
-  font-optical-sizing: auto;
-  font-variation-settings: 'SOFT' 30;
-  letter-spacing: -0.02em;
-  font-weight: 560;
+  letter-spacing: -0.015em;
+  font-weight: 600;
 }
 h3,
 h4 {
@@ -74,26 +95,47 @@ h4 {
   font-weight: 600;
 }
 
-/* Panel: a quiet surface with a hairline edge. */
+/* A card: white, hairline edge, generous radius, barely-there lift. */
 @utility card {
   background: var(--color-paper);
-  border: 1px solid color-mix(in srgb, var(--color-forest) 11%, transparent);
-  border-radius: 0.875rem;
+  border: 1px solid var(--color-line);
+  border-radius: 1rem;
   box-shadow:
-    0 1px 0 color-mix(in srgb, var(--color-forest) 4%, transparent),
-    0 10px 28px -18px color-mix(in srgb, var(--color-forest) 28%, transparent);
+    0 1px 2px rgba(26, 29, 28, 0.03),
+    0 8px 24px -20px rgba(11, 74, 107, 0.25);
 }
 
-/* Instrument panel: forest, for the few places where data should stand out. */
+/* An instrument panel: solid teal, for the few places numbers should lead. */
 @utility panel {
-  /* Solid, not a gradient: contrast checkers cannot measure text on a gradient. */
   background: var(--color-forest);
   color: var(--color-paper);
-  border-radius: 0.875rem;
+  border-radius: 1rem;
   border: 1px solid var(--color-forest);
 }
 
-/* Kept as names so older markup compiles; they no longer draw anything. */
+/* A quiet inset block inside a card: stat tiles, nested rows. */
+@utility tile {
+  background: var(--color-tile);
+  border: 1px solid var(--color-line);
+  border-radius: 0.75rem;
+}
+
+/* A filled burgundy header strip across the top of a card. */
+@utility card-head {
+  display: flex;
+  align-items: center;
+  gap: 0.625rem;
+  background: var(--color-clay);
+  color: #ffffff;
+  border-radius: 1rem 1rem 0 0;
+  padding: 0.875rem 1.25rem;
+  font-family: var(--font-display);
+  font-size: 1.0625rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+/* Kept as names so older markup compiles; they draw nothing. */
 @utility glow-saffron {
   box-shadow: none;
 }
@@ -108,9 +150,9 @@ h4 {
 @utility eyebrow {
   font-family: var(--font-mono);
   font-size: 0.6875rem;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
-  color: color-mix(in srgb, var(--color-forest) 72%, transparent);
+  color: var(--color-muted);
 }
 
 /* Buttons. */
@@ -119,54 +161,60 @@ h4 {
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  border-radius: 0.5rem;
-  padding: 0.5rem 0.875rem;
+  border-radius: 0.625rem;
+  padding: 0.5rem 1rem;
   font-size: 0.875rem;
   font-weight: 500;
   line-height: 1.25rem;
-  transition: background-color 120ms, border-color 120ms, color 120ms;
+  transition:
+    background-color 140ms ease,
+    border-color 140ms ease,
+    color 140ms ease;
   white-space: nowrap;
   &:disabled {
     opacity: 0.45;
     cursor: not-allowed;
   }
   &:focus-visible {
-    outline: 2px solid var(--color-clay-deep);
+    outline: 2px solid var(--color-clay);
     outline-offset: 2px;
   }
 }
 @utility btn-primary {
   background: var(--color-forest);
-  color: var(--color-paper);
+  color: #ffffff;
   &:hover:not(:disabled) {
     background: var(--color-forest-soft);
   }
 }
 @utility btn-accent {
-  background: var(--color-clay-deep);
-  color: var(--color-paper);
+  background: var(--color-clay);
+  color: #ffffff;
   &:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--color-clay-deep) 86%, var(--color-ink));
+    background: var(--color-clay-deep);
   }
 }
 @utility btn-secondary {
   background: var(--color-paper);
   color: var(--color-ink);
-  border: 1px solid color-mix(in srgb, var(--color-forest) 16%, transparent);
+  border: 1px solid var(--color-line);
   &:hover:not(:disabled) {
-    border-color: color-mix(in srgb, var(--color-forest) 32%, transparent);
+    border-color: color-mix(in srgb, var(--color-forest) 35%, transparent);
+    color: var(--color-forest);
   }
 }
 @utility btn-ghost {
-  color: color-mix(in srgb, var(--color-forest) 80%, transparent);
+  color: var(--color-forest);
   &:hover:not(:disabled) {
-    background: color-mix(in srgb, var(--color-forest) 6%, transparent);
-    color: var(--color-ink);
+    background: color-mix(in srgb, var(--color-forest) 7%, transparent);
   }
 }
 @utility btn-danger {
   background: var(--color-wine);
-  color: var(--color-canvas);
+  color: #ffffff;
+  &:hover:not(:disabled) {
+    background: var(--color-clay-deep);
+  }
 }
 
 /* Compact label: status, counts, categories. */
@@ -174,13 +222,13 @@ h4 {
   display: inline-flex;
   align-items: center;
   gap: 0.3rem;
-  border-radius: 0.375rem;
-  border: 1px solid color-mix(in srgb, var(--color-forest) 14%, transparent);
-  padding: 0.0625rem 0.45rem;
+  border-radius: 0.5rem;
+  border: 1px solid var(--color-line);
+  padding: 0.0625rem 0.5rem;
   font-family: var(--font-mono);
   font-size: 0.6875rem;
-  line-height: 1.1rem;
-  color: color-mix(in srgb, var(--color-forest) 85%, transparent);
+  line-height: 1.15rem;
+  color: var(--color-forest);
   background: var(--color-paper);
 }
 
@@ -193,21 +241,21 @@ h4 {
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--color-saffron) 45%, transparent);
+  background: color-mix(in srgb, var(--color-forest) 18%, transparent);
   color: var(--color-ink);
 }
 
 /* In the base layer so a component's own focus style (e.g. outline-none on a composer) wins. */
 @layer base {
   :focus-visible {
-    outline: 2px solid var(--color-clay-deep);
+    outline: 2px solid var(--color-clay);
     outline-offset: 2px;
   }
 }
 
 * {
   scrollbar-width: thin;
-  scrollbar-color: color-mix(in srgb, var(--color-forest) 25%, transparent) transparent;
+  scrollbar-color: color-mix(in srgb, var(--color-forest) 22%, transparent) transparent;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -224,34 +272,58 @@ h4 {
 .prose-chat {
   color: var(--color-ink);
   font-size: 0.95rem;
-  line-height: 1.65;
+  line-height: 1.7;
 }
 .prose-chat > * + * {
-  margin-top: 0.7em;
+  margin-top: 0.75em;
 }
 .prose-chat h1,
 .prose-chat h2,
 .prose-chat h3 {
+  font-family: var(--font-display);
   font-weight: 600;
   line-height: 1.3;
-  margin-top: 1.1em;
+  margin-top: 1.15em;
+  color: var(--color-ink);
 }
-.prose-chat h1 { font-size: 1.35rem; }
-.prose-chat h2 { font-size: 1.2rem; }
-.prose-chat h3 { font-size: 1.05rem; }
-.prose-chat ul { list-style: disc; padding-left: 1.4em; }
-.prose-chat ol { list-style: decimal; padding-left: 1.4em; }
-.prose-chat li + li { margin-top: 0.25em; }
-.prose-chat strong { font-weight: 700; }
+.prose-chat h1 {
+  font-size: 1.4rem;
+}
+.prose-chat h2 {
+  font-size: 1.22rem;
+}
+.prose-chat h3 {
+  font-size: 1.06rem;
+}
+.prose-chat ul {
+  list-style: disc;
+  padding-left: 1.4em;
+}
+.prose-chat ol {
+  list-style: decimal;
+  padding-left: 1.4em;
+}
+.prose-chat li + li {
+  margin-top: 0.25em;
+}
+.prose-chat strong {
+  font-weight: 700;
+}
+.prose-chat a {
+  color: var(--color-forest);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
 .prose-chat blockquote {
-  border-left: 2px solid color-mix(in srgb, var(--color-forest) 20%, transparent);
+  border-left: 2px solid var(--color-clay);
   padding-left: 0.9em;
-  color: color-mix(in srgb, var(--color-forest) 80%, transparent);
+  color: var(--color-muted);
 }
 .prose-chat :not(pre) > code {
-  background: color-mix(in srgb, var(--color-forest) 7%, transparent);
+  background: var(--color-tile);
+  border: 1px solid var(--color-line);
   border-radius: 0.3rem;
-  padding: 0.1em 0.35em;
+  padding: 0.08em 0.35em;
   font-family: var(--font-mono);
   font-size: 0.85em;
 }
@@ -261,16 +333,16 @@ h4 {
 }
 .prose-chat th,
 .prose-chat td {
-  border: 1px solid color-mix(in srgb, var(--color-forest) 12%, transparent);
-  padding: 0.4em 0.7em;
+  border: 1px solid var(--color-line);
+  padding: 0.45em 0.75em;
   text-align: left;
 }
 .prose-chat th {
-  background: color-mix(in srgb, var(--color-forest) 5%, transparent);
+  background: var(--color-tile);
   font-weight: 600;
 }
 
-/* Chart legends: labels in ink, since series colours such as sage and amber are too light for text. */
+/* Chart legends: labels in ink, since series colours are too light for text. */
 .recharts-legend-item-text {
   color: var(--color-ink) !important;
 }

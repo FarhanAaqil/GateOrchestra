@@ -68,15 +68,15 @@ export default function KeyDialog({
       >
         <div className="mb-3 flex items-start justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <span className="grid h-9 w-9 place-items-center rounded-lg border border-forest/15 bg-paper text-forest"><KeyRound className="h-4 w-4" /></span>
+            <span className="grid h-9 w-9 place-items-center rounded-lg border border-line bg-paper text-forest"><KeyRound className="h-4 w-4" /></span>
             <h2 id="key-dialog-title" className="text-xl font-semibold text-ink">Another API key is needed</h2>
           </div>
-          <button type="button" onClick={onClose} className="rounded-lg p-1 text-forest/70 hover:bg-forest/5" aria-label="Close">
+          <button type="button" onClick={onClose} className="rounded-lg p-1 text-muted hover:bg-forest/5" aria-label="Close">
             <X className="h-5 w-5" />
           </button>
         </div>
 
-        <ul className="mb-4 space-y-1 text-sm text-forest/80">
+        <ul className="mb-4 space-y-1 text-sm text-muted">
           {attempts.length ? (
             attempts.map((a, i) => (
               <li key={i}>
@@ -93,7 +93,7 @@ export default function KeyDialog({
           {(['groq', 'gemini', 'openai'] as const).map((p) => (
             <label
               key={p}
-              className={`cursor-pointer rounded-lg border px-3 py-2 text-sm ${provider === p ? 'border-forest bg-forest text-paper' : 'border-forest/15 text-forest hover:bg-forest/5'}`}
+              className={`cursor-pointer rounded-lg border px-3 py-2 text-sm ${provider === p ? 'border-forest bg-forest text-paper' : 'border-line text-forest hover:bg-forest/5'}`}
             >
               <input type="radio" name="provider" value={p} checked={provider === p} onChange={() => setProvider(p)} className="sr-only" />
               <span className="font-semibold">{LABEL[p]}</span>
@@ -114,19 +114,19 @@ export default function KeyDialog({
           placeholder={provider === 'groq' ? 'gsk_…' : provider === 'gemini' ? 'AIza…' : 'sk-…'}
           className={`${FIELD} mt-1.5 font-mono text-sm`}
         />
-        <p className="mt-2 text-xs text-forest/70">
+        <p className="mt-2 text-xs text-muted">
           The key is checked with the provider, then saved only to this server's <code>.env</code>. It is never shown again.
         </p>
         {error ? <p className="mt-3 rounded-xl bg-wine/10 px-3 py-2 text-sm text-wine" role="alert">{error}</p> : null}
 
         <div className="mt-5 flex justify-end gap-2">
-          <button type="button" onClick={onClose} className="rounded-lg border border-forest/15 px-4 py-2 text-sm text-forest hover:bg-forest/5">
+          <button type="button" onClick={onClose} className="rounded-lg border border-line px-4 py-2 text-sm text-forest hover:bg-forest/5">
             Cancel
           </button>
           <button
             type="submit"
             disabled={!key.trim() || saving}
-            className="inline-flex items-center gap-2 rounded-lg bg-ink px-5 py-2 text-sm font-semibold text-canvas disabled:opacity-40"
+            className="inline-flex items-center gap-2 rounded-lg bg-forest px-5 py-2 text-sm font-semibold text-white transition-colors hover:bg-forest-soft disabled:opacity-40"
           >
             {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
             {saving ? 'Checking…' : 'Save and retry'}

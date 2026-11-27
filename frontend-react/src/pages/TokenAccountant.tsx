@@ -45,7 +45,7 @@ export default function TokenAccountant() {
       {runs.length ? (
         <motion.div variants={rise} className="card overflow-x-auto p-0" tabIndex={0} role="region" aria-label="Live runs">
           <table className="w-full min-w-[860px] text-left text-sm">
-            <thead className="border-b border-forest/10 bg-paper text-left text-xs font-medium text-forest/70">
+            <thead className="border-b border-line bg-paper text-left text-xs font-medium text-muted">
               <tr>
                 <th className="px-5 py-3.5">Run</th>
                 <th className="px-5 py-3.5">Method</th>
@@ -64,7 +64,7 @@ export default function TokenAccountant() {
                 const over = cap != null && (r.mas_tokens ?? 0) > cap
                 const path = r.mas_tokens ? `Agent team${r.mas_strategy ? ` · ${STRATEGY_LABELS[r.mas_strategy]}` : ''}` : 'Quick answer'
                 return (
-                  <tr key={`${r.task_id}-${i}`} className="border-t border-forest/10 hover:bg-forest/5">
+                  <tr key={`${r.task_id}-${i}`} className="border-t border-line hover:bg-forest/5">
                     <td className="px-5 py-3 text-xs text-ink" title={r.task_id}>{friendlyRunLabel(r.task_id)}</td>
                     <td className="px-5 py-3 text-ink">{METHOD_LABELS[r.method]}</td>
                     <td className="px-5 py-3">
@@ -73,17 +73,17 @@ export default function TokenAccountant() {
                     <td className="px-5 py-3"><SpendBar probe={r.probe_tokens ?? 0} mas={r.mas_tokens ?? 0} over={over} max={maxSpend} /></td>
                     <td className="num px-5 py-3 text-right">{num(r.probe_tokens)}</td>
                     <td className={`num px-5 py-3 text-right ${over ? 'font-semibold text-wine' : ''}`}>{num(r.mas_tokens)}</td>
-                    <td className="num px-5 py-3 text-right text-forest/70">{num(cap)}</td>
+                    <td className="num px-5 py-3 text-right text-muted">{num(cap)}</td>
                     <td className="num px-5 py-3 text-right font-medium text-ink">{num(r.tokens_spent)}</td>
                     <td className="px-5 py-3 text-xs">
                       {r.simulated ? (
-                        <span className="chip text-forest/70!">simulated</span>
+                        <span className="chip text-muted!">simulated</span>
                       ) : r.is_correct === true ? (
                         <span className="chip">correct</span>
                       ) : r.is_correct === false ? (
                         <span className="chip border-wine/40! bg-wine/5! text-wine!">incorrect</span>
                       ) : (
-                        <span className="text-forest/70">ungraded</span>
+                        <span className="text-muted">ungraded</span>
                       )}
                     </td>
                   </tr>
@@ -100,7 +100,7 @@ export default function TokenAccountant() {
       ) : benchmarkRows.length ? (
         <motion.div variants={rise} className="card max-h-[50vh] overflow-auto p-0" tabIndex={0} role="region" aria-label="Per-task benchmark records">
           <table className="w-full min-w-[640px] text-left text-sm">
-            <thead className="sticky top-0 border-b border-forest/10 bg-paper text-left text-xs font-medium text-forest/70">
+            <thead className="sticky top-0 border-b border-line bg-paper text-left text-xs font-medium text-muted">
               <tr>
                 <th className="px-5 py-3">Seed</th>
                 <th className="px-5 py-3">Task</th>
@@ -112,13 +112,13 @@ export default function TokenAccountant() {
             </thead>
             <tbody>
               {benchmarkRows.map((r, i) => (
-                <tr key={i} className="border-t border-forest/10">
-                  <td className="px-5 py-2 font-mono text-xs text-forest/70">{r.seed}</td>
+                <tr key={i} className="border-t border-line">
+                  <td className="px-5 py-2 font-mono text-xs text-muted">{r.seed}</td>
                   <td className="px-5 py-2 font-mono text-xs text-ink">{r.task_id}</td>
                   <td className="px-5 py-2 text-ink">{METHOD_LABELS[r.method]}</td>
                   <td className="px-5 py-2 font-mono text-xs">{r.decision ?? '—'}</td>
                   <td className="num px-5 py-2 text-right text-ink">{num(r.tokens_spent)}</td>
-                  <td className={`px-5 py-2 text-xs ${r.is_correct ? 'text-forest/70' : 'text-wine'}`}>{r.is_correct ? 'yes' : 'no'}</td>
+                  <td className={`px-5 py-2 text-xs ${r.is_correct ? 'text-muted' : 'text-wine'}`}>{r.is_correct ? 'yes' : 'no'}</td>
                 </tr>
               ))}
             </tbody>

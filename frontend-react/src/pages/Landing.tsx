@@ -35,11 +35,11 @@ const STEPS = [
 function AnswerPreview() {
   return (
     <div className="card overflow-hidden" aria-hidden>
-      <div className="flex items-center gap-1.5 border-b border-forest/10 px-4 py-2.5">
+      <div className="flex items-center gap-1.5 border-b border-line px-4 py-2.5">
         <span className="h-2 w-2 rounded-full bg-forest/15" />
         <span className="h-2 w-2 rounded-full bg-forest/15" />
         <span className="h-2 w-2 rounded-full bg-forest/15" />
-        <span className="ml-2 text-xs text-forest/70">Example conversation</span>
+        <span className="ml-2 text-xs text-muted">Example conversation</span>
       </div>
       <div className="space-y-4 p-5 text-sm">
         <p className="ml-auto w-fit max-w-[80%] rounded-lg bg-forest px-3.5 py-2 text-paper">What is the capital of Australia?</p>
@@ -74,10 +74,11 @@ export default function Landing() {
       <section className="grid items-center gap-10 py-6 lg:grid-cols-12 lg:py-12">
         <motion.div variants={rise} className="lg:col-span-6">
           <p className="eyebrow">AI assistant · research-backed routing</p>
-          <h1 className="mt-4 text-4xl font-semibold leading-[1.06] tracking-tight text-ink md:text-[56px]">
+          <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.06] tracking-tight text-forest md:text-[54px]">
             An assistant that knows how hard to <em className="font-medium italic text-clay-deep">think.</em>
           </h1>
-          <p className="mt-5 max-w-lg text-[17px] leading-relaxed text-forest/70">
+          <span className="mt-6 block h-px w-16 bg-clay" aria-hidden />
+          <p className="mt-5 max-w-lg text-[17px] leading-relaxed text-muted">
             Most questions do not need an expensive multi-agent run. GateOrchestra answers the easy ones directly and sends only the
             hard ones to a research agent, so you get careful answers without paying for effort that adds nothing.
           </p>
@@ -87,20 +88,20 @@ export default function Landing() {
             </Link>
             <Link to="/results" className="btn btn-secondary px-5! py-2.5!">See the benchmark</Link>
           </div>
-          <p className="mt-4 text-xs text-forest/70">Free plan · no card needed</p>
+          <p className="mt-4 text-xs text-muted">Free plan · no card needed</p>
         </motion.div>
         <motion.div variants={rise} className="lg:col-span-6">
           <AnswerPreview />
         </motion.div>
       </section>
 
-      <motion.ol variants={rise} className="mt-6 grid gap-px overflow-hidden rounded-xl border border-forest/10 bg-forest/10 md:grid-cols-3">
+      <motion.ol variants={rise} className="mt-6 grid gap-px overflow-hidden rounded-xl border border-line bg-forest/10 md:grid-cols-3">
         {STEPS.map(({ title, text }, i) => (
           <li key={title} className="relative bg-paper p-6">
             <span className={`absolute inset-x-0 top-0 h-1 ${STEP_TONES[i].bar}`} aria-hidden />
             <p className={`num inline-grid h-6 w-6 place-items-center rounded-full text-xs font-semibold ${STEP_TONES[i].badge}`}>{i + 1}</p>
             <h2 className="mt-2 text-[15px] font-semibold text-ink">{title}</h2>
-            <p className="mt-1.5 text-sm leading-relaxed text-forest/70">{text}</p>
+            <p className="mt-1.5 text-sm leading-relaxed text-muted">{text}</p>
           </li>
         ))}
       </motion.ol>
@@ -120,16 +121,16 @@ export default function Landing() {
             <div key={r.value} className="border-paper/10 p-6 max-md:border-b md:border-r md:last:border-r-0">
               <p className="num text-[40px] font-medium leading-none text-saffron">{r.value}</p>
               <p className="mt-3 text-sm font-medium text-paper">{r.label}</p>
-              <p className="mt-1 text-xs leading-relaxed text-sage/70">{r.note}</p>
+              <p className="mt-1 text-xs leading-relaxed text-sage">{r.note}</p>
             </div>
           ))}
         </motion.div>
-        <motion.p variants={rise} className="mt-4 max-w-3xl text-sm leading-relaxed text-forest/70">
+        <motion.p variants={rise} className="mt-4 max-w-3xl text-sm leading-relaxed text-muted">
           These come from the project's benchmark (96 held-out test tasks), not from chats on this site. On the 3B model the
           multi-agent system was simply not better than the quick check, so the gate learned to escalate only 3% of tasks; the goal
           of 40% savings was not reached, and the gate is not measurably better than never escalating. Its job there was to avoid waste. Your own questions will differ, which is why the{' '}
-          <Link to="/usage" className="text-ink underline decoration-forest/30 underline-offset-2">usage page</Link> shows how your
-          answers were actually routed. Explore the <Link to="/results" className="text-ink underline decoration-forest/30 underline-offset-2">full results</Link>.
+          <Link to="/usage" className="text-ink underline decoration-clay/40 underline-offset-2">usage page</Link> shows how your
+          answers were actually routed. Explore the <Link to="/results" className="text-ink underline decoration-clay/40 underline-offset-2">full results</Link>.
         </motion.p>
       </section>
 
