@@ -31,7 +31,7 @@ export default function Baselines() {
           <Card key={method} forest={method === 'GateOrchestra'}>
             <span className="block h-2 w-10 rounded-full" style={{ background: METHOD_COLORS[method] }} />
             <p className={`mt-3 font-semibold ${method === 'GateOrchestra' ? 'text-paper' : 'text-ink'}`}>{METHOD_LABELS[method]}</p>
-            <p className={`mt-1 text-xs ${method === 'GateOrchestra' ? 'text-sage' : 'text-forest/70'}`}>{text}</p>
+            <p className={`mt-1 text-xs ${method === 'GateOrchestra' ? 'text-sage' : 'text-muted'}`}>{text}</p>
           </Card>
         ))}
       </div>
@@ -56,7 +56,7 @@ export default function Baselines() {
           <Card tilt={false} className="mt-4">
             <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Methods compared">
             <table className="w-full min-w-[720px] text-left text-sm">
-              <thead className="text-left text-xs font-medium text-forest/70">
+              <thead className="text-left text-xs font-medium text-muted">
                 <tr>
                   <th className="py-2">Method</th>
                   <th>Accuracy</th>
@@ -68,10 +68,10 @@ export default function Baselines() {
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.method} className={`border-t border-forest/10 ${r.method === 'GateOrchestra' ? 'bg-clay/[0.06]' : ''}`}>
+                  <tr key={r.method} className={`border-t border-line ${r.method === 'GateOrchestra' ? 'bg-clay/[0.06]' : ''}`}>
                     <td className="py-3 font-semibold text-ink">{METHOD_LABELS[r.method]}</td>
                     <td className="num">{pct(r.accuracy_mean)}</td>
-                    <td className="num text-forest/70">
+                    <td className="num text-muted">
                       {r.accuracy_pooled_ci95 ? `${r.accuracy_pooled_ci95[0].toFixed(1)}–${r.accuracy_pooled_ci95[1].toFixed(1)}%` : '—'}
                     </td>
                     <td className="num text-ink">{num(r.avg_tokens_mean)}</td>
@@ -87,12 +87,12 @@ export default function Baselines() {
           {tests.length ? (
             <Card tilt={false} className="mt-4">
               <h2 className="text-lg font-semibold text-ink">Paired McNemar tests</h2>
-              <p className="mb-3 text-xs text-forest/70">Seeds share test tasks, so pooled p-values are optimistic.</p>
+              <p className="mb-3 text-xs text-muted">Seeds share test tasks, so pooled p-values are optimistic.</p>
               <div className="grid gap-2 sm:grid-cols-2">
                 {tests.map((t) => (
-                  <div key={`${t.method}-${t.reference}`} className="rounded-lg border border-forest/15 bg-paper px-3 py-2 font-mono text-xs text-ink">
+                  <div key={`${t.method}-${t.reference}`} className="rounded-lg border border-line bg-paper px-3 py-2 font-mono text-xs text-ink">
                     {t.method} vs {t.reference}: {t.method_only_correct}–{t.reference_only_correct} discordant,{' '}
-                    <span className={t.p_value < 0.05 ? 'font-semibold text-ink' : 'text-forest/70'}>p = {t.p_value.toFixed(3)}</span>
+                    <span className={t.p_value < 0.05 ? 'font-semibold text-ink' : 'text-muted'}>p = {t.p_value.toFixed(3)}</span>
                   </div>
                 ))}
               </div>

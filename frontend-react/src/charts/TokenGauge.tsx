@@ -46,28 +46,28 @@ export default function TokenGauge({ probeTokens, masTokens, cap, size = 200 }: 
   return (
     <div className="flex flex-col items-center gap-3">
       <svg width={size} height={size} viewBox="-100 -100 200 200" role="img" aria-label={`Token spend ${total}`}>
-        <circle r="82" fill="none" stroke="rgba(19,52,42,0.08)" strokeWidth="10" />
-        <circle r="62" fill="none" stroke="rgba(19,52,42,0.08)" strokeWidth="8" />
-        <Arc r={82} fraction={masFraction} color={over ? '#9E2B3A' : '#E8963A'} width={10} delay={0.35} />
-        <Arc r={62} fraction={probeFraction} color="#B7D9C4" width={8} delay={0} />
-        <text y="-4" textAnchor="middle" fill="#1D221F" className="font-mono text-[26px] font-semibold">
+        <circle r="82" fill="none" stroke="rgba(11,74,107,0.08)" strokeWidth="10" />
+        <circle r="62" fill="none" stroke="rgba(11,74,107,0.08)" strokeWidth="8" />
+        <Arc r={82} fraction={masFraction} color={over ? '#8B1B1B' : '#9A6414'} width={10} delay={0.35} />
+        <Arc r={62} fraction={probeFraction} color="#CFE3EC" width={8} delay={0} />
+        <text y="-4" textAnchor="middle" fill="#1A1D1C" className="font-mono text-[26px] font-semibold">
           {num(total)}
         </text>
-        <text y="18" textAnchor="middle" fill="rgba(19,52,42,0.6)" className="font-mono text-[10px] uppercase tracking-widest">
+        <text y="18" textAnchor="middle" fill="rgba(11,74,107,0.6)" className="font-mono text-[10px] uppercase tracking-widest">
           tokens
         </text>
       </svg>
       <dl className="grid w-full grid-cols-3 gap-2 text-center font-mono text-xs">
         <div>
-          <dt className="text-forest/70">Probe</dt>
+          <dt className="text-muted">Probe</dt>
           <dd className="text-forest">{num(probeTokens)}</dd>
         </div>
         <div>
-          <dt className="text-forest/70">MAS</dt>
+          <dt className="text-muted">MAS</dt>
           <dd className={over ? 'font-semibold text-wine' : 'text-ink'}>{num(masTokens)}</dd>
         </div>
         <div>
-          <dt className="text-forest/70">MAS cap</dt>
+          <dt className="text-muted">MAS cap</dt>
           <dd className="text-ink">{cap == null ? '—' : num(cap)}</dd>
         </div>
       </dl>

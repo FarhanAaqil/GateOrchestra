@@ -20,30 +20,30 @@ export default function ConfidenceGauge({
     <svg viewBox="-100 -96 200 112" className="w-full max-w-xs" role="img" aria-label={`Escalation probability ${(escalateProbability * 100).toFixed(0)}%`}>
       <defs>
         <linearGradient id="cg" x1="0" x2="1">
-          <stop offset="0%" stopColor="#B7D9C4" />
-          <stop offset="50%" stopColor="#F4B942" />
-          <stop offset="100%" stopColor="#E0643A" />
+          <stop offset="0%" stopColor="#CFE3EC" />
+          <stop offset="50%" stopColor="#B07D2B" />
+          <stop offset="100%" stopColor="#8B1B1B" />
         </linearGradient>
       </defs>
       <path d={`M ${-r} 0 A ${r} ${r} 0 0 1 ${r} 0`} fill="none" stroke="url(#cg)" strokeWidth="12" strokeLinecap="round" opacity="0.85" />
       {tick != null ? (
-        <line x1={Math.cos(tick) * (r - 14)} y1={-Math.sin(tick) * (r - 14)} x2={Math.cos(tick) * (r + 10)} y2={-Math.sin(tick) * (r + 10)} stroke="#9E2B3A" strokeWidth="3" />
+        <line x1={Math.cos(tick) * (r - 14)} y1={-Math.sin(tick) * (r - 14)} x2={Math.cos(tick) * (r + 10)} y2={-Math.sin(tick) * (r + 10)} stroke="#8B1B1B" strokeWidth="3" />
       ) : null}
       <motion.line
         x1="0"
         y1="0"
         x2={r - 18}
         y2="0"
-        stroke="#13342A"
+        stroke="#0B4A6B"
         strokeWidth="3"
         strokeLinecap="round"
         initial={{ rotate: -180 }}
         animate={{ rotate: (-needle * 180) / Math.PI }}
         transition={{ duration: reduce ? 0 : 1, type: 'spring', stiffness: 60, damping: 12 }}
       />
-      <circle r="5" fill="#13342A" />
-      <text x={-r} y="14" textAnchor="middle" fill="#13342A" className="font-mono text-[9px]">STOP</text>
-      <text x={r} y="14" textAnchor="middle" fill="#B4442A" className="font-mono text-[9px]">ESCALATE</text>
+      <circle r="5" fill="#0B4A6B" />
+      <text x={-r} y="14" textAnchor="middle" fill="#0B4A6B" className="font-mono text-[9px]">STOP</text>
+      <text x={r} y="14" textAnchor="middle" fill="#731515" className="font-mono text-[9px]">ESCALATE</text>
     </svg>
   )
 }

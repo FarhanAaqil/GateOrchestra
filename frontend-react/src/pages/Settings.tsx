@@ -39,8 +39,8 @@ function OwnKeys() {
 
   return (
     <Card tilt={false}>
-      <h2 className="flex items-center gap-2 text-lg font-semibold text-ink"><KeyRound className="h-4 w-4 text-forest/70" /> Your own API key</h2>
-      <p className="mt-1 text-sm text-forest/70">
+      <h2 className="flex items-center gap-2 text-lg font-semibold text-ink"><KeyRound className="h-4 w-4 text-muted" /> Your own API key</h2>
+      <p className="mt-1 text-sm text-muted">
         Optional. With your own Groq, Gemini or OpenAI-compatible key your chats run on your account with that provider and do not use up your
         plan's daily tokens. The key is checked with the provider, stored encrypted, and never shown again, not even to you.
       </p>
@@ -51,24 +51,24 @@ function OwnKeys() {
             <li key={k.provider} className="flex items-center gap-2">
               <span className="h-2 w-2 rounded-full bg-moss" />
               <span className="font-semibold text-ink">{PROVIDER_LABEL[k.provider]}</span>
-              <span className="text-forest/70">added {new Date(k.added_at * 1000).toLocaleDateString()}</span>
+              <span className="text-muted">added {new Date(k.added_at * 1000).toLocaleDateString()}</span>
               <button onClick={() => remove(k.provider)} className="ml-auto inline-flex items-center gap-1 rounded-md border border-wine/40 px-2.5 py-0.5 text-xs text-wine hover:bg-wine/10" aria-label={`Remove your ${PROVIDER_LABEL[k.provider]} key`}>
                 <Trash2 className="h-3 w-3" /> Remove
               </button>
             </li>
           ))
         ) : (
-          <li className="text-forest/70">{keys.loading ? 'Loading…' : 'No key of your own: the service’s keys answer your chats.'}</li>
+          <li className="text-muted">{keys.loading ? 'Loading…' : 'No key of your own: the service’s keys answer your chats.'}</li>
         )}
       </ul>
       <form onSubmit={save} className="mt-4 grid gap-2 sm:grid-cols-[auto_minmax(0,1fr)_auto]">
-        <select value={provider} onChange={(e) => setProvider(e.target.value as KeyProvider)} className="rounded-lg border border-forest/15 bg-paper px-3 py-2 text-sm" aria-label="Provider">
+        <select value={provider} onChange={(e) => setProvider(e.target.value as KeyProvider)} className="rounded-lg border border-line bg-paper px-3 py-2 text-sm" aria-label="Provider">
           <option value="groq">Groq</option>
           <option value="gemini">Google Gemini</option>
           <option value="openai">OpenAI-compatible</option>
         </select>
         <input type="password" autoComplete="off" spellCheck={false} value={key} onChange={(e) => setKey(e.target.value)} placeholder={KEY_HINT[provider]} className={`${FIELD} font-mono text-sm`} aria-label="API key" />
-        <button type="submit" disabled={!key.trim() || busy} className="inline-flex items-center justify-center gap-2 rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-canvas disabled:opacity-40">
+        <button type="submit" disabled={!key.trim() || busy} className="inline-flex items-center justify-center gap-2 rounded-lg bg-forest px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-forest-soft disabled:opacity-40">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Save key
         </button>
       </form>
@@ -91,7 +91,7 @@ function TwoFactor() {
 
   useEffect(() => {
     if (!setup) return
-    QRCode.toDataURL(setup.uri, { margin: 1, width: 192, color: { dark: '#13342A', light: '#FFFCF7' } }).then(setQr, () => setQr(null))
+    QRCode.toDataURL(setup.uri, { margin: 1, width: 192, color: { dark: '#0B4A6B', light: '#FFFFFF' } }).then(setQr, () => setQr(null))
   }, [setup])
 
   const run = async (action: () => Promise<void>) => {
@@ -139,8 +139,8 @@ function TwoFactor() {
   const on = status.data?.two_factor
   return (
     <Card>
-      <h2 className="flex items-center gap-2 text-lg font-semibold text-ink"><ShieldCheck className="h-4 w-4 text-forest/70" /> Two-factor sign-in</h2>
-      <p className="mt-1 text-sm text-forest/70">
+      <h2 className="flex items-center gap-2 text-lg font-semibold text-ink"><ShieldCheck className="h-4 w-4 text-muted" /> Two-factor sign-in</h2>
+      <p className="mt-1 text-sm text-muted">
         {on
           ? `On. ${status.data?.recovery_codes_left ?? 0} recovery code${status.data?.recovery_codes_left === 1 ? '' : 's'} left.`
           : 'Off. With it on, signing in also needs a code from an authenticator app such as 1Password, Google Authenticator or Authy.'}
@@ -159,8 +159,8 @@ function TwoFactor() {
       ) : null}
       {setup ? (
         <form onSubmit={confirm} className="mt-3 grid gap-3 sm:grid-cols-[auto_minmax(0,1fr)]">
-          {qr ? <img src={qr} alt="QR code for your authenticator app" className="h-40 w-40 rounded-lg border border-forest/10" /> : null}
-          <div className="space-y-2 text-sm text-forest/70">
+          {qr ? <img src={qr} alt="QR code for your authenticator app" className="h-40 w-40 rounded-lg border border-line" /> : null}
+          <div className="space-y-2 text-sm text-muted">
             <p>Scan the code with your authenticator app, or enter this key by hand:</p>
             <p className="break-all rounded-md bg-forest/5 px-2 py-1 font-mono text-xs text-ink">{setup.secret}</p>
             <div className="flex flex-wrap gap-2">
@@ -204,9 +204,9 @@ function ChangeEmail() {
   }
   return (
     <Card>
-      <h2 className="flex items-center gap-2 text-lg font-semibold text-ink"><Mail className="h-4 w-4 text-forest/70" /> Email address</h2>
+      <h2 className="flex items-center gap-2 text-lg font-semibold text-ink"><Mail className="h-4 w-4 text-muted" /> Email address</h2>
       {sent ? (
-        <p className="mt-2 text-sm text-forest/80" role="status">Check {email.trim()} for a link to confirm it. Your address changes only when you open that link.</p>
+        <p className="mt-2 text-sm text-muted" role="status">Check {email.trim()} for a link to confirm it. Your address changes only when you open that link.</p>
       ) : (
         <form onSubmit={submit} className="mt-3 grid gap-2">
           <input type="email" autoComplete="email" value={email} onChange={(e) => setEmail(e.target.value)} placeholder="New email address" aria-label="New email address" className={`${FIELD} text-sm`} />
@@ -241,13 +241,13 @@ function Profile() {
   const plan = usage.data?.plan
   return (
     <Card tilt={false}>
-      <h2 className="flex items-center gap-2 text-lg font-semibold text-ink"><UserRound className="h-4 w-4 text-forest/70" /> Profile and plan</h2>
+      <h2 className="flex items-center gap-2 text-lg font-semibold text-ink"><UserRound className="h-4 w-4 text-muted" /> Profile and plan</h2>
       <dl className="mt-3 grid grid-cols-[auto_minmax(0,1fr)] gap-x-4 gap-y-1 text-sm">
-        <dt className="text-forest/70">Email</dt>
+        <dt className="text-muted">Email</dt>
         <dd className="break-all text-ink">{user.email}{user.verified ? '' : ' (not confirmed yet)'}</dd>
-        <dt className="text-forest/70">Member since</dt>
+        <dt className="text-muted">Member since</dt>
         <dd className="text-ink">{new Date(user.created_at * 1000).toLocaleDateString()}</dd>
-        <dt className="text-forest/70">Plan</dt>
+        <dt className="text-muted">Plan</dt>
         <dd className="text-ink">
           {plan ? plan.label : '…'}
           {usage.data?.paid_until ? ` until ${new Date(usage.data.paid_until * 1000).toLocaleDateString()}` : ''}
@@ -255,10 +255,10 @@ function Profile() {
           {' · '}<Link to="/usage" className="underline">usage</Link>
         </dd>
       </dl>
-      <button onClick={download} className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-forest/15 px-3.5 py-1.5 text-sm text-forest hover:bg-forest/5">
+      <button onClick={download} className="mt-4 inline-flex items-center gap-1.5 rounded-lg border border-line px-3.5 py-1.5 text-sm text-forest hover:bg-forest/5">
         <Download className="h-4 w-4" /> Export my conversations
       </button>
-      <p className="mt-1 text-xs text-forest/70">A JSON file with your conversations, the names of your documents and your account details.</p>
+      <p className="mt-1 text-xs text-muted">A JSON file with your conversations, the names of your documents and your account details.</p>
       {error ? <p className="mt-2 text-sm text-wine" role="alert">{error}</p> : null}
     </Card>
   )
@@ -292,13 +292,13 @@ function ChangePassword() {
   }
   return (
     <Card tilt={false}>
-      <h2 className="flex items-center gap-2 text-lg font-semibold text-ink"><Lock className="h-4 w-4 text-forest/70" /> Password</h2>
+      <h2 className="flex items-center gap-2 text-lg font-semibold text-ink"><Lock className="h-4 w-4 text-muted" /> Password</h2>
       <form onSubmit={submit} className="mt-3 grid gap-2">
         <input type="password" autoComplete="current-password" value={current} onChange={(e) => setCurrent(e.target.value)} placeholder="Current password" aria-label="Current password" className={`${FIELD} text-sm`} />
         <input type="password" autoComplete="new-password" value={next} onChange={(e) => setNext(e.target.value)} placeholder={`New password (${MIN_PASSWORD}+ characters)`} aria-label="New password" className={`${FIELD} text-sm`} />
-        <button type="submit" disabled={!current || !next || busy} className="justify-self-start rounded-lg bg-ink px-4 py-2 text-sm font-semibold text-canvas disabled:opacity-40">Change password</button>
+        <button type="submit" disabled={!current || !next || busy} className="justify-self-start rounded-lg bg-forest px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-forest-soft disabled:opacity-40">Change password</button>
       </form>
-      <p className="mt-1 text-xs text-forest/70">Your other browsers and devices are signed out; this one stays signed in.</p>
+      <p className="mt-1 text-xs text-muted">Your other browsers and devices are signed out; this one stays signed in.</p>
       {error ? <p className="mt-2 text-sm text-wine" role="alert">{error}</p> : null}
       {done ? <p className="mt-2 text-sm text-forest" role="status">Password changed.</p> : null}
     </Card>
@@ -328,7 +328,7 @@ function DeleteAccount() {
   return (
     <Card tilt={false}>
       <h2 className="flex items-center gap-2 text-lg font-semibold text-wine"><Trash2 className="h-5 w-5" /> Delete my account</h2>
-      <p className="mt-1 text-sm text-forest/70">
+      <p className="mt-1 text-sm text-muted">
         Removes your account and everything in it: conversations, messages, uploaded documents, cached answers, ratings, your own
         API keys and your usage history. It cannot be undone, so export first if you want a copy.
       </p>
@@ -338,7 +338,7 @@ function DeleteAccount() {
           <button type="submit" disabled={!password || busy} className="inline-flex items-center gap-2 rounded-lg bg-wine px-4 py-2 text-sm font-semibold text-canvas disabled:opacity-40">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : null} Delete everything
           </button>
-          <button type="button" onClick={() => setOpen(false)} className="rounded-lg border border-forest/15 px-4 py-2 text-sm text-forest">Cancel</button>
+          <button type="button" onClick={() => setOpen(false)} className="rounded-lg border border-line px-4 py-2 text-sm text-forest">Cancel</button>
         </form>
       ) : (
         <button onClick={() => setOpen(true)} className="mt-3 rounded-lg border border-wine/50 px-4 py-2 text-sm text-wine hover:bg-wine/10">Delete my account…</button>

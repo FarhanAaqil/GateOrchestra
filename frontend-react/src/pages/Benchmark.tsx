@@ -53,7 +53,7 @@ function Select({ label, value, onChange, options }: { label: string; value: str
 
 /** Small filled dots showing a 1–5 level. */
 function Level({ value, max, tone }: { value: number | null; max: number; tone: string }) {
-  if (value == null) return <span className="text-forest/70">—</span>
+  if (value == null) return <span className="text-muted">—</span>
   return (
     <span className="inline-flex items-center gap-1" aria-label={`${value} of ${max}`}>
       {Array.from({ length: max }, (_, i) => (
@@ -119,7 +119,7 @@ export default function Benchmark() {
           <label className="text-xs font-medium text-forest sm:col-span-2 lg:col-span-1">
             Search
             <span className={`${FIELD} mt-1 flex items-center gap-2 py-2`}>
-              <Search className="h-4 w-4 text-forest/70" />
+              <Search className="h-4 w-4 text-muted" />
               <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="id or question" className="w-full bg-transparent text-sm outline-none" />
             </span>
           </label>
@@ -137,7 +137,7 @@ export default function Benchmark() {
         <motion.div variants={rise} className="card overflow-hidden p-0">
           <div className="max-h-[65vh] overflow-auto" tabIndex={0} role="region" aria-label="Benchmark tasks">
             <table className="w-full min-w-[760px] text-left text-sm">
-              <thead className="sticky top-0 z-10 border-b border-forest/10 bg-paper text-left text-xs font-medium text-forest/70">
+              <thead className="sticky top-0 z-10 border-b border-line bg-paper text-left text-xs font-medium text-muted">
                 <tr>
                   <th className="px-5 py-3.5">Task</th>
                   <th className="px-5 py-3.5">Split</th>
@@ -149,7 +149,7 @@ export default function Benchmark() {
               </thead>
               <tbody>
                 {filtered.map((r) => (
-                  <tr key={r.task_id} className="border-t border-forest/10 transition-colors hover:bg-forest/5">
+                  <tr key={r.task_id} className="border-t border-line transition-colors hover:bg-forest/5">
                     <td className="px-5 py-3 font-mono text-xs text-ink">{r.task_id}</td>
                     <td className="px-5 py-3">
                       <span className={`rounded-md px-2.5 py-0.5 font-mono text-[11px] ${SPLIT_STYLE[r.split]}`}>{r.split}</span>
@@ -159,13 +159,13 @@ export default function Benchmark() {
                     </td>
                     <td className="px-5 py-3"><Level value={r.depth_score} max={5} tone="bg-forest" /></td>
                     <td className="px-5 py-3"><Level value={r.parallel_score} max={4} tone="bg-clay" /></td>
-                    <td className="px-5 py-3 font-mono text-xs text-forest/70">{r.source_dataset ?? '—'}</td>
+                    <td className="px-5 py-3 font-mono text-xs text-muted">{r.source_dataset ?? '—'}</td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          <p className="border-t border-forest/10 bg-paper px-5 py-2.5 font-mono text-xs text-forest/70">
+          <p className="border-t border-line bg-paper px-5 py-2.5 font-mono text-xs text-muted">
             {filtered.length} of {rows.length} tasks
           </p>
         </motion.div>

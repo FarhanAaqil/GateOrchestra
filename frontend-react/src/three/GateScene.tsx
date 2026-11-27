@@ -7,21 +7,21 @@ import { STRATEGY_LABELS } from '../lib/format'
 import { agentPosition, LAYOUT, orbPosition, STRATEGIES, type Vec3 } from './gateTimeline'
 import { useGateRun, type GateRunInput } from './useGateRun'
 
-// Palette: saffron = gate, sage = CoT-SC path, clay/wine = multi-agent path, butter = chosen agent.
-const CYAN = new THREE.Color('#F4B942')
-const SKY = new THREE.Color('#B7D9C4')
-const EMBER = new THREE.Color('#E0643A')
-const WINE = new THREE.Color('#9E2B3A')
-const LEMON = new THREE.Color('#F6E27A')
-const NAVY = '#13342A'
+// Palette: gold = gate, pale teal = CoT-SC path, burgundy = multi-agent path, cream = chosen agent.
+const CYAN = new THREE.Color('#E8C98A')
+const SKY = new THREE.Color('#CFE3EC')
+const EMBER = new THREE.Color('#C0504A')
+const WINE = new THREE.Color('#8B1B1B')
+const LEMON = new THREE.Color('#F5E6C8')
+const DEEP_TEAL = '#0B4A6B'
 
 // Labels are plain DOM nodes over the canvas, positioned each frame by
 // projecting a 3D point; this avoids one React root per label.
 const STATIC_LABELS: { text: string; tone: string; at: Vec3 }[] = [
-  { text: 'Gate', tone: '#F4B942', at: [LAYOUT.gate[0], LAYOUT.gate[1] + 1.3, 0] },
-  { text: 'CoT-SC answer', tone: '#B7D9C4', at: [LAYOUT.cot[0], LAYOUT.cot[1] - 0.62, 0] },
+  { text: 'Gate', tone: '#E8C98A', at: [LAYOUT.gate[0], LAYOUT.gate[1] + 1.3, 0] },
+  { text: 'CoT-SC answer', tone: '#CFE3EC', at: [LAYOUT.cot[0], LAYOUT.cot[1] - 0.62, 0] },
   // Below the agents' orbit so the labels never collide.
-  { text: 'Orchestrator', tone: '#E0643A', at: [LAYOUT.core[0], LAYOUT.core[1] - 1.62, 0] },
+  { text: 'Orchestrator', tone: '#C0504A', at: [LAYOUT.core[0], LAYOUT.core[1] - 1.62, 0] },
 ]
 const AGENT_LABEL_OFFSET = 0.4
 // World-space extent the camera must keep in view (gate approach to the orbiting agents).
@@ -127,38 +127,38 @@ function Scene({ placeLabel: place, ...props }: GateRunInput & { placeLabel: Pla
 
   return (
     <>
-      <color attach="background" args={[NAVY]} />
+      <color attach="background" args={[DEEP_TEAL]} />
       <ambientLight intensity={0.25} />
-      <pointLight position={[0, 4, 6]} intensity={30} color="#B7D9C4" />
-      <pointLight ref={orbLight} intensity={8} distance={4} color="#F5F0E8" />
+      <pointLight position={[0, 4, 6]} intensity={30} color="#CFE3EC" />
+      <pointLight ref={orbLight} intensity={8} distance={4} color="#FAF7F0" />
 
-      <Line points={inPath} color="#F4B942" lineWidth={1} transparent opacity={0.25} dashed dashSize={0.2} gapSize={0.15} />
-      <Line points={stopPath} color="#B7D9C4" lineWidth={1.8} transparent opacity={0.6} />
-      <Line points={masPath} color="#E0643A" lineWidth={1.8} transparent opacity={0.6} />
+      <Line points={inPath} color="#E8C98A" lineWidth={1} transparent opacity={0.25} dashed dashSize={0.2} gapSize={0.15} />
+      <Line points={stopPath} color="#CFE3EC" lineWidth={1.8} transparent opacity={0.6} />
+      <Line points={masPath} color="#C0504A" lineWidth={1.8} transparent opacity={0.6} />
 
       <group position={gate}>
         <mesh ref={gateOuter}>
           <torusGeometry args={[0.95, 0.05, 24, 120]} />
-          <meshStandardMaterial color={NAVY} emissive={CYAN} emissiveIntensity={2.4} />
+          <meshStandardMaterial color={DEEP_TEAL} emissive={CYAN} emissiveIntensity={2.4} />
         </mesh>
         <mesh ref={gateInner} rotation={[0, 0, 0.6]}>
           <torusGeometry args={[0.72, 0.018, 16, 100, Math.PI * 1.6]} />
-          <meshStandardMaterial color={NAVY} emissive={CYAN} emissiveIntensity={1.6} />
+          <meshStandardMaterial color={DEEP_TEAL} emissive={CYAN} emissiveIntensity={1.6} />
         </mesh>
         <mesh>
           <circleGeometry args={[0.7, 48]} />
-          <meshBasicMaterial color="#F4B942" transparent opacity={0.06} side={THREE.DoubleSide} />
+          <meshBasicMaterial color="#E8C98A" transparent opacity={0.06} side={THREE.DoubleSide} />
         </mesh>
       </group>
 
       <mesh position={cot}>
         <sphereGeometry args={[0.32, 32, 32]} />
-        <meshStandardMaterial ref={cotMat} color={NAVY} emissive={SKY} emissiveIntensity={0.5} />
+        <meshStandardMaterial ref={cotMat} color={DEEP_TEAL} emissive={SKY} emissiveIntensity={0.5} />
       </mesh>
 
       <mesh ref={core} position={corePos}>
         <icosahedronGeometry args={[0.45, 1]} />
-        <meshStandardMaterial color={NAVY} emissive={EMBER} emissiveIntensity={1.3} flatShading />
+        <meshStandardMaterial color={DEEP_TEAL} emissive={EMBER} emissiveIntensity={1.3} flatShading />
       </mesh>
       {STRATEGIES.map((strategy, i) => (
         <mesh
@@ -172,7 +172,7 @@ function Scene({ placeLabel: place, ...props }: GateRunInput & { placeLabel: Pla
             ref={(el) => {
               agentMats.current[i] = el
             }}
-            color={NAVY}
+            color={DEEP_TEAL}
             emissive={WINE}
             emissiveIntensity={0.9}
           />
@@ -180,12 +180,12 @@ function Scene({ placeLabel: place, ...props }: GateRunInput & { placeLabel: Pla
       ))}
       <mesh ref={stream} visible={false}>
         <cylinderGeometry args={[0.02, 0.02, 1, 8]} />
-        <meshBasicMaterial color="#F6E27A" transparent opacity={0.85} />
+        <meshBasicMaterial color="#F5E6C8" transparent opacity={0.85} />
       </mesh>
 
       <mesh ref={orb} visible={false}>
         <sphereGeometry args={[0.16, 24, 24]} />
-        <meshStandardMaterial color="#F5F0E8" emissive="#FFFCF7" emissiveIntensity={3} />
+        <meshStandardMaterial color="#FAF7F0" emissive="#FFFFFF" emissiveIntensity={3} />
       </mesh>
     </>
   )
@@ -201,7 +201,7 @@ export default function GateScene(props: GateRunInput) {
   }, [])
   const labelDefs = [
     ...STATIC_LABELS.map((l) => ({ text: l.text, tone: l.tone })),
-    ...STRATEGIES.map((s) => ({ text: STRATEGY_LABELS[s], tone: '#F6E27A' })),
+    ...STRATEGIES.map((s) => ({ text: STRATEGY_LABELS[s], tone: '#F5E6C8' })),
   ]
   return (
     <div className="relative h-full w-full overflow-hidden">

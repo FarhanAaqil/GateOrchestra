@@ -22,12 +22,12 @@ export function AccuracyChart({ rows }: { rows: AggregatedRow[] }) {
         <CartesianGrid {...GRID} vertical={false} />
         <XAxis dataKey="name" tick={AXIS} stroke={AXIS.stroke} interval={0} />
         <YAxis domain={[0, 100]} tick={AXIS} stroke={AXIS.stroke} unit="%" />
-        <Tooltip {...TOOLTIP} formatter={(v) => [`${Number(v).toFixed(1)}%`, 'Accuracy']} cursor={{ fill: 'rgba(183,217,196,0.25)' }} />
+        <Tooltip {...TOOLTIP} formatter={(v) => [`${Number(v).toFixed(1)}%`, 'Accuracy']} cursor={{ fill: 'rgba(207,227,236,0.25)' }} />
         <Bar dataKey="accuracy" radius={[6, 6, 0, 0]} isAnimationActive={animate}>
           {data.map((d) => (
             <Cell key={d.method} fill={METHOD_COLORS[d.method]} fillOpacity={0.85} />
           ))}
-          <ErrorBar dataKey="ci" width={6} strokeWidth={1.5} stroke="#1D221F" direction="y" />
+          <ErrorBar dataKey="ci" width={6} strokeWidth={1.5} stroke="#1A1D1C" direction="y" />
         </Bar>
       </BarChart>
     </ResponsiveContainer>
@@ -44,10 +44,10 @@ export function TokensChart({ rows }: { rows: AggregatedRow[] }) {
         <CartesianGrid {...GRID} vertical={false} />
         <XAxis dataKey="name" tick={AXIS} stroke={AXIS.stroke} interval={0} />
         <YAxis tick={AXIS} stroke={AXIS.stroke} />
-        <Tooltip {...TOOLTIP} formatter={(v) => [Number(v).toFixed(0), 'Avg tokens / task']} cursor={{ fill: 'rgba(183,217,196,0.25)' }} />
+        <Tooltip {...TOOLTIP} formatter={(v) => [Number(v).toFixed(0), 'Avg tokens / task']} cursor={{ fill: 'rgba(207,227,236,0.25)' }} />
         <Bar dataKey="tokens" radius={[6, 6, 0, 0]} isAnimationActive={animate}>
           {data.map((d) => (
-            <Cell key={d.method} fill={d.method === 'GateOrchestra' ? '#E0643A' : '#E8963A'} fillOpacity={d.method === 'GateOrchestra' ? 1 : 0.55} />
+            <Cell key={d.method} fill={d.method === 'GateOrchestra' ? '#8B1B1B' : '#9A6414'} fillOpacity={d.method === 'GateOrchestra' ? 1 : 0.55} />
           ))}
         </Bar>
       </BarChart>

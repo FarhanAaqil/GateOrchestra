@@ -6,9 +6,9 @@ function Meter({ label, used, limit, unit }: { label: string; used: number; limi
   const share = limit ? Math.min(1, used / limit) : 0
   return (
     <Card tilt={false}>
-      <p className="text-sm text-forest/70">{label}</p>
+      <p className="text-sm text-muted">{label}</p>
       <p className="num mt-2 text-[28px] font-medium leading-none text-ink">{used.toLocaleString()}</p>
-      <p className="mt-1 font-mono text-xs text-forest/70">of {limit.toLocaleString()} {unit} today</p>
+      <p className="mt-1 font-mono text-xs text-muted">of {limit.toLocaleString()} {unit} today</p>
       <div className="mt-3 h-1.5 rounded-full bg-forest/10" role="progressbar" aria-label={label} aria-valuemin={0} aria-valuemax={limit} aria-valuenow={used}>
         <div className={`h-1.5 rounded-full ${share >= 0.9 ? 'bg-wine' : 'bg-forest'}`} style={{ width: `${share * 100}%` }} />
       </div>
@@ -32,7 +32,7 @@ function Routes({ month }: { month: UsageCounts }) {
           {rows.map((r) => (
             <li key={r.label} className="text-sm">
               <div className="flex justify-between text-forest">
-                <span>{r.label} <span className="text-xs text-forest/70">· {r.note}</span></span>
+                <span>{r.label} <span className="text-xs text-muted">· {r.note}</span></span>
                 <span className="font-mono text-xs">{r.value} · {Math.round((r.value / total) * 100)}%</span>
               </div>
               <div className="mt-1 h-1.5 rounded-full bg-forest/10">
@@ -42,7 +42,7 @@ function Routes({ month }: { month: UsageCounts }) {
           ))}
         </ul>
       ) : (
-        <p className="mt-2 text-sm text-forest/70">No answers yet this month.</p>
+        <p className="mt-2 text-sm text-muted">No answers yet this month.</p>
       )}
     </Card>
   )
@@ -62,19 +62,19 @@ export default function Usage() {
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             <Card tilt={false}>
-              <p className="text-sm text-forest/70">Plan</p>
+              <p className="text-sm text-muted">Plan</p>
               <p className="mt-2 text-xl font-semibold text-ink">{u.plan.label}</p>
-              <p className="mt-1 font-mono text-xs text-forest/70">
+              <p className="mt-1 font-mono text-xs text-muted">
                 {u.paid_until ? `paid until ${new Date(u.paid_until * 1000).toLocaleDateString()}` : u.plan.price_usd_month ? '' : 'free'}
               </p>
             </Card>
             <Meter label="Messages" used={u.today.messages} limit={u.plan.messages_per_day} unit="messages" />
             <Meter label="Tokens on our keys" used={u.today.tokens} limit={u.plan.daily_tokens} unit="tokens" />
             <Card tilt={false}>
-              <p className="text-sm text-forest/70">This month</p>
+              <p className="text-sm text-muted">This month</p>
               <p className="num mt-2 text-[28px] font-medium leading-none text-ink">{(u.month.tokens + u.month.own_key_tokens).toLocaleString()}</p>
-              <p className="mt-1 font-mono text-xs text-forest/70">tokens · {u.month.messages.toLocaleString()} answers</p>
-              {u.own_key ? <p className="mt-1 font-mono text-xs text-forest/70">{u.month.own_key_tokens.toLocaleString()} on your own key</p> : null}
+              <p className="mt-1 font-mono text-xs text-muted">tokens · {u.month.messages.toLocaleString()} answers</p>
+              {u.own_key ? <p className="mt-1 font-mono text-xs text-muted">{u.month.own_key_tokens.toLocaleString()} on your own key</p> : null}
             </Card>
           </div>
 
@@ -85,7 +85,7 @@ export default function Usage() {
               {u.estimate.available && u.estimate.saved_tokens != null ? (
                 <>
                   <p className="mt-3 font-mono text-xl font-semibold text-ink">≈ {u.estimate.saved_tokens.toLocaleString()} tokens</p>
-                  <p className="mt-1 text-sm text-forest/70">
+                  <p className="mt-1 text-sm text-muted">
                     {u.month.direct.toLocaleString()} answers handled directly × ≈ {u.estimate.per_escalation?.toLocaleString()} tokens,{' '}
                     {u.estimate.source === 'server'
                       ? `the average the research agent used on ${u.estimate.sample_size.toLocaleString()} escalated answers on this server in the last ${u.estimate.window_days} days.`
@@ -93,14 +93,14 @@ export default function Usage() {
                   </p>
                 </>
               ) : (
-                <p className="mt-3 text-sm text-forest/70">
+                <p className="mt-3 text-sm text-muted">
                   Not enough researched answers on this server yet to estimate this ({u.estimate.sample_size} so far; at least 5 are needed).
                 </p>
               )}
-              <p className="mt-3 text-xs text-forest/70">{u.estimate.method}</p>
+              <p className="mt-3 text-xs text-muted">{u.estimate.method}</p>
             </Card>
           </div>
-          <p className="mt-4 text-xs text-forest/70">Documents stored: {u.documents} of {u.plan.documents}.</p>
+          <p className="mt-4 text-xs text-muted">Documents stored: {u.documents} of {u.plan.documents}.</p>
         </>
       ) : null}
     </Page>

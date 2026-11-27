@@ -9,8 +9,8 @@ import { useApi } from '../lib/useApi'
 
 function Row({ label, value }: { label: string; value: React.ReactNode }) {
   return (
-    <div className="flex items-baseline justify-between gap-3 border-b border-forest/[0.06] py-2 last:border-0">
-      <dt className="text-sm text-forest/70">{label}</dt>
+    <div className="flex items-baseline justify-between gap-3 border-b border-line py-2 last:border-0">
+      <dt className="text-sm text-muted">{label}</dt>
       <dd className="num text-sm text-ink">{value}</dd>
     </div>
   )
@@ -18,7 +18,7 @@ function Row({ label, value }: { label: string; value: React.ReactNode }) {
 
 /** Where to try a gated run: Run a Task for operators, the chat for everyone else. */
 function TryLink({ canRun }: { canRun: boolean }) {
-  const cls = 'font-medium text-ink underline decoration-forest/30 underline-offset-2'
+  const cls = 'font-medium text-ink underline decoration-clay/40 underline-offset-2'
   return canRun ? <Link to="/run" className={cls}>Run a Task</Link> : <Link to="/chat" className={cls}>the chat</Link>
 }
 
@@ -57,7 +57,7 @@ export default function GateInspector() {
               ) : null}
             </dl>
           ) : (
-            <p className="mt-3 text-sm text-forest/70">
+            <p className="mt-3 text-sm text-muted">
               No trained gate yet. The benchmark's calibration step trains and saves one; until then the GateOrchestra method is disabled.
             </p>
           )}
@@ -70,9 +70,9 @@ export default function GateInspector() {
               <ConfidenceGauge escalateProbability={escalateProbability} threshold={learned ? threshold : null} />
               <p className="text-sm text-ink">
                 <span className={`chip ${decision.decision === 'STOP' ? 'border-sage! bg-sage/25!' : 'border-clay/50! bg-clay/10!'}`}>{decision.decision}</span>
-                <span className="ml-2 text-forest/70">{decision.gate_type} gate</span>
+                <span className="ml-2 text-muted">{decision.gate_type} gate</span>
               </p>
-              <p className="mt-2 text-center text-xs text-forest/70">
+              <p className="mt-2 text-center text-xs text-muted">
                 {learned
                   ? `P(escalate) = ${(escalateProbability * 100).toFixed(1)}%`
                   : decision.gate_type === 'random'
@@ -81,7 +81,7 @@ export default function GateInspector() {
               </p>
             </div>
           ) : (
-            <p className="mt-3 text-sm text-forest/70">
+            <p className="mt-3 text-sm text-muted">
               {isAdmin ? (
                 <>Run a gated method on <TryLink canRun /> to inspect its decision here.</>
               ) : (
@@ -93,7 +93,7 @@ export default function GateInspector() {
 
         <Card>
           <p className="eyebrow">Escalation threshold</p>
-          <p className="mt-2 text-xs leading-relaxed text-forest/70">
+          <p className="mt-2 text-xs leading-relaxed text-muted">
             Applies to GateOrchestra runs from this browser; otherwise the classifier's own decision (about 0.5) is used.
           </p>
           <label className="mt-4 flex items-center gap-2 text-sm font-medium text-ink">
@@ -118,7 +118,7 @@ export default function GateInspector() {
               <span className={`chip ${wouldEscalate ? 'border-clay/50! bg-clay/10!' : 'border-sage! bg-sage/25!'}`}>{wouldEscalate ? 'ESCALATE' : 'STOP'}</span>
             </p>
           ) : null}
-          <p className="mt-3 text-xs leading-relaxed text-forest/70">
+          <p className="mt-3 text-xs leading-relaxed text-muted">
             τ_acc is different: it is the accuracy gap used to label training tasks, so changing it means retraining the gate.
           </p>
         </Card>
@@ -132,9 +132,9 @@ export default function GateInspector() {
           ) : importance.data?.available ? (
             <ImportanceChart rows={importance.data.importances} />
           ) : (
-            <div className="rounded-lg border border-dashed border-forest/20 px-4 py-5 text-sm text-forest/70">
+            <div className="rounded-lg border border-dashed border-line px-4 py-5 text-sm text-muted">
               <p>{importance.data?.reason ?? importance.error ?? 'Unavailable.'}</p>
-              <p className="mt-2 text-xs text-forest/70">
+              <p className="mt-2 text-xs text-muted">
                 Some gate types cannot report per-feature importance. Section 8.4 of the research report tests which features the gate
                 depends on by removing them one at a time, and section 8.10 compares the gate with a threshold on its main feature.
               </p>
@@ -144,12 +144,12 @@ export default function GateInspector() {
         <Card>
           <h2 className="mb-3 text-lg font-semibold text-ink">Features of the last gated run</h2>
           {lastRun?.features ? (
-            <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-forest/10 bg-forest/10">
+            <dl className="grid grid-cols-2 gap-px overflow-hidden rounded-lg border border-line bg-forest/10">
               {Object.entries(lastRun.features)
                 .filter(([key]) => key !== 'task_id')
                 .map(([key, value]) => (
                   <div key={key} className="bg-paper px-3 py-2.5">
-                    <dt className="text-xs text-forest/70">{FEATURE_LABELS[key] ?? key}</dt>
+                    <dt className="text-xs text-muted">{FEATURE_LABELS[key] ?? key}</dt>
                     <dd className="num mt-0.5 text-base text-ink">
                       {typeof value === 'boolean' ? (value ? 'yes' : 'no') : typeof value === 'number' ? Number(value.toFixed(2)) : '—'}
                     </dd>

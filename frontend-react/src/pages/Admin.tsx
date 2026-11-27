@@ -11,9 +11,9 @@ import { useApi } from '../lib/useApi'
 function Stat({ label, value, note }: { label: string; value: string; note?: string }) {
   return (
     <Card tilt={false}>
-      <p className="text-sm text-forest/70">{label}</p>
+      <p className="text-sm text-muted">{label}</p>
       <p className="num mt-2 text-[28px] font-medium leading-none text-ink">{value}</p>
-      {note ? <p className="mt-1 font-mono text-xs text-forest/70">{note}</p> : null}
+      {note ? <p className="mt-1 font-mono text-xs text-muted">{note}</p> : null}
     </Card>
   )
 }
@@ -38,7 +38,7 @@ function Shares({ title, data }: { title: string; data: Record<string, number> }
           ))}
         </ul>
       ) : (
-        <p className="text-sm text-forest/70">No turns yet.</p>
+        <p className="text-sm text-muted">No turns yet.</p>
       )}
     </Card>
   )
@@ -68,28 +68,28 @@ function PeoplePanel() {
   return (
     <Card tilt={false} className="mt-4">
       <h2 className="mb-1 text-lg font-semibold text-ink">People and plans</h2>
-      <p className="mb-3 text-xs text-forest/70">
+      <p className="mb-3 text-xs text-muted">
         When a payment arrives, find the person by the email on the payment and give them Pro. Paying again extends from the end
         of the current period; when it ends they are on Free again automatically.
       </p>
       <form className="mb-3 flex flex-wrap items-center gap-2" onSubmit={(e) => { e.preventDefault(); load(query) }}>
-        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by email" aria-label="Search people by email" className="min-w-0 flex-1 rounded-lg border border-forest/15 bg-paper px-3 py-1.5 text-sm" />
-        <button type="submit" className="inline-flex items-center gap-1.5 rounded-md border border-forest/15 px-3 py-1.5 text-xs text-forest hover:bg-forest/5"><Search className="h-3.5 w-3.5" /> Search</button>
-        <label className="flex items-center gap-1.5 text-xs text-forest/70">
+        <input value={query} onChange={(e) => setQuery(e.target.value)} placeholder="Search by email" aria-label="Search people by email" className="min-w-0 flex-1 rounded-lg border border-line bg-paper px-3 py-1.5 text-sm" />
+        <button type="submit" className="inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-xs text-forest hover:bg-forest/5"><Search className="h-3.5 w-3.5" /> Search</button>
+        <label className="flex items-center gap-1.5 text-xs text-muted">
           Days of Pro
-          <input type="number" min={1} max={3660} value={days} onChange={(e) => setDays(Math.max(1, Number(e.target.value) || 31))} className="w-20 rounded-md border border-forest/15 bg-paper px-2 py-1 font-mono text-xs" />
+          <input type="number" min={1} max={3660} value={days} onChange={(e) => setDays(Math.max(1, Number(e.target.value) || 31))} className="w-20 rounded-md border border-line bg-paper px-2 py-1 font-mono text-xs" />
         </label>
       </form>
       {error ? <ErrorNote message={error} /> : null}
       {users ? (
         <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Recent turns">
           <table className="w-full min-w-[640px] font-mono text-xs">
-            <thead className="text-forest/70">
+            <thead className="text-muted">
               <tr><th className="text-left font-normal">Email</th><th className="text-left font-normal">Plan</th><th className="text-left font-normal">Paid until</th><th className="text-right font-normal">Today</th><th className="text-right font-normal" /></tr>
             </thead>
             <tbody>
               {users.map((u) => (
-                <tr key={u.id} className="border-t border-forest/10 text-forest">
+                <tr key={u.id} className="border-t border-line text-forest">
                   <td className="py-1.5">{u.email}{u.verified ? '' : ' (unconfirmed)'}{u.is_admin ? ' · admin' : ''}</td>
                   <td>{u.effective_plan}{u.plan !== u.effective_plan ? ` (${u.plan} lapsed)` : ''}</td>
                   <td>{u.paid_until ? new Date(u.paid_until * 1000).toLocaleDateString() : '—'}</td>
@@ -102,7 +102,7 @@ function PeoplePanel() {
               ))}
             </tbody>
           </table>
-          {!users.length ? <p className="py-2 text-sm text-forest/70">Nobody matches.</p> : null}
+          {!users.length ? <p className="py-2 text-sm text-muted">Nobody matches.</p> : null}
         </div>
       ) : null}
     </Card>
@@ -140,13 +140,13 @@ export default function Admin() {
       </PageHeader>
 
       <motion.div variants={rise} className="mb-4 flex flex-wrap gap-2">
-        <button onClick={reload} className="inline-flex items-center gap-1.5 rounded-md border border-forest/15 px-3 py-1.5 text-xs text-forest hover:bg-forest/5">
+        <button onClick={reload} className="inline-flex items-center gap-1.5 rounded-md border border-line px-3 py-1.5 text-xs text-forest hover:bg-forest/5">
           <RefreshCw className="h-3.5 w-3.5" /> Refresh
         </button>
         <button onClick={clearCache} className="inline-flex items-center gap-1.5 rounded-md border border-wine/40 px-3 py-1.5 text-xs text-wine hover:bg-wine/10">
           <Trash2 className="h-3.5 w-3.5" /> Clear answer cache
         </button>
-        {notice ? <span className="self-center text-xs text-forest/70" role="status">{notice}</span> : null}
+        {notice ? <span className="self-center text-xs text-muted" role="status">{notice}</span> : null}
       </motion.div>
 
       {stats.error ? <ErrorNote message={stats.error} /> : null}
@@ -172,7 +172,7 @@ export default function Admin() {
           <h2 className="mb-3 text-lg font-semibold text-ink">Providers and keys</h2>
           {status.data ? (
             <>
-              <p className="mb-2 text-xs text-forest/70">Order tried: {status.data.providers.join(' → ')}</p>
+              <p className="mb-2 text-xs text-muted">Order tried: {status.data.providers.join(' → ')}</p>
               <ul className="space-y-1.5 font-mono text-xs">
                 {Object.entries(status.data.keys).flatMap(([provider, keys]) =>
                   keys.length
@@ -181,21 +181,21 @@ export default function Admin() {
                           <span className={`h-2 w-2 rounded-full ${k.usable ? 'bg-moss' : k.invalid ? 'bg-wine' : 'bg-amber'}`} />
                           <span className="font-semibold text-ink">{provider}</span>
                           <span className="text-forest">{k.key}</span>
-                          <span className="text-forest/70">{k.usable ? 'ready' : k.invalid ? 'rejected' : `cooling ${k.cooldown_seconds}s`} · {k.uses} calls</span>
+                          <span className="text-muted">{k.usable ? 'ready' : k.invalid ? 'rejected' : `cooling ${k.cooldown_seconds}s`} · {k.uses} calls</span>
                         </li>
                       ))
-                    : [<li key={provider} className="text-forest/70">{provider}: no key</li>],
+                    : [<li key={provider} className="text-muted">{provider}: no key</li>],
                 )}
               </ul>
               <h3 className="mt-4 mb-1 text-sm font-semibold text-forest">Models by role</h3>
-              <ul className="grid grid-cols-2 gap-x-3 font-mono text-[11px] text-forest/80">
+              <ul className="grid grid-cols-2 gap-x-3 font-mono text-[11px] text-muted">
                 {Object.entries(status.data.models).map(([role, model]) => (
-                  <li key={role} className="truncate" title={model}><span className="text-forest/70">{role}</span> {model}</li>
+                  <li key={role} className="truncate" title={model}><span className="text-muted">{role}</span> {model}</li>
                 ))}
               </ul>
             </>
           ) : (
-            <p className="text-sm text-forest/70">{status.error ?? 'Loading…'}</p>
+            <p className="text-sm text-muted">{status.error ?? 'Loading…'}</p>
           )}
         </Card>
 
@@ -203,7 +203,7 @@ export default function Admin() {
           <h2 className="mb-3 text-lg font-semibold text-ink">Gates</h2>
           {gates.data ? (
             <table className="w-full font-mono text-xs">
-              <thead className="text-forest/70">
+              <thead className="text-muted">
                 <tr><th className="text-left font-normal">Gate</th><th className="text-right font-normal">≈ tokens</th><th className="text-right font-normal">accuracy</th><th className="text-right font-normal">ratings</th></tr>
               </thead>
               <tbody>
@@ -218,7 +218,7 @@ export default function Admin() {
               </tbody>
             </table>
           ) : (
-            <p className="text-sm text-forest/70">{gates.error ?? 'Loading…'}</p>
+            <p className="text-sm text-muted">{gates.error ?? 'Loading…'}</p>
           )}
         </Card>
       </div>
@@ -228,12 +228,12 @@ export default function Admin() {
           <h2 className="mb-3 text-lg font-semibold text-ink">Recent turns</h2>
           <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="People and plans">
             <table className="w-full min-w-[560px] font-mono text-xs">
-              <thead className="text-forest/70">
+              <thead className="text-muted">
                 <tr><th className="text-left font-normal">When</th><th className="text-left font-normal">Type</th><th className="text-left font-normal">Gate</th><th className="text-left font-normal">Decision</th><th className="text-right font-normal">Tokens</th><th className="text-right font-normal">Time</th></tr>
               </thead>
               <tbody>
                 {s.recent.map((t, i) => (
-                  <tr key={i} className="border-t border-forest/10 text-forest">
+                  <tr key={i} className="border-t border-line text-forest">
                     <td className="py-1">{new Date(t.ts * 1000).toLocaleTimeString()}</td>
                     <td>{t.task_type}</td>
                     <td>{GATE_LABELS[t.gate as GateName] ?? t.gate}{t.cached ? ' · cached' : ''}</td>

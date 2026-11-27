@@ -17,7 +17,7 @@ function Table({ data }: { data: ThresholdBaseline }) {
     <>
       <div className="overflow-x-auto" tabIndex={0} role="region" aria-label="Gate comparison">
         <table className="w-full min-w-[560px] text-sm">
-          <thead className="border-b border-forest/10 text-left text-xs font-medium text-forest/70">
+          <thead className="border-b border-line text-left text-xs font-medium text-muted">
             <tr>
               <th className="py-2 font-medium">Method (test, 2 seeds)</th>
               <th className="py-2 text-right font-medium">Accuracy</th>
@@ -32,22 +32,22 @@ function Table({ data }: { data: ThresholdBaseline }) {
               const gate = key.startsWith('GateOrchestra')
               const chosen = key === data.chosen_method
               return (
-                <tr key={key} className={`border-b border-forest/[0.06] ${gate ? 'bg-clay/[0.06]' : ''}`}>
+                <tr key={key} className={`border-b border-line ${gate ? 'bg-clay/[0.06]' : ''}`}>
                   <td className="py-2.5 pr-3">
                     <span className="font-medium text-ink">{label}</span>
                     {chosen ? <span className="chip ml-2">chosen on validation</span> : null}
-                    {note ? <span className="block text-xs text-forest/70">{note}</span> : null}
+                    {note ? <span className="block text-xs text-muted">{note}</span> : null}
                   </td>
                   <td className="num py-2.5 text-right text-ink">{m.accuracy.toFixed(1)}%</td>
                   <td className="num py-2.5 text-right text-ink">{Math.round(m.avg_tokens).toLocaleString()}</td>
-                  <td className="num py-2.5 text-right text-forest/70">{m.escalation_rate.toFixed(1)}%</td>
+                  <td className="num py-2.5 text-right text-muted">{m.escalation_rate.toFixed(1)}%</td>
                 </tr>
               )
             })}
           </tbody>
         </table>
       </div>
-      <p className="mt-3 text-sm leading-relaxed text-forest/70">
+      <p className="mt-3 text-sm leading-relaxed text-muted">
         Against never escalating, the learned gate is right on {vsCot?.a_only_correct ?? '—'} more runs and wrong on{' '}
         {vsCot?.b_only_correct ?? '—'} (exact McNemar p = {vsCot?.p_value ?? '—'}, optimistic because both seeds use the same tasks). On this
         benchmark it is not measurably better than a one-line rule: its value is that it learned not to escalate.
@@ -63,7 +63,7 @@ export default function ThresholdComparison() {
   return (
     <motion.section variants={rise} className="card p-5 lg:col-span-2">
       <h2 className="text-lg font-semibold text-ink">Against a one-line rule</h2>
-      <p className="mb-4 mt-1 text-xs text-forest/70">
+      <p className="mb-4 mt-1 text-xs text-muted">
         The gate relies on how much the probe's three samples agree, so here it faces gates that use only that number. Escalated tasks are
         scored with the recorded Always-MAS answer plus the probe's tokens.
       </p>
