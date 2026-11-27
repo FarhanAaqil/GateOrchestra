@@ -93,21 +93,29 @@ fact-checked by the assistant (`dataset/masbench_mini/REVIEW.json` says who revi
 
 ## Console
 
+Every screen below is a capture of the running console with the API live, so the figures are real
+benchmark output rather than mock-ups.
+
 | Overview | Results |
 | :---: | :---: |
-| ![Overview](assets/screenshots/overview.png) | ![Results](assets/screenshots/results.png) |
+| ![Overview: the pipeline summary and headline figures](assets/screenshots/overview.png) | ![Results: accuracy against tokens, the Depth x Parallel heatmap and the method table](assets/screenshots/results.png) |
 | **Baselines** | **Token accountant** |
-| ![Baselines](assets/screenshots/baselines.png) | ![Token accountant](assets/screenshots/token_accountant.png) |
+| ![Baselines: the gate measured against always and never escalating](assets/screenshots/baselines.png) | ![Token accountant: where the tokens went, per stage](assets/screenshots/token_accountant.png) |
+| **Gate inspector** | **Run a task** |
+| ![Gate inspector: the eight pre-execution features behind a decision](assets/screenshots/gate_inspector.png) | ![Run a task: one question through the live pipeline, with the gate drawn beside it](assets/screenshots/run_task.png) |
 
-More pages in [`assets/screenshots/`](assets/screenshots/).
+More pages — benchmark, admin and about — in [`assets/screenshots/`](assets/screenshots/).
 
 ---
 
 ## Chat assistant
 
+![The chat answering two arithmetic questions, each labelled with how it was answered, the tokens it cost and how long it took](assets/screenshots/chat.png)
+
 The **Chat** page answers any question: explanations, code, math, facts, and questions about
 documents you upload. It runs on Groq by default, falls back to Gemini, and can fall back to a
-local Ollama model.
+local Ollama model. Every answer carries how it was reached — answered directly or researched
+with tools — along with its token cost and latency, so the routing decision is always visible.
 
 **Measured accuracy** (`python scripts/chat_eval.py`, [`reports/chat_eval.md`](reports/chat_eval.md)): on 80 questions
 with checkable answers (facts, arithmetic, multi-step questions, Python output), answering directly was right
