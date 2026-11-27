@@ -44,12 +44,14 @@ export default function AxisHeatmap({
                     <motion.div
                       initial={{ opacity: 0, scale: 0.9 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className={`rounded-xl px-2 py-3 text-center ${value != null && value > 0.45 ? 'text-paper' : 'text-ink'}`}
-                      style={{ background: value == null ? 'rgba(207,227,236,0.25)' : `rgba(${color},${0.1 + value * 0.85})` }}
+                      className="rounded-xl px-2 py-3 text-center font-medium text-ink"
+                      // The ramp stops at 45% tint. Past that no text colour clears AA on
+                      // every cell, and the scale still reads from the lightest to the deepest.
+                      style={{ background: value == null ? 'rgba(207,227,236,0.25)' : `rgba(${color},${0.06 + value * 0.39})` }}
                       title={cell ? `${cell.n} task-runs` : 'no tasks'}
                     >
                       {value == null ? '—' : `${(value * 100).toFixed(0)}%`}
-                      {cell ? <span className="block text-[10px] opacity-70">n={cell.n}</span> : null}
+                      {cell ? <span className="block text-[10px] font-normal text-ink">n={cell.n}</span> : null}
                     </motion.div>
                   </td>
                 )
